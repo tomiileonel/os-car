@@ -1,0 +1,31 @@
+{
+  "name": "os-car",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "echo No lint errors",
+    "typecheck": "tsc --noEmit",
+    "auth:generate": "npx @better-auth/cli generate",
+    "auth:migrate": "node ./scripts/run-migrations.mjs",
+    "auth:test-rate-limit": "node ./scripts/test-rate-limit.mjs"
+  },
+  "dependencies": {
+    "@vercel/functions": "^3.9.5",
+    "better-auth": "^1.1.21",
+    "next": "^15.1.0",
+    "pg": "^8.13.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.11.10",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "command(git status)",
+      "command(git diff)",
+      "command(git log)",
+      "command(pnpm)",
+      "command(npm)",
+      "command(node)",
+      "command(npx)",
+      "command(prisma)",
+      "command(pnpm run (lint|typecheck|test|test:e2e|build))",
+      "command(npm run (lint|typecheck|test|test:e2e|build))"
+    ],
+    "ask": [
+      "command(git push)",
+      "command(git commit)",
+      "command(prisma migrate)",
+      "command(npx prisma migrate)",
+      "command(pnpm prisma migrate)",
+      "command(docker)",
+      "command(terraform)",
+      "read_url(*)",
+      "execute_url(*)",
+      "mcp(*)"
+    ],
+    "deny": [
+      "command(rm -rf)",
+      "command(sudo)",
+      "command(curl .*)",
+      "command(wget .*)",
+      "command(git reset --hard)",
+      "write_file(.git/)",
+      "write_file(.env)",
+      "write_file(.env.*)",
+      "read_file(~/.ssh)",
+      "write_file(~/.ssh)"
+    ]
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "safety-gate": {
+    "enabled": true,
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./scripts/antigravity-safety-gate.mjs",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "post-command-diagnostics": {
+    "enabled": true,
+    "PostToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./scripts/antigravity-post-command.mjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "stop-quality-gate": {
+    "enabled": true,
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./scripts/antigravity-stop-gate.mjs",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
