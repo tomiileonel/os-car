@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=inter:wght@100..900&display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"on-tertiary-fixed":"#001e2c","surface-container-lowest":"#0e0e11","inverse-surface":"#e4e1e6","inverse-on-surface":"#303033","surface-variant":"#353438","tertiary-fixed":"#c4e7ff","primary-fixed":"#ffe317","on-tertiary":"#00354a","on-error":"#690005","on-tertiary-fixed-variant":"#004c69","on-primary-fixed-variant":"#514700","primary-fixed-dim":"#e0c700","on-secondary-fixed-variant":"#930013","on-secondary-container":"#ffaea8","on-primary-container":"#706300","on-surface-variant":"#cec7ab","inverse-primary":"#6b5f00","surface-container-high":"#2a2a2d","background":"#131316","on-secondary-fixed":"#410004","error-container":"#93000a","primary":"#fffbff","surface-tint":"#e0c700","secondary-container":"#a40217","secondary":"#ffb3ad","secondary-fixed":"#ffdad7","tertiary":"#fbfcff","surface-container-highest":"#353438","surface-container-low":"#1b1b1e","primary-container":"#fce006","outline-variant":"#4b4732","surface":"#131316","surface-container":"#1f1f22","error":"#ffb4ab","on-primary-fixed":"#201c00","on-tertiary-container":"#006a90","on-error-container":"#ffdad6","surface-bright":"#39393c","secondary-fixed-dim":"#ffb3ad","on-background":"#e4e1e6","outline":"#979177","surface-dim":"#131316","tertiary-fixed-dim":"#7bd0ff","on-primary":"#383000","on-secondary":"#68000a","on-surface":"#e4e1e6","tertiary-container":"#bde5ff"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"gutter-tablet":"16px","touch-min":"48px","pad-xs":"4px","touch-compact":"44px","pad-md":"16px","pad-xl":"32px","pad-lg":"24px","gutter-desktop":"24px","pad-sm":"8px","margin-screen":"24px"},"fontFamily":{"display-md":["inter"],"tech-data-md":["jetbrainsMono"],"headline-md":["inter"],"headline-sm":["inter"],"tech-data-lg":["jetbrainsMono"],"body-md":["inter"],"display-lg":["inter"],"body-sm":["inter"],"body-lg":["inter"],"tech-badge":["jetbrainsMono"],"tech-data-xl":["jetbrainsMono"],"headline-lg":["inter"]},"fontSize":{"display-md":["32px",{"lineHeight":"40px","letterSpacing":"-0.01em","fontWeight":"700"}],"tech-data-md":["14px",{"lineHeight":"20px","letterSpacing":"0.02em","fontWeight":"500"}],"headline-md":["20px",{"lineHeight":"28px","fontWeight":"600"}],"headline-sm":["18px",{"lineHeight":"24px","fontWeight":"600"}],"tech-data-lg":["18px",{"lineHeight":"24px","letterSpacing":"0.05em","fontWeight":"700"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"display-lg":["40px",{"lineHeight":"48px","letterSpacing":"-0.02em","fontWeight":"800"}],"body-sm":["12px",{"lineHeight":"16px","fontWeight":"400"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"tech-badge":["11px",{"lineHeight":"14px","letterSpacing":"0.08em","fontWeight":"700"}],"tech-data-xl":["28px",{"lineHeight":"32px","letterSpacing":"0.04em","fontWeight":"700"}],"headline-lg":["24px",{"lineHeight":"32px","fontWeight":"700"}]}}}}</script></head><body class="bg-background font-body-md text-on-surface min-h-screen"><header class="fixed top-0 w-full z-50 bg-surface-container-lowest/90 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.5)]"><div class="h-20 w-full px-gutter-desktop flex items-center justify-between gap-pad-md"><div class="flex items-center gap-pad-lg"><div class="flex items-center gap-pad-md"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1Wk0jPPML55FtE70Ytu67jHd3H-O1uLGdUO2hTrvT-bfQ5SJwxcvxJeoK5SB5tzlOUqNTYd_hOoflpuIRAwMI4ysdEGNtwECEtOguGvbXWjyJAlsZfvUDLgbdSkEErG49iPViHGg56RP-WPPYswUAauMl2f8--W_FYjMQ9ZktCz5-DWzKTOI1jWgWX5cEQaMkHnpKK6JFZVJNVSRkFtLZ9MBFGs8A99NGxFE_0-NsELzUe2e0iIABkYnDeUvoQkvcJEzFC1AKkmWw"/><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface leading-tight tracking-tight">TallerPro</span><span class="font-tech-badge text-tech-badge text-on-surface-variant uppercase tracking-wider">Taller Mecánico Os-Car</span></div></div><div class="h-8 w-px bg-outline-variant/30 hidden lg:block"></div><div class="hidden lg:flex items-center gap-pad-md"><div class="flex items-center gap-pad-xs text-on-surface-variant"><span class="material-symbols-outlined text-sm">location_on</span><span class="font-body-sm text-body-sm font-medium">Sede Itaembé Guazú</span></div><div class="flex items-center gap-pad-xs px-pad-sm py-pad-xs rounded bg-surface-container text-on-surface-variant font-tech-data-md text-tech-data-md"><span class="material-symbols-outlined text-sm">schedule</span><span>14:35:12</span></div><div class="flex items-center gap-pad-xs px-pad-sm py-pad-xs rounded bg-surface-container text-primary-container font-tech-badge text-tech-badge border border-primary-container/20"><span class="inline-block w-2 h-2 rounded-full bg-primary-container animate-pulse"></span><span>3 DE 4 BAHÍAS ACTIVAS</span></div></div></div><nav class="hidden xl:flex items-center gap-pad-xs bg-surface-container-low p-pad-xs rounded-lg" data-active-classes="bg-surface-container-high text-on-surface font-semibold"><a class="px-pad-md py-pad-sm text-on-surface-variant hover:text-on-surface transition-colors font-body-md text-body-md rounded" data-path="mostrador-&-recepcion" href="#">Mostrador & Recepción</a><a aria-current="page" class="px-pad-md py-pad-sm transition-colors rounded bg-surface-container-high text-on-surface font-semibold" data-path="workboard-de-bahias" href="#">WorkBoard de Bahías</a><a class="px-pad-md py-pad-sm text-on-surface-variant hover:text-on-surface transition-colors font-body-md text-body-md rounded" data-path="ordenes-&-presupuestos" href="#">Órdenes & Presupuestos</a><a class="px-pad-md py-pad-sm text-on-surface-variant hover:text-on-surface transition-colors font-body-md text-body-md rounded" data-path="almacen-&-neumaticos" href="#">Almacén & Neumáticos</a></nav><div class="flex items-center gap-pad-sm"><button class="h-touch-min px-pad-md bg-surface-container-low hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface rounded flex items-center gap-pad-sm transition-colors border border-outline-variant/30" type="button"><span class="material-symbols-outlined text-lg">search</span><span class="font-tech-data-md text-tech-data-md hidden sm:inline">Buscar Patente</span><kbd class="hidden md:inline px-pad-xs py-0.5 rounded bg-surface-container text-on-surface-variant font-tech-badge text-tech-badge">Ctrl+K</kbd></button><button class="h-touch-min px-pad-md bg-primary-container hover:bg-primary-fixed-dim text-on-primary-container rounded font-headline-sm text-headline-sm font-bold flex items-center gap-pad-xs transition-colors shadow-sm" type="button"><span class="material-symbols-outlined text-lg">add_circle</span><span class="hidden sm:inline">+ Nuevo Ingreso</span></button><div class="flex items-center gap-pad-sm pl-pad-sm border-l border-outline-variant/30"><div class="text-right hidden sm:block"><div class="font-body-sm text-body-sm text-on-surface font-semibold leading-tight">Roberto S.</div><div class="font-tech-badge text-tech-badge text-on-surface-variant uppercase">Recepción</div></div></div></div></div></header><main class="w-full pt-20 bg-background"><div class="flex flex-col w-full">
+<!-- SHOPBOARD TELEMETRY SUBHEADER & CONTROL BAR -->
+<div class="w-full bg-surface-container-low px-gutter-desktop py-pad-md flex flex-col xl:flex-row xl:items-center justify-between gap-pad-md shadow-md">
+<div class="flex flex-wrap items-center gap-pad-md">
+<!-- Mechanics Quick Filters -->
+<div class="flex items-center gap-pad-xs bg-surface-container-lowest p-pad-xs rounded-xl overflow-x-auto max-w-full">
+<button class="filter-pill h-touch-compact px-pad-md rounded-lg font-tech-badge text-tech-badge tracking-wider uppercase bg-primary-container text-on-primary-container font-bold transition-all shadow-sm flex items-center gap-pad-xs whitespace-nowrap" type="button">
+<span class="w-2 h-2 rounded-full bg-on-primary-container"></span>
+<span>TODOS (4)</span>
+</button>
+<button class="filter-pill h-touch-compact px-pad-md rounded-lg font-tech-badge text-tech-badge tracking-wider uppercase bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all flex items-center gap-pad-xs whitespace-nowrap" type="button">
+<span>CARLOS (ELEV. 1)</span>
+</button>
+<button class="filter-pill h-touch-compact px-pad-md rounded-lg font-tech-badge text-tech-badge tracking-wider uppercase bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all flex items-center gap-pad-xs whitespace-nowrap" type="button">
+<span>MATEO (ELEV. 2)</span>
+</button>
+<button class="filter-pill h-touch-compact px-pad-md rounded-lg font-tech-badge text-tech-badge tracking-wider uppercase bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all flex items-center gap-pad-xs whitespace-nowrap" type="button">
+<span>ESTEBAN (FOSA)</span>
+</button>
+<button class="filter-pill h-touch-compact px-pad-md rounded-lg font-tech-badge text-tech-badge tracking-wider uppercase bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all flex items-center gap-pad-xs whitespace-nowrap" type="button">
+<span class="material-symbols-outlined text-sm text-primary-container">troubleshoot</span>
+<span>DIAGNÓSTICO (B4)</span>
+</button>
+</div>
+<!-- Capacity Telemetry Badge -->
+<div class="flex items-center gap-pad-sm bg-surface-container-lowest px-pad-md py-pad-xs rounded-xl h-touch-compact">
+<div class="flex items-center gap-pad-xs">
+<span class="w-2.5 h-2.5 rounded-full bg-primary-container animate-ping"></span>
+<span class="font-tech-data-lg text-tech-data-lg text-primary-container">85%</span>
+</div>
+<div class="h-4 w-px bg-surface-container-highest"></div>
+<div class="flex flex-col sm:flex-row sm:items-center gap-pad-xs font-tech-badge text-tech-badge text-on-surface-variant">
+<span class="text-on-surface">4 BAHÍAS EN OPERACIÓN</span>
+<span class="hidden sm:inline opacity-40">•</span>
+<span class="text-secondary-fixed">2 VEHÍCULOS EN PATIO</span>
+</div>
+</div>
+</div>
+<!-- Quick Search Bar -->
+<div class="flex items-center gap-pad-sm min-w-[280px]">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-pad-sm top-1/2 -translate-y-1/2 text-on-surface-variant text-base">pin</span>
+<input class="w-full h-touch-compact bg-surface-container-lowest text-on-surface placeholder:text-on-surface-variant/40 font-tech-data-md text-tech-data-md pl-10 pr-pad-md rounded-lg focus:outline-none focus:bg-surface-container-high transition-colors uppercase tracking-wider" placeholder="PATENTE O CLIENTE [EJ: AG 405 NM]" type="text"/>
+</div>
+<button class="h-touch-compact px-pad-md bg-surface-container hover:bg-surface-container-high text-on-surface rounded-lg flex items-center justify-center transition-colors" type="button">
+<span class="material-symbols-outlined text-lg">tune</span>
+</button>
+</div>
+</div>
+<!-- WORKBOARD KANBAN COLUMNS -->
+<div class="w-full px-gutter-desktop py-pad-lg overflow-x-auto">
+<div class="grid grid-flow-col auto-cols-[330px] 2xl:auto-cols-[1fr] gap-pad-md min-h-[calc(100vh-280px)] pb-24">
+<!-- ============================================== -->
+<!-- BAHÍA 1: ELEVADOR PRINCIPAL -->
+<!-- ============================================== -->
+<div class="flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-lg">
+<!-- Column Header -->
+<div class="p-pad-md bg-surface-container-high flex flex-col gap-pad-xs">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-pad-xs">
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary-fixed-dim"></span>
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Bahía 1</span>
+</div>
+<span class="px-pad-sm py-0.5 rounded font-tech-badge text-tech-badge bg-surface-container-lowest text-on-surface-variant uppercase">Elevador Principal</span>
+</div>
+<div class="flex items-center gap-pad-sm pt-pad-xs">
+<img class="w-7 h-7 rounded-full object-cover" data-alt="Portrait photo of Carlos M., an experienced master mechanic in his late 40s wearing a heavy-duty navy workshop jumpsuit, smiling subtly under industrial fluorescent lighting, tactile gritty mechanic portrait." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3kIw6pnecUQv7iZx3OCWptcKVQHFQhesLqOigc71CY0eAgJlMC93IP7JhjHB_rF6OpGSBxhWOH9mT7pyiylGP9f4Z04kiEQLPxnAQMslzFRVco2qPretwXuNMZ0__wST4a_seSPtmDKyJDB2k1ssIAyJEQYWqsUpxsAFpx5RQboFmDY9PAM2UsF8xRPowvMCvGi8CmJiQo8T_fFMYK8t2-OQqn0RcZLx609cHWXDbQix0wT0EEVrN"/>
+<div class="flex flex-col min-w-0">
+<span class="font-body-sm text-body-sm font-semibold text-on-surface truncate">Carlos M.</span>
+<span class="font-tech-badge text-tech-badge text-on-surface-variant truncate">ESPECIALISTA MOTOR</span>
+</div>
+</div>
+</div>
+<!-- Lane Content -->
+<div class="p-pad-sm flex flex-col gap-pad-sm flex-1">
+<!-- Active Job Card -->
+<div class="bg-surface-container rounded-xl p-pad-md shadow-md flex flex-col gap-pad-md hover:bg-surface-container-high transition-all">
+<!-- Header: Vehicle & Status -->
+<div class="flex items-start justify-between gap-pad-xs">
+<div class="flex flex-col min-w-0">
+<span class="font-headline-sm text-headline-sm text-on-surface truncate">Peugeot 208 Active</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Modelo 2022 • 1.6 VTi</span>
+</div>
+<!-- Status Badge: Blue -->
+<span class="px-pad-sm py-1 rounded font-tech-badge text-tech-badge bg-tertiary-container text-on-tertiary-container font-bold flex items-center gap-1 shrink-0">
+<span class="w-1.5 h-1.5 rounded-full bg-on-tertiary-container animate-pulse"></span>
+                EN REPARACIÓN
+              </span>
+</div>
+<!-- License Plate + Client Meta -->
+<div class="flex items-center justify-between bg-surface-container-lowest p-pad-xs rounded-lg">
+<div class="bg-primary text-surface-container-lowest px-pad-sm py-0.5 rounded font-tech-data-lg text-tech-data-lg tracking-widest font-bold">
+                AG 405 NM
+              </div>
+<div class="flex items-center gap-pad-xs text-on-surface-variant font-body-sm text-body-sm pr-pad-xs">
+<span class="material-symbols-outlined text-sm">person</span>
+<span class="font-medium text-on-surface truncate max-w-[110px]">Juan Pérez</span>
+</div>
+</div>
+<!-- Vehicle Visual Snapshot -->
+<div class="relative h-28 w-full rounded-lg overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover" data-alt="Modern dark gray Peugeot 208 hatchback elevated on a hydraulic two-post lift inside an industrial mechanical shop, mechanical tools and oil trays visible beneath, realistic dark moody tone with crisp directional yellow workshop spotlights." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6xF2LwoGka82RrCVAFksNHPU4zat87Re3obzcVpnZp6Yuj9U0oyRnRb0FsO2QWw0milBvtxezW_6Gv32D5ft_dJ19U79KIu8pIDKU-x-HEfBB_h1WpY8i64S3UfAn5O-NaWcfCCEnyKCvtkKqjwge6Uz3P8lzrXebBYvPOstbHoSRbiIRNr6IHvKw_Fp6wj9SbBpEmgCaZ0BGjU0QSXgEhX1wZMO2BlCtQ1xw0dyQQcXjZkF1yqpV"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-transparent"></div>
+<div class="absolute bottom-pad-xs left-pad-sm font-tech-badge text-tech-badge text-on-surface-variant">ORDEN #OT-2024-0891</div>
+</div>
+<!-- Technical Checklist -->
+<div class="flex flex-col gap-pad-xs bg-surface-container-lowest p-pad-sm rounded-lg">
+<div class="flex items-center justify-between text-body-sm">
+<span class="font-body-sm text-body-sm text-on-surface font-semibold truncate">Distribución & Bomba Agua</span>
+<span class="font-tech-data-md text-tech-data-md text-primary-container font-bold">2 / 3</span>
+</div>
+<!-- Progress Bar -->
+<div class="w-full h-2 bg-surface-container-high rounded-full overflow-hidden">
+<div class="bg-primary-container h-full rounded-full transition-all duration-500" style="width: 66%;"></div>
+</div>
+<div class="flex flex-col gap-1 pt-pad-xs">
+<div class="flex items-center gap-pad-xs text-body-sm text-on-surface">
+<span class="material-symbols-outlined text-base text-primary-container" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="line-through text-on-surface-variant text-body-sm">Desmontaje tren frontal</span>
+</div>
+<div class="flex items-center gap-pad-xs text-body-sm text-on-surface">
+<span class="material-symbols-outlined text-base text-primary-container" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="line-through text-on-surface-variant text-body-sm">Sustitución bomba y tensor</span>
+</div>
+<div class="flex items-center gap-pad-xs text-body-sm text-on-surface font-medium">
+<span class="material-symbols-outlined text-base text-on-surface-variant">radio_button_unchecked</span>
+<span class="text-on-surface text-body-sm">Purga y test térmico</span>
+</div>
+</div>
+</div>
+<!-- Footer: Live Timer & Actions -->
+<div class="flex items-center justify-between pt-pad-xs">
+<div class="flex items-center gap-pad-xs px-pad-sm py-pad-xs rounded bg-surface-container-lowest font-tech-data-md text-tech-data-md text-tertiary-fixed-dim">
+<span class="material-symbols-outlined text-base">timer</span>
+<span>1h 45m en bahía</span>
+</div>
+<button class="h-touch-min px-pad-md bg-surface-container-high hover:bg-surface-bright text-on-surface rounded font-body-sm text-body-sm font-semibold transition-colors flex items-center gap-pad-xs" type="button">
+<span>Ver Ficha</span>
+<span class="material-symbols-outlined text-base">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- ============================================== -->
+<!-- BAHÍA 2: ELEVADOR SECUNDARIO -->
+<!-- ============================================== -->
+<div class="flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-lg">
+<!-- Column Header -->
+<div class="p-pad-md bg-surface-container-high flex flex-col gap-pad-xs">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-pad-xs">
+<span class="w-2.5 h-2.5 rounded-full bg-primary-fixed"></span>
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Bahía 2</span>
+</div>
+<span class="px-pad-sm py-0.5 rounded font-tech-badge text-tech-badge bg-surface-container-lowest text-on-surface-variant uppercase">Elevador Secundario</span>
+</div>
+<div class="flex items-center gap-pad-sm pt-pad-xs">
+<img class="w-7 h-7 rounded-full object-cover" data-alt="Portrait of Mateo R., a young focused automotive technician wearing protective safety glasses, black technician polo shirt, gritty garage backdrop, professional sharp portrait lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDVc-_LW_w3KJVzRzN2bWBsnjY9nYHNV6OnHh4FdUYZtYpF3ErnckRilqUaUXL_GVngqkWNqbnbHRw5GKxnxNXPAnBRUA-2oSBSLlH6BEx79_VXw7Girol_hNhT4ER8kxplWDb6ZV3KowGFZjp2_ZK7qfuFTon5f51AoJYIYV2DqSOvg7Xw4f_04BSQvr8692fcX_jwwuAcXGsTfZlVywWhC0UZkJ1C5RoxKPEsJjf2-KX5ebqv7JL1"/>
+<div class="flex flex-col min-w-0">
+<span class="font-body-sm text-body-sm font-semibold text-on-surface truncate">Mateo R.</span>
+<span class="font-tech-badge text-tech-badge text-on-surface-variant truncate">FRENOS & TREN DELANTERO</span>
+</div>
+</div>
+</div>
+<!-- Lane Content -->
+<div class="p-pad-sm flex flex-col gap-pad-sm flex-1">
+<!-- Active Job Card -->
+<div class="bg-surface-container rounded-xl p-pad-md shadow-md flex flex-col gap-pad-md hover:bg-surface-container-high transition-all">
+<!-- Header: Vehicle & Status -->
+<div class="flex items-start justify-between gap-pad-xs">
+<div class="flex flex-col min-w-0">
+<span class="font-headline-sm text-headline-sm text-on-surface truncate">Toyota Hilux 4x4</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Modelo 2021 • 2.8 D-4D</span>
+</div>
+<!-- Status Badge: Emerald Green -->
+<span class="px-pad-sm py-1 rounded font-tech-badge text-tech-badge bg-surface-container-lowest text-primary-fixed-dim font-bold flex items-center gap-1 shrink-0">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-fixed-dim animate-pulse"></span>
+                LISTO PRUEBA
+              </span>
+</div>
+<!-- License Plate + Client Meta -->
+<div class="flex items-center justify-between bg-surface-container-lowest p-pad-xs rounded-lg">
+<div class="bg-primary text-surface-container-lowest px-pad-sm py-0.5 rounded font-tech-data-lg text-tech-data-lg tracking-widest font-bold">
+                AE 712 PO
+              </div>
+<div class="flex items-center gap-pad-xs text-on-surface-variant font-body-sm text-body-sm pr-pad-xs">
+<span class="material-symbols-outlined text-sm">agriculture</span>
+<span class="font-medium text-on-surface truncate max-w-[110px]">Agrícola Sur</span>
+</div>
+</div>
+<!-- Vehicle Visual Snapshot -->
+<div class="relative h-28 w-full rounded-lg overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover" data-alt="White Toyota Hilux pickup truck in a modern auto workshop station with wheels dismounted showing polished brake discs and fresh copper grease, moody industrial lighting, clean crisp mechanical detailing." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFrP4QBLBA-arPQPlLUno5w-4xDq3WVjNqq_vNHXWSpJlwJj4S8NDXkvH4G2szyf7sqei8M92A26xK4dURtk5prKVWdRcAeTgeCv41XJb6xVnhTOwMaZOz7I_bJ1mEMKpvi7loyQGTa4Rj0YXFuRslUKKNXCLDyrAz1iyn7V1UEdg3ebzrBk9ucUlATczOVXzLVD4e-_eRaKHs-CSUpQarTzpIjMo_G7RnGRAPJFPabql4YnJgVk8p"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-transparent"></div>
+<div class="absolute bottom-pad-xs left-pad-sm font-tech-badge text-tech-badge text-on-surface-variant">ORDEN #OT-2024-0885</div>
+</div>
+<!-- Technical Checklist -->
+<div class="flex flex-col gap-pad-xs bg-surface-container-lowest p-pad-sm rounded-lg">
+<div class="flex items-center justify-between text-body-sm">
+<span class="font-body-sm text-body-sm text-on-surface font-semibold truncate">Pastillas + Rectificado</span>
+<span class="font-tech-data-md text-tech-data-md text-primary-fixed-dim font-bold">3 / 3</span>
+</div>
+<!-- Progress Bar: 100% -->
+<div class="w-full h-2 bg-surface-container-high rounded-full overflow-hidden">
+<div class="bg-primary-fixed-dim h-full rounded-full transition-all duration-500" style="width: 100%;"></div>
+</div>
+<div class="flex flex-col gap-1 pt-pad-xs">
+<div class="flex items-center gap-pad-xs text-body-sm text-on-surface">
+<span class="material-symbols-outlined text-base text-primary-fixed-dim" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="line-through text-on-surface-variant text-body-sm">Desarme y rectificado de discos</span>
+</div>
+<div class="flex items-center gap-pad-xs text-body-sm text-on-surface">
+<span class="material-symbols-outlined text-base text-primary-fixed-dim" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="line-through text-on-surface-variant text-body-sm">Colocación juego cerámico</span>
+</div>
+<div class="flex items-center gap-pad-xs text-body-sm text-on-surface">
+<span class="material-symbols-outlined text-base text-primary-fixed-dim" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="line-through text-on-surface-variant text-body-sm">Torque de caliper a 115 Nm</span>
+</div>
+</div>
+</div>
+<!-- Footer: Live Timer & Actions -->
+<div class="flex items-center justify-between pt-pad-xs">
+<div class="flex items-center gap-pad-xs px-pad-sm py-pad-xs rounded bg-surface-container-lowest font-tech-data-md text-tech-data-md text-on-surface-variant">
+<span class="material-symbols-outlined text-base">hourglass_top</span>
+<span>45m restantes</span>
+</div>
+<button class="h-touch-min px-pad-md bg-primary-fixed-dim hover:bg-primary-fixed text-on-primary rounded font-body-sm text-body-sm font-bold transition-colors flex items-center gap-pad-xs" type="button">
+<span class="material-symbols-outlined text-base">sports_score</span>
+<span>Test Drive</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- ============================================== -->
+<!-- BAHÍA 3: FOSA / TREN DELANTERO (BLOQUEO) -->
+<!-- ============================================== -->
+<div class="flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-lg">
+<!-- Column Header -->
+<div class="p-pad-md bg-surface-container-high flex flex-col gap-pad-xs">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-pad-xs">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary"></span>
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Bahía 3</span>
+</div>
+<span class="px-pad-sm py-0.5 rounded font-tech-badge text-tech-badge bg-surface-container-lowest text-secondary-container text-secondary uppercase font-bold">Fosa Subterránea</span>
+</div>
+<div class="flex items-center gap-pad-sm pt-pad-xs">
+<img class="w-7 h-7 rounded-full object-cover" data-alt="Portrait of Esteban K., a senior alignment and suspension specialist wearing a charcoal mechanic cap and workshop shirt, intense focused expression, gritty high contrast workshop aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDC6K2meHXWuTnZB6NB-ycMuFb7kAJmh4RKP0t32kisi4KJBpxAnip42Nsn6jcvc0UMXIHodsldCo3Z7cMWUwp-qTzQVtRwhAT1UsChgl4hOGRMoD6AmJns277R1JOR8Zp-K07_8v3lk6bq-3QQ4R502Eqj0GTio04VJJnLFnGf4orfeMU1U5uNOkirEFAwTOk0z2kraNP8IbrkZDJxcIkKqkKfNowPkfKktOXvBgsaeQiSOMv_3mCk"/>
+<div class="flex flex-col min-w-0">
+<span class="font-body-sm text-body-sm font-semibold text-on-surface truncate">Esteban K.</span>
+<span class="font-tech-badge text-tech-badge text-on-surface-variant truncate">SUSPENSIÓN & ALINEACIÓN</span>
+</div>
+</div>
+</div>
+<!-- Lane Content -->
+<div class="p-pad-sm flex flex-col gap-pad-sm flex-1">
+<!-- Job Card with BLOCKER ALERT -->
+<div class="bg-surface-container rounded-xl p-pad-md shadow-xl flex flex-col gap-pad-md relative overflow-hidden">
+<!-- Warning Accent Bar -->
+<div class="absolute top-0 left-0 right-0 h-1 bg-secondary-container"></div>
+<!-- Blocker Banner -->
+<div class="bg-secondary-container/20 text-secondary p-pad-xs rounded flex items-center gap-pad-xs">
+<span class="material-symbols-outlined text-base text-secondary animate-bounce">warning</span>
+<span class="font-tech-badge text-tech-badge tracking-wide uppercase font-bold">Pieza pendiente de entrega</span>
+</div>
+<!-- Header: Vehicle & Status -->
+<div class="flex items-start justify-between gap-pad-xs">
+<div class="flex flex-col min-w-0">
+<span class="font-headline-sm text-headline-sm text-on-surface truncate">Ford Ranger XLT</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Modelo 2019 • 3.2 TDCi</span>
+</div>
+<!-- Status Badge: Warning Red/Amber -->
+<span class="px-pad-sm py-1 rounded font-tech-badge text-tech-badge bg-secondary-container text-on-secondary-container font-bold flex items-center gap-1 shrink-0">
+<span class="w-1.5 h-1.5 rounded-full bg-on-secondary-container"></span>
+                ESPERANDO REPUESTO
+              </span>
+</div>
+<!-- License Plate + Client Meta -->
+<div class="flex items-center justify-between bg-surface-container-lowest p-pad-xs rounded-lg">
+<div class="bg-primary text-surface-container-lowest px-pad-sm py-0.5 rounded font-tech-data-lg text-tech-data-lg tracking-widest font-bold">
+                AD 981 JK
+              </div>
+<div class="flex items-center gap-pad-xs text-on-surface-variant font-body-sm text-body-sm pr-pad-xs">
+<span class="material-symbols-outlined text-sm">local_shipping</span>
+<span class="font-medium text-on-surface truncate max-w-[110px]">Transp. Norte</span>
+</div>
+</div>
+<!-- Blocker Detail Box -->
+<div class="bg-surface-container-lowest p-pad-sm rounded-lg flex flex-col gap-pad-xs">
+<div class="flex items-center justify-between text-body-sm">
+<span class="font-tech-badge text-tech-badge uppercase text-secondary">Componente Bloqueante</span>
+<span class="font-tech-data-md text-tech-data-md text-secondary font-bold">SKU #FR-3309</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface font-semibold leading-tight">
+                Discos de freno ventilados delanteros 302mm (Par)
+              </p>
+<div class="flex items-center gap-pad-xs text-on-surface-variant font-tech-badge text-tech-badge pt-1">
+<span class="material-symbols-outlined text-xs text-secondary">schedule</span>
+<span>2H EN ESPERA DE MENSAJERÍA • REPUESTOS POSADAS</span>
+</div>
+</div>
+<!-- Technician Actions -->
+<div class="flex items-center gap-pad-xs pt-pad-xs">
+<button class="flex-1 h-touch-min bg-surface-container-high hover:bg-surface-bright text-secondary rounded font-tech-badge text-tech-badge uppercase font-bold flex items-center justify-center gap-pad-xs transition-colors" type="button">
+<span class="material-symbols-outlined text-base">notifications_active</span>
+<span>Reclamar Pieza</span>
+</button>
+<button class="h-touch-min px-pad-md bg-surface-container-high hover:bg-surface-bright text-on-surface rounded font-body-sm text-body-sm font-semibold transition-colors flex items-center justify-center" type="button">
+<span class="material-symbols-outlined text-base">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- ============================================== -->
+<!-- BAHÍA 4: ÁREA ELÉCTRICA / DIAGNÓSTICO -->
+<!-- ============================================== -->
+<div class="flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-lg">
+<!-- Column Header -->
+<div class="p-pad-md bg-surface-container-high flex flex-col gap-pad-xs">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-pad-xs">
+<span class="w-2.5 h-2.5 rounded-full bg-primary-container"></span>
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Bahía 4</span>
+</div>
+<span class="px-pad-sm py-0.5 rounded font-tech-badge text-tech-badge bg-surface-container-lowest text-primary-container uppercase font-bold">Diagnóstico OBD-II</span>
+</div>
+<div class="flex items-center gap-pad-sm pt-pad-xs">
+<div class="w-7 h-7 rounded-full bg-surface-container-highest flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-sm">precision_manufacturing</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-body-sm text-body-sm font-semibold text-on-surface truncate">Rotativa / Escáner</span>
+<span class="font-tech-badge text-tech-badge text-on-surface-variant truncate">LAUNCH X431 PAD VII</span>
+</div>
+</div>
+</div>
+<!-- Lane Content -->
+<div class="p-pad-sm flex flex-col gap-pad-sm flex-1">
+<!-- Active Job Card -->
+<div class="bg-surface-container rounded-xl p-pad-md shadow-md flex flex-col gap-pad-md hover:bg-surface-container-high transition-all">
+<!-- Header: Vehicle & Status -->
+<div class="flex items-start justify-between gap-pad-xs">
+<div class="flex flex-col min-w-0">
+<span class="font-headline-sm text-headline-sm text-on-surface truncate">VW Amarok Highline</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Modelo 2023 • 3.0 V6 TDI</span>
+</div>
+<!-- Status Badge: Diagnostic -->
+<span class="px-pad-sm py-1 rounded font-tech-badge text-tech-badge bg-surface-container-lowest text-primary-container font-bold flex items-center gap-1 shrink-0">
+<span class="material-symbols-outlined text-xs text-primary-container">troubleshoot</span>
+                DIAGNÓSTICO
+              </span>
+</div>
+<!-- License Plate + Client Meta -->
+<div class="flex items-center justify-between bg-surface-container-lowest p-pad-xs rounded-lg">
+<div class="bg-primary text-surface-container-lowest px-pad-sm py-0.5 rounded font-tech-data-lg text-tech-data-lg tracking-widest font-bold">
+                AF 342 WW
+              </div>
+<div class="flex items-center gap-pad-xs text-on-surface-variant font-body-sm text-body-sm pr-pad-xs">
+<span class="material-symbols-outlined text-sm">person</span>
+<span class="font-medium text-on-surface truncate max-w-[110px]">Martín Gómez</span>
+</div>
+</div>
+<!-- Live Diagnostic Telemetry Feed -->
+<div class="bg-surface-container-lowest p-pad-sm rounded-lg flex flex-col gap-pad-xs">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-pad-xs text-secondary font-tech-badge text-tech-badge">
+<span class="material-symbols-outlined text-sm">error</span>
+<span>DTC P0087: PRESIÓN RIEL COMBUSTIBLE</span>
+</div>
+<span class="font-tech-badge text-tech-badge px-1.5 py-0.5 rounded bg-error-container text-on-error-container">ACTIVO</span>
+</div>
+<!-- Sparkline telemetry mini chart -->
+<div class="w-full h-10 pt-1">
+<svg class="w-full h-full text-primary-container overflow-visible" preserveaspectratio="none" viewbox="0 0 200 40">
+<path d="M0 30 Q 20 28, 40 25 T 80 15 T 120 32 T 160 8 T 200 22" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path>
+<path d="M0 30 Q 20 28, 40 25 T 80 15 T 120 32 T 160 8 T 200 22 L 200 40 L 0 40 Z" fill="currentColor" fill-opacity="0.1"></path>
+</svg>
+</div>
+<div class="flex items-center justify-between font-tech-badge text-tech-badge text-on-surface-variant pt-pad-xs">
+<span>TESTIGO TEMPERATURA + INYECTORES</span>
+<span class="text-primary-container">SCANNING...</span>
+</div>
+</div>
+<!-- Footer: Live Timer & Actions -->
+<div class="flex items-center justify-between pt-pad-xs">
+<div class="flex items-center gap-pad-xs px-pad-sm py-pad-xs rounded bg-surface-container-lowest font-tech-data-md text-tech-data-md text-on-surface-variant">
+<span class="material-symbols-outlined text-base">sync</span>
+<span>En prueba activa</span>
+</div>
+<button class="h-touch-min px-pad-md bg-surface-container-high hover:bg-surface-bright text-on-surface rounded font-body-sm text-body-sm font-semibold transition-colors flex items-center gap-pad-xs" type="button">
+<span class="material-symbols-outlined text-base">print</span>
+<span>Informe</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- ============================================== -->
+<!-- BAHÍA 5 / COLA: EN ESPERA / PATIO EXTERIOR -->
+<!-- ============================================== -->
+<div class="flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-lg">
+<!-- Column Header -->
+<div class="p-pad-md bg-surface-container-high flex flex-col gap-pad-xs">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-pad-xs">
+<span class="w-2.5 h-2.5 rounded-full bg-outline"></span>
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Patio Exterior</span>
+</div>
+<span class="px-pad-sm py-0.5 rounded font-tech-badge text-tech-badge bg-surface-container-lowest text-on-surface-variant uppercase">Cola de Ingreso (2)</span>
+</div>
+<div class="flex items-center gap-pad-sm pt-pad-xs">
+<div class="w-7 h-7 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">schedule</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-body-sm text-body-sm font-semibold text-on-surface truncate">Sin bahía asignada</span>
+<span class="font-tech-badge text-tech-badge text-on-surface-variant truncate">PENDIENTE DE SLOT</span>
+</div>
+</div>
+</div>
+<!-- Lane Content -->
+<div class="p-pad-sm flex flex-col gap-pad-sm flex-1">
+<!-- Waiting Vehicle Card -->
+<div class="bg-surface-container rounded-xl p-pad-md shadow-md flex flex-col gap-pad-sm hover:bg-surface-container-high transition-all">
+<div class="flex items-start justify-between gap-pad-xs">
+<div class="flex flex-col min-w-0">
+<span class="font-headline-sm text-headline-sm text-on-surface truncate">Chevrolet Cruze LT</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Modelo 2020 • 1.4 Turbo</span>
+</div>
+<span class="px-pad-sm py-1 rounded font-tech-badge text-tech-badge bg-surface-container-lowest text-primary-container font-bold shrink-0">
+                APROBADO
+              </span>
+</div>
+<!-- License Plate -->
+<div class="flex items-center justify-between bg-surface-container-lowest p-pad-xs rounded-lg">
+<div class="bg-primary text-surface-container-lowest px-pad-sm py-0.5 rounded font-tech-data-lg text-tech-data-lg tracking-widest font-bold">
+                AC 918 LK
+              </div>
+<span class="font-tech-badge text-tech-badge text-on-surface-variant">COLA ELEVADOR 1</span>
+</div>
+<div class="bg-surface-container-lowest p-pad-sm rounded-lg text-body-sm text-on-surface-variant flex items-center gap-pad-xs">
+<span class="material-symbols-outlined text-sm text-primary-container">assignment_turned_in</span>
+<span class="font-body-sm text-body-sm">Presupuesto aceptado • Cambio amortiguadores</span>
+</div>
+<button class="w-full h-touch-min bg-surface-container-high hover:bg-surface-bright text-on-surface font-body-sm text-body-sm font-semibold rounded flex items-center justify-center gap-pad-xs transition-colors" type="button">
+<span class="material-symbols-outlined text-base">forward</span>
+<span>Asignar a Bahía Libre</span>
+</button>
+</div>
+<!-- Empty Slot / Drop Zone -->
+<div class="flex-1 min-h-[180px] rounded-xl bg-surface-container-lowest/60 p-pad-lg flex flex-col items-center justify-center text-center gap-pad-sm hover:bg-surface-container-lowest transition-all cursor-pointer group">
+<div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant group-hover:text-primary-container group-hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-2xl">add</span>
+</div>
+<div class="flex flex-col gap-0.5">
+<span class="font-headline-sm text-headline-sm text-on-surface">Bahía 5 (Auxiliar disponible)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Arrastra un vehículo aquí o pulsa para asignar</span>
+</div>
+<span class="font-tech-badge text-tech-badge text-primary-container bg-surface-container px-pad-md py-1 rounded uppercase tracking-wider font-bold">
+              + ASIGNAR PATIO
+            </span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- FLOATING BOTTOM CONTROL & TELEMETRY BAR -->
+<aside aria-label="Control de tiempos y balance" class="fixed bottom-0 left-0 right-0 z-40 bg-surface-container-lowest/95 backdrop-blur-md px-gutter-desktop py-pad-sm flex flex-col md:flex-row items-center justify-between gap-pad-md shadow-2xl">
+<!-- Status Color Legend -->
+<div class="flex items-center gap-pad-md overflow-x-auto max-w-full">
+<span class="font-tech-badge text-tech-badge text-on-surface-variant uppercase tracking-wider hidden sm:inline">ESTADOS:</span>
+<div class="flex items-center gap-1.5 font-tech-badge text-tech-badge text-on-surface-variant">
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary-container"></span>
+<span>EN REPARACIÓN</span>
+</div>
+<div class="flex items-center gap-1.5 font-tech-badge text-tech-badge text-on-surface-variant">
+<span class="w-2.5 h-2.5 rounded-full bg-primary-fixed-dim"></span>
+<span>LISTO / PRUEBA</span>
+</div>
+<div class="flex items-center gap-1.5 font-tech-badge text-tech-badge text-on-surface-variant">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary"></span>
+<span>ESPERANDO PIEZA</span>
+</div>
+<div class="flex items-center gap-1.5 font-tech-badge text-tech-badge text-on-surface-variant">
+<span class="w-2.5 h-2.5 rounded-full bg-primary-container"></span>
+<span>DIAGNÓSTICO OBD</span>
+</div>
+</div>
+<!-- Rapid Shop Actions -->
+<div class="flex items-center gap-pad-sm w-full md:w-auto justify-end">
+<!-- Pause Lunch Button -->
+<button class="h-touch-min px-pad-md rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-body-sm text-body-sm font-semibold flex items-center gap-pad-xs transition-colors" type="button">
+<span class="material-symbols-outlined text-base text-on-surface-variant">restaurant</span>
+<span>Pausar Tiempos (Almuerzo)</span>
+</button>
+<!-- Rebalance Workload Button -->
+<button class="h-touch-min px-pad-lg rounded-lg bg-primary-container hover:bg-primary-fixed-dim text-on-primary-container font-headline-sm text-headline-sm font-bold flex items-center gap-pad-xs shadow-md transition-colors" type="button">
+<span class="material-symbols-outlined text-lg">balance</span>
+<span>Balancear Cargas</span>
+</button>
+</div>
+</aside>
+</div>
+<script>
+  // Filter button interactive active toggles
+  document.querySelectorAll('.filter-pill').forEach(button => {
+    button.addEventListener('click', () => {
+      document.querySelectorAll('.filter-pill').forEach(btn => {
+        btn.classList.remove('bg-primary-container', 'text-on-primary-container', 'font-bold');
+        btn.classList.add('bg-surface-container-high', 'text-on-surface-variant');
+      });
+      button.classList.add('bg-primary-container', 'text-on-primary-container', 'font-bold');
+      button.classList.remove('bg-surface-container-high', 'text-on-surface-variant');
+    });
+  });
+</script></main><footer class="w-full bg-surface-container-lowest py-pad-lg mt-auto"><div class="w-full px-gutter-desktop flex flex-col md:flex-row items-center justify-between gap-pad-md"><div class="flex items-center gap-pad-md"><span class="font-headline-sm text-headline-sm text-on-surface">TallerPro OS</span><span class="font-tech-badge text-tech-badge text-on-surface-variant">v2.4.8-telemetry</span></div><div class="text-on-surface-variant font-body-sm text-body-sm text-center">© 2024 Taller Mecánico Os-Car. Posadas, Misiones. Todos los derechos reservados.</div><div class="flex items-center gap-pad-md text-on-surface-variant font-tech-data-md text-tech-data-md"><span class="flex items-center gap-pad-xs"><span class="w-2 h-2 rounded-full bg-primary-container"></span> Servidor Conectado</span></div></div></footer></body></html>

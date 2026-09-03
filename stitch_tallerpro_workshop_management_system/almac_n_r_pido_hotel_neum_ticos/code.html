@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=inter:wght@100..900&display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"on-tertiary-fixed":"#001e2c","surface-container-lowest":"#0e0e11","inverse-surface":"#e4e1e6","inverse-on-surface":"#303033","surface-variant":"#353438","tertiary-fixed":"#c4e7ff","primary-fixed":"#ffe317","on-tertiary":"#00354a","on-error":"#690005","on-tertiary-fixed-variant":"#004c69","on-primary-fixed-variant":"#514700","primary-fixed-dim":"#e0c700","on-secondary-fixed-variant":"#930013","on-secondary-container":"#ffaea8","on-primary-container":"#706300","on-surface-variant":"#cec7ab","inverse-primary":"#6b5f00","surface-container-high":"#2a2a2d","background":"#131316","on-secondary-fixed":"#410004","error-container":"#93000a","primary":"#fffbff","surface-tint":"#e0c700","secondary-container":"#a40217","secondary":"#ffb3ad","secondary-fixed":"#ffdad7","tertiary":"#fbfcff","surface-container-highest":"#353438","surface-container-low":"#1b1b1e","primary-container":"#fce006","outline-variant":"#4b4732","surface":"#131316","surface-container":"#1f1f22","error":"#ffb4ab","on-primary-fixed":"#201c00","on-tertiary-container":"#006a90","on-error-container":"#ffdad6","surface-bright":"#39393c","secondary-fixed-dim":"#ffb3ad","on-background":"#e4e1e6","outline":"#979177","surface-dim":"#131316","tertiary-fixed-dim":"#7bd0ff","on-primary":"#383000","on-secondary":"#68000a","on-surface":"#e4e1e6","tertiary-container":"#bde5ff"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"gutter-tablet":"16px","touch-min":"48px","pad-xs":"4px","touch-compact":"44px","pad-md":"16px","pad-xl":"32px","pad-lg":"24px","gutter-desktop":"24px","pad-sm":"8px","margin-screen":"24px"},"fontFamily":{"display-md":["inter"],"tech-data-md":["jetbrainsMono"],"headline-md":["inter"],"headline-sm":["inter"],"tech-data-lg":["jetbrainsMono"],"body-md":["inter"],"display-lg":["inter"],"body-sm":["inter"],"body-lg":["inter"],"tech-badge":["jetbrainsMono"],"tech-data-xl":["jetbrainsMono"],"headline-lg":["inter"]},"fontSize":{"display-md":["32px",{"lineHeight":"40px","letterSpacing":"-0.01em","fontWeight":"700"}],"tech-data-md":["14px",{"lineHeight":"20px","letterSpacing":"0.02em","fontWeight":"500"}],"headline-md":["20px",{"lineHeight":"28px","fontWeight":"600"}],"headline-sm":["18px",{"lineHeight":"24px","fontWeight":"600"}],"tech-data-lg":["18px",{"lineHeight":"24px","letterSpacing":"0.05em","fontWeight":"700"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"display-lg":["40px",{"lineHeight":"48px","letterSpacing":"-0.02em","fontWeight":"800"}],"body-sm":["12px",{"lineHeight":"16px","fontWeight":"400"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"tech-badge":["11px",{"lineHeight":"14px","letterSpacing":"0.08em","fontWeight":"700"}],"tech-data-xl":["28px",{"lineHeight":"32px","letterSpacing":"0.04em","fontWeight":"700"}],"headline-lg":["24px",{"lineHeight":"32px","fontWeight":"700"}]}}}}</script></head><body class="bg-background font-body-md text-on-surface min-h-screen"><header class="fixed top-0 w-full z-50 bg-surface-container-lowest/90 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.5)]"><div class="h-20 w-full px-gutter-desktop flex items-center justify-between gap-pad-md"><div class="flex items-center gap-pad-lg"><div class="flex items-center gap-pad-md"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1Wk0jPPML55FtE70Ytu67jHd3H-O1uLGdUO2hTrvT-bfQ5SJwxcvxJeoK5SB5tzlOUqNTYd_hOoflpuIRAwMI4ysdEGNtwECEtOguGvbXWjyJAlsZfvUDLgbdSkEErG49iPViHGg56RP-WPPYswUAauMl2f8--W_FYjMQ9ZktCz5-DWzKTOI1jWgWX5cEQaMkHnpKK6JFZVJNVSRkFtLZ9MBFGs8A99NGxFE_0-NsELzUe2e0iIABkYnDeUvoQkvcJEzFC1AKkmWw"/><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface leading-tight tracking-tight">TallerPro</span><span class="font-tech-badge text-tech-badge text-on-surface-variant uppercase tracking-wider">Taller Mecánico Os-Car</span></div></div><div class="h-8 w-px bg-outline-variant/30 hidden lg:block"></div><div class="hidden lg:flex items-center gap-pad-md"><div class="flex items-center gap-pad-xs text-on-surface-variant"><span class="material-symbols-outlined text-sm">location_on</span><span class="font-body-sm text-body-sm font-medium">Sede Itaembé Guazú</span></div><div class="flex items-center gap-pad-xs px-pad-sm py-pad-xs rounded bg-surface-container text-on-surface-variant font-tech-data-md text-tech-data-md"><span class="material-symbols-outlined text-sm">schedule</span><span>14:35:12</span></div><div class="flex items-center gap-pad-xs px-pad-sm py-pad-xs rounded bg-surface-container text-primary-container font-tech-badge text-tech-badge border border-primary-container/20"><span class="inline-block w-2 h-2 rounded-full bg-primary-container animate-pulse"></span><span>3 DE 4 BAHÍAS ACTIVAS</span></div></div></div><nav class="hidden xl:flex items-center gap-pad-xs bg-surface-container-low p-pad-xs rounded-lg" data-active-classes="bg-surface-container-high text-on-surface font-semibold"><a class="px-pad-md py-pad-sm text-on-surface-variant hover:text-on-surface transition-colors font-body-md text-body-md rounded" data-path="mostrador-&-recepcion" href="#">Mostrador & Recepción</a><a class="px-pad-md py-pad-sm text-on-surface-variant hover:text-on-surface transition-colors font-body-md text-body-md rounded" data-path="workboard-de-bahias" href="#">WorkBoard de Bahías</a><a class="px-pad-md py-pad-sm text-on-surface-variant hover:text-on-surface transition-colors font-body-md text-body-md rounded" data-path="ordenes-&-presupuestos" href="#">Órdenes & Presupuestos</a><a aria-current="page" class="px-pad-md py-pad-sm transition-colors rounded bg-surface-container-high text-on-surface font-semibold" data-path="almacen-&-neumaticos" href="#">Almacén & Neumáticos</a></nav><div class="flex items-center gap-pad-sm"><button class="h-touch-min px-pad-md bg-surface-container-low hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface rounded flex items-center gap-pad-sm transition-colors border border-outline-variant/30" type="button"><span class="material-symbols-outlined text-lg">search</span><span class="font-tech-data-md text-tech-data-md hidden sm:inline">Buscar Patente</span><kbd class="hidden md:inline px-pad-xs py-0.5 rounded bg-surface-container text-on-surface-variant font-tech-badge text-tech-badge">Ctrl+K</kbd></button><button class="h-touch-min px-pad-md bg-primary-container hover:bg-primary-fixed-dim text-on-primary-container rounded font-headline-sm text-headline-sm font-bold flex items-center gap-pad-xs transition-colors shadow-sm" type="button"><span class="material-symbols-outlined text-lg">add_circle</span><span class="hidden sm:inline">+ Nuevo Ingreso</span></button><div class="flex items-center gap-pad-sm pl-pad-sm border-l border-outline-variant/30"><div class="text-right hidden sm:block"><div class="font-body-sm text-body-sm text-on-surface font-semibold leading-tight">Roberto S.</div><div class="font-tech-badge text-tech-badge text-on-surface-variant uppercase">Recepción</div></div></div></div></div></header><main class="w-full pt-20 bg-background"><div class="flex flex-col w-full">
+<div class="w-full px-gutter-desktop py-pad-lg flex flex-col gap-pad-lg max-w-[1720px] mx-auto">
+<!-- Subheader & Quick Status Strip -->
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-pad-md bg-surface-container-lowest p-pad-md rounded-xl shadow-md">
+<div class="flex flex-wrap items-center gap-pad-md">
+<div class="flex items-center gap-pad-sm">
+<span class="p-pad-xs rounded bg-surface-container-high text-primary-container">
+<span class="material-symbols-outlined text-2xl">warehouse</span>
+</span>
+<div>
+<div class="font-headline-md text-headline-md text-on-surface flex items-center gap-pad-xs">
+              Almacén Táctico & Hotel de Cubiertas
+              <span class="font-tech-badge text-tech-badge text-primary-container bg-surface-container px-pad-xs py-0.5 rounded">RACK-SYS v2</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Logística inmediata de fosa, reposición crítica y resguardo estacional de clientes</p>
+</div>
+</div>
+</div>
+<!-- Segmented View Mode Tabs -->
+<div class="flex items-center gap-pad-xs bg-surface-container-low p-pad-xs rounded-lg self-start lg:self-auto">
+<button class="h-touch-compact px-pad-md rounded font-tech-data-md text-tech-data-md font-bold uppercase transition-all flex items-center gap-pad-xs bg-surface-container-highest text-on-surface shadow-sm" id="tab-btn-supplies" onclick="switchView('supplies')">
+<span class="material-symbols-outlined text-base text-primary-container">speed</span>
+<span>Insumos & Repuestos Ágiles</span>
+<span class="px-pad-xs py-0.5 rounded-full bg-error-container text-error font-tech-badge text-tech-badge">3 CRÍT</span>
+</button>
+<button class="h-touch-compact px-pad-md rounded font-tech-data-md text-tech-data-md font-bold uppercase transition-all flex items-center gap-pad-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high" id="tab-btn-tires" onclick="switchView('tires')">
+<span class="material-symbols-outlined text-base">tire_repair</span>
+<span>Hotel Neumáticos en Custodia</span>
+<span class="px-pad-xs py-0.5 rounded bg-surface-container text-on-surface-variant font-tech-badge text-tech-badge">32/40 SLOTS</span>
+</button>
+</div>
+</div>
+<!-- VIEW 1: INSUMOS DE ALTA ROTACIÓN -->
+<section class="flex flex-col gap-pad-lg" id="view-supplies">
+<!-- Metrics Bento Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-pad-md">
+<!-- Metric 1 -->
+<div class="bg-surface-container-low p-pad-md rounded-xl flex flex-col justify-between shadow-sm relative overflow-hidden">
+<div class="flex items-start justify-between">
+<span class="font-tech-badge text-tech-badge uppercase text-on-surface-variant">Índice Total Insumos</span>
+<span class="material-symbols-outlined text-on-surface-variant text-xl">inventory_2</span>
+</div>
+<div class="my-pad-sm flex items-baseline gap-pad-xs">
+<span class="font-tech-data-xl text-tech-data-xl text-on-surface">184</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">SKUs activos en estanterías</span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-tech-badge text-tech-badge">
+<span>Rotación prom: 4.2d</span>
+<span class="text-primary-container flex items-center gap-pad-xs"><span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span> 98.2% Dispersión</span>
+</div>
+</div>
+<!-- Metric 2 (Critical Alert) -->
+<div class="bg-surface-container-low p-pad-md rounded-xl flex flex-col justify-between shadow-sm relative overflow-hidden">
+<div class="flex items-start justify-between">
+<span class="font-tech-badge text-tech-badge uppercase text-error">Alerta Stock Crítico</span>
+<span class="material-symbols-outlined text-error text-xl animate-bounce">warning</span>
+</div>
+<div class="my-pad-sm flex items-baseline gap-pad-xs">
+<span class="font-tech-data-xl text-tech-data-xl text-error">3</span>
+<span class="font-body-sm text-body-sm text-on-error-container">Ítems bajo punto de quiebre</span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-tech-badge text-tech-badge">
+<span class="text-error">Afecta Bahía 1 & 3</span>
+<span class="text-error uppercase">Proveedor Alertado</span>
+</div>
+</div>
+<!-- Metric 3 -->
+<div class="bg-surface-container-low p-pad-md rounded-xl flex flex-col justify-between shadow-sm relative overflow-hidden">
+<div class="flex items-start justify-between">
+<span class="font-tech-badge text-tech-badge uppercase text-on-surface-variant">Valorización Existencias</span>
+<span class="material-symbols-outlined text-primary-container text-xl">monetization_on</span>
+</div>
+<div class="my-pad-sm flex items-baseline gap-pad-xs">
+<span class="font-tech-data-xl text-tech-data-xl text-primary-container">$4.850.000</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">ARS neto</span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-tech-badge text-tech-badge">
+<span>Costo Reposición actual</span>
+<span class="text-on-surface">Base FIFO</span>
+</div>
+</div>
+<!-- Action Card Quick Trigger -->
+<div class="bg-surface-container p-pad-md rounded-xl flex flex-col justify-between shadow-sm">
+<div class="flex items-center justify-between">
+<span class="font-tech-badge text-tech-badge uppercase text-primary-container">Acción de Reposición</span>
+<span class="material-symbols-outlined text-primary-container text-xl">bolt</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant my-pad-xs">Genera automáticamente el pedido a distribuidores (Motul, Fram, Fras-le) con cantidades de seguridad calculadas.</p>
+<button class="h-touch-compact w-full px-pad-md bg-primary-container hover:bg-primary-fixed-dim text-on-primary-container rounded font-tech-data-md text-tech-data-md font-bold uppercase transition-colors flex items-center justify-center gap-pad-xs shadow-sm" onclick="triggerPurchaseOrderModal()" type="button">
+<span class="material-symbols-outlined text-lg">local_shipping</span>
+<span>Generar Orden Compra Sugerida</span>
+</button>
+</div>
+</div>
+<!-- Quick Search, Barcode Reader & Filter Strip -->
+<div class="bg-surface-container-low p-pad-md rounded-xl flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-pad-md shadow-sm">
+<div class="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-pad-sm">
+<!-- Live search input -->
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-pad-sm top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full h-touch-compact pl-10 pr-pad-md rounded bg-surface-container text-on-surface placeholder:text-on-surface-variant font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" id="inventorySearchInput" oninput="filterTable()" placeholder="Buscar por SKU, descripción, marca o estantería..." type="text"/>
+</div>
+<!-- Barcode trigger button -->
+<button class="h-touch-compact px-pad-md bg-surface-container-high hover:bg-surface-bright text-on-surface rounded font-tech-data-md text-tech-data-md flex items-center justify-center gap-pad-xs transition-colors" onclick="simulateBarcodeScan()" type="button">
+<span class="material-symbols-outlined text-primary-container text-xl">barcode_scanner</span>
+<span class="uppercase">Escanear Barra (Beeper)</span>
+</button>
+</div>
+<!-- Filter Chips -->
+<div class="flex flex-wrap items-center gap-pad-xs overflow-x-auto pb-1 xl:pb-0">
+<button class="category-chip h-touch-compact px-pad-md rounded font-tech-badge text-tech-badge uppercase tracking-wider bg-surface-container-highest text-on-surface" onclick="setCategoryFilter('all', this)">Todos (184)</button>
+<button class="category-chip h-touch-compact px-pad-md rounded font-tech-badge text-tech-badge uppercase tracking-wider bg-surface-container text-on-surface-variant hover:text-on-surface" onclick="setCategoryFilter('Lubricantes', this)">Aceites & Fluidos</button>
+<button class="category-chip h-touch-compact px-pad-md rounded font-tech-badge text-tech-badge uppercase tracking-wider bg-surface-container text-on-surface-variant hover:text-on-surface" onclick="setCategoryFilter('Filtros', this)">Filtros</button>
+<button class="category-chip h-touch-compact px-pad-md rounded font-tech-badge text-tech-badge uppercase tracking-wider bg-surface-container text-on-surface-variant hover:text-on-surface" onclick="setCategoryFilter('Frenos', this)">Frenos</button>
+<button class="category-chip h-touch-compact px-pad-md rounded font-tech-badge text-tech-badge uppercase tracking-wider bg-surface-container text-on-surface-variant hover:text-on-surface" onclick="setCategoryFilter('Encendido', this)">Encendido</button>
+</div>
+</div>
+<!-- Quick Inventory Table (Touch-first, Ergonomic Steppers) -->
+<div class="bg-surface-container-low rounded-xl overflow-hidden shadow-sm">
+<div class="overflow-x-auto">
+<table class="w-full text-left font-body-md text-body-md min-w-[980px]">
+<thead class="bg-surface-container text-on-surface-variant font-tech-badge text-tech-badge uppercase tracking-wider">
+<tr>
+<th class="py-pad-md px-pad-md">Código SKU</th>
+<th class="py-pad-md px-pad-md">Descripción del Insumo</th>
+<th class="py-pad-md px-pad-md">Categoría</th>
+<th class="py-pad-md px-pad-md text-center">Stock Actual</th>
+<th class="py-pad-md px-pad-md text-center">Umbral Mínimo</th>
+<th class="py-pad-md px-pad-md">Ubicación Física</th>
+<th class="py-pad-md px-pad-md text-center">Ajuste Fosa (+/-)</th>
+<th class="py-pad-md px-pad-md text-right">Estado Operativo</th>
+</tr>
+</thead>
+<tbody class="text-on-surface divide-y-0" id="inventory-table-body">
+<!-- Item 1: CRÍTICO -->
+<tr class="inventory-row bg-surface-container-lowest hover:bg-surface-container transition-colors" data-category="Filtros">
+<td class="py-pad-md px-pad-md font-tech-data-md text-tech-data-md font-bold text-primary-container">
+                  FRAM-PH5949
+                </td>
+<td class="py-pad-md px-pad-md">
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold">Filtro de Aceite Fram Blindado</div>
+<div class="font-tech-badge text-tech-badge text-on-surface-variant">Compatible línea Renault 1.6 / Fiat FireFly</div>
+</td>
+<td class="py-pad-md px-pad-md">
+<span class="px-pad-sm py-0.5 rounded bg-surface-container-high text-on-surface-variant font-tech-badge text-tech-badge uppercase">Filtros</span>
+</td>
+<td class="py-pad-md px-pad-md text-center font-tech-data-lg text-tech-data-lg font-bold text-error">
+<span id="stock-FRAM-PH5949">2</span> <span class="font-tech-badge text-tech-badge text-on-surface-variant font-normal">un</span>
+</td>
+<td class="py-pad-md px-pad-md text-center font-tech-data-md text-tech-data-md text-on-surface-variant">
+                  Mín: 5 un
+                </td>
+<td class="py-pad-md px-pad-md">
+<div class="flex items-center gap-pad-xs">
+<span class="material-symbols-outlined text-sm text-primary-container">shelves</span>
+<span class="font-tech-data-md text-tech-data-md font-semibold text-on-surface">Estante B-2</span>
+</div>
+</td>
+<td class="py-pad-md px-pad-md text-center">
+<div class="inline-flex items-center bg-surface-container rounded-lg p-1 gap-pad-xs">
+<button class="w-touch-compact h-touch-compact rounded bg-surface-container-high hover:bg-secondary-container text-on-surface flex items-center justify-center font-tech-data-lg text-tech-data-lg transition-colors active:scale-95" onclick="adjustStock('FRAM-PH5949', -1)" title="Consumir en fosa" type="button">
+                      -
+                    </button>
+<span class="font-tech-badge text-tech-badge text-on-surface-variant px-1 uppercase">TOUCH</span>
+<button class="w-touch-compact h-touch-compact rounded bg-primary-container text-on-primary-container hover:bg-primary-fixed-dim flex items-center justify-center font-tech-data-lg text-tech-data-lg transition-colors active:scale-95" onclick="adjustStock('FRAM-PH5949', 1)" title="Ingresar del repartidor" type="button">
+                      +
+                    </button>
+</div>
+</td>
+<td class="py-pad-md px-pad-md text-right">
+<span class="inline-flex items-center gap-pad-xs px-pad-sm py-pad-xs rounded bg-error-container text-error font-tech-badge text-tech-badge uppercase tracking-wider font-bold">
+<span class="w-2 h-2 rounded-full bg-error animate-pulse"></span> CRÍTICO - Pedir
+                  </span>
+</td>
+</tr>
+<!-- Item 2: BAJO STOCK -->
+<tr class="inventory-row bg-surface-container-low hover:bg-surface-container transition-colors" data-category="Lubricantes">
+<td class="py-pad-md px-pad-md font-tech-data-md text-tech-data-md font-bold text-primary-container">
+                  MOTUL-8100-5W40
+                </td>
+<td class="py-pad-md px-pad-md">
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold">Aceite Sintético Motul 8100 X-Cess 5W40 4L</div>
+<div class="font-tech-badge text-tech-badge text-on-surface-variant">Norma VW 502.00 / 505.00 - BMW LL-01</div>
+</td>
+<td class="py-pad-md px-pad-md">
+<span class="px-pad-sm py-0.5 rounded bg-surface-container-high text-on-surface-variant font-tech-badge text-tech-badge uppercase">Lubricantes</span>
+</td>
+<td class="py-pad-md px-pad-md text-center font-tech-data-lg text-tech-data-lg font-bold text-primary-container">
+<span id="stock-MOTUL-8100-5W40">4</span> <span class="font-tech-badge text-tech-badge text-on-surface-variant font-normal">bidones</span>
+</td>
+<td class="py-pad-md px-pad-md text-center font-tech-data-md text-tech-data-md text-on-surface-variant">
+                  Mín: 6 bidones
+                </td>
+<td class="py-pad-md px-pad-md">
+<div class="flex items-center gap-pad-xs">
+<span class="material-symbols-outlined text-sm text-primary-container">pallet</span>
+<span class="font-tech-data-md text-tech-data-md font-semibold text-on-surface">Pallet Lubricentro P-01</span>
+</div>
+</td>
+<td class="py-pad-md px-pad-md text-center">
+<div class="inline-flex items-center bg-surface-container rounded-lg p-1 gap-pad-xs">
+<button class="w-touch-compact h-touch-compact rounded bg-surface-container-high hover:bg-secondary-container text-on-surface flex items-center justify-center font-tech-data-lg text-tech-data-lg transition-colors active:scale-95" onclick="adjustStock('MOTUL-8100-5W40', -1)" type="button">
+                      -
+                    </button>
+<span class="font-tech-badge text-tech-badge text-on-surface-variant px-1 uppercase">TOUCH</span>
+<button class="w-touch-compact h-touch-compact rounded bg-primary-container text-on-primary-container hover:bg-primary-fixed-dim flex items-center justify-center font-tech-data-lg text-tech-data-lg transition-colors active:scale-95" onclick="adjustStock('MOTUL-8100-5W40', 1)" type="button">
+                      +
+                    </button>
+</div>
+</td>
+<td class="py-pad-md px-pad-md text-right">
+<span class="inline-flex items-center gap-pad-xs px-pad-sm py-pad-xs rounded bg-surface-container-highest text-primary-container font-tech-badge text-tech-badge uppercase tracking-wider font-bold">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span> Bajo Stock
+                  </span>
+</td>
+</tr>
+<!-- Item 3: ÓPTIMO -->
+<tr class="inventory-row bg-surface-container-lowest hover:bg-surface-container transition-colors" data-category="Frenos">
+<td class="py-pad-md px-pad-md font-tech-data-md text-tech-data-md font-bold text-on-surface">
+                  FRASLE-FD88
+                </td>
+<td class="py-pad-md px-pad-md">
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold">Juego Pastillas Delanteras Hilux / SW4</div>
+<div class="font-tech-badge text-tech-badge text-on-surface-variant">Fras-le Cerámica Heavy Duty</div>
+</td>
+<td class="py-pad-md px-pad-md">
+<span class="px-pad-sm py-0.5 rounded bg-surface-container-high text-on-surface-variant font-tech-badge text-tech-badge uppercase">Frenos</span>
+</td>
+<td class="py-pad-md px-pad-md text-center font-tech-data-lg text-tech-data-lg font-bold text-on-surface">
+<span id="stock-FRASLE-FD88">8</span> <span class="font-tech-badge text-tech-badge text-on-surface-variant font-normal">juegos</span>
+</td>
+<td class="py-pad-md px-pad-md text-center font-tech-data-md text-tech-data-md text-on-surface-variant">
+                  Mín: 3 juegos
+                </td>
+<td class="py-pad-md px-pad-md">
+<div class="flex items-center gap-pad-xs">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">shelves</span>
+<span class="font-tech-data-md text-tech-data-md font-semibold text-on-surface">Estante F-1</span>
+</div>
+</td>
+<td class="py-pad-md px-pad-md text-center">
+<div class="inline-flex items-center bg-surface-container rounded-lg p-1 gap-pad-xs">
+<button class="w-touch-compact h-touch-compact rounded bg-surface-container-high hover:bg-secondary-container text-on-surface flex items-center justify-center font-tech-data-lg text-tech-data-lg transition-colors active:scale-95" onclick="adjustStock('FRASLE-FD88', -1)" type="button">
+                      -
+                    </button>
+<span class="font-tech-badge text-tech-badge text-on-surface-variant px-1 uppercase">TOUCH</span>
+<button class="w-touch-compact h-touch-compact rounded bg-primary-container text-on-primary-container hover:bg-primary-fixed-dim flex items-center justify-center font-tech-data-lg text-tech-data-lg transition-colors active:scale-95" onclick="adjustStock('FRASLE-FD88', 1)" type="button">
+                      +
+                    </button>
+</div>
+</td>
+<td class="py-pad-md px-pad-md text-right">
+<span class="inline-flex items-center gap-pad-xs px-pad-sm py-pad-xs rounded bg-surface-container text-on-surface-variant font-tech-badge text-tech-badge uppercase tracking-wider font-semibold">
+<span class="w-2 h-2 rounded-full bg-outline"></span> Stock Óptimo
+                  </span>
+</td>
+</tr>
+<!-- Item 4: ÓPTIMO -->
+<tr class="inventory-row bg-surface-container-low hover:bg-surface-container transition-colors" data-category="Encendido">
+<td class="py-pad-md px-pad-md font-tech-data-md text-tech-data-md font-bold text-on-surface">
+                  BOSCH-WR7DC
+                </td>
+<td class="py-pad-md px-pad-md">
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold">Bujías Bosch Níquel (Pack x4)</div>
+<div class="font-tech-badge text-tech-badge text-on-surface-variant">Calibradas 0.8mm universal multipunto</div>
+</td>
+<td class="py-pad-md px-pad-md">
+<span class="px-pad-sm py-0.5 rounded bg-surface-container-high text-on-surface-variant font-tech-badge text-tech-badge uppercase">Encendido</span>
+</td>
+<td class="py-pad-md px-pad-md text-center font-tech-data-lg text-tech-data-lg font-bold text-on-surface">
+<span id="stock-BOSCH-WR7DC">12</span> <span class="font-tech-badge text-tech-badge text-on-surface-variant font-normal">packs</span>
+</td>
+<td class="py-pad-md px-pad-md text-center font-tech-data-md text-tech-data-md text-on-surface-variant">
+                  Mín: 4 packs
+                </td>
+<td class="py-pad-md px-pad-md">
+<div class="flex items-center gap-pad-xs">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">shelves</span>
+<span class="font-tech-data-md text-tech-data-md font-semibold text-on-surface">Estante E-3</span>
+</div>
+</td>
+<td class="py-pad-md px-pad-md text-center">
+<div class="inline-flex items-center bg-surface-container rounded-lg p-1 gap-pad-xs">
+<button class="w-touch-compact h-touch-compact rounded bg-surface-container-high hover:bg-secondary-container text-on-surface flex items-center justify-center font-tech-data-lg text-tech-data-lg transition-colors active:scale-95" onclick="adjustStock('BOSCH-WR7DC', -1)" type="button">
+                      -
+                    </button>
+<span class="font-tech-badge text-tech-badge text-on-surface-variant px-1 uppercase">TOUCH</span>
+<button class="w-touch-compact h-touch-compact rounded bg-primary-container text-on-primary-container hover:bg-primary-fixed-dim flex items-center justify-center font-tech-data-lg text-tech-data-lg transition-colors active:scale-95" onclick="adjustStock('BOSCH-WR7DC', 1)" type="button">
+                      +
+                    </button>
+</div>
+</td>
+<td class="py-pad-md px-pad-md text-right">
+<span class="inline-flex items-center gap-pad-xs px-pad-sm py-pad-xs rounded bg-surface-container text-on-surface-variant font-tech-badge text-tech-badge uppercase tracking-wider font-semibold">
+<span class="w-2 h-2 rounded-full bg-outline"></span> Stock Óptimo
+                  </span>
+</td>
+</tr>
+<!-- Item 5: ÓPTIMO -->
+<tr class="inventory-row bg-surface-container-lowest hover:bg-surface-container transition-colors" data-category="Lubricantes">
+<td class="py-pad-md px-pad-md font-tech-data-md text-tech-data-md font-bold text-on-surface">
+                  TOTAL-QUARTZ-7000
+                </td>
+<td class="py-pad-md px-pad-md">
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold">Aceite Semisintético Total Quartz 7000 10W40 1L</div>
+<div class="font-tech-badge text-tech-badge text-on-surface-variant">Envase individual para relleno y servicio ligero</div>
+</td>
+<td class="py-pad-md px-pad-md">
+<span class="px-pad-sm py-0.5 rounded bg-surface-container-high text-on-surface-variant font-tech-badge text-tech-badge uppercase">Lubricantes</span>
+</td>
+<td class="py-pad-md px-pad-md text-center font-tech-data-lg text-tech-data-lg font-bold text-on-surface">
+<span id="stock-TOTAL-QUARTZ-7000">18</span> <span class="font-tech-badge text-tech-badge text-on-surface-variant font-normal">un</span>
+</td>
+<td class="py-pad-md px-pad-md text-center font-tech-data-md text-tech-data-md text-on-surface-variant">
+                  Mín: 10 un
+                </td>
+<td class="py-pad-md px-pad-md">
+<div class="flex items-center gap-pad-xs">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">pallet</span>
+<span class="font-tech-data-md text-tech-data-md font-semibold text-on-surface">Pallet Lubricentro P-02</span>
+</div>
+</td>
+<td class="py-pad-md px-pad-md text-center">
+<div class="inline-flex items-center bg-surface-container rounded-lg p-1 gap-pad-xs">
+<button class="w-touch-compact h-touch-compact rounded bg-surface-container-high hover:bg-secondary-container text-on-surface flex items-center justify-center font-tech-data-lg text-tech-data-lg transition-colors active:scale-95" onclick="adjustStock('TOTAL-QUARTZ-7000', -1)" type="button">
+                      -
+                    </button>
+<span class="font-tech-badge text-tech-badge text-on-surface-variant px-1 uppercase">TOUCH</span>
+<button class="w-touch-compact h-touch-compact rounded bg-primary-container text-on-primary-container hover:bg-primary-fixed-dim flex items-center justify-center font-tech-data-lg text-tech-data-lg transition-colors active:scale-95" onclick="adjustStock('TOTAL-QUARTZ-7000', 1)" type="button">
+                      +
+                    </button>
+</div>
+</td>
+<td class="py-pad-md px-pad-md text-right">
+<span class="inline-flex items-center gap-pad-xs px-pad-sm py-pad-xs rounded bg-surface-container text-on-surface-variant font-tech-badge text-tech-badge uppercase tracking-wider font-semibold">
+<span class="w-2 h-2 rounded-full bg-outline"></span> Stock Óptimo
+                  </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<!-- VIEW 2: HOTEL DE NEUMÁTICOS EN CUSTODIA (TIRE HOTEL) -->
+<section class="flex flex-col gap-pad-lg hidden" id="view-tires">
+<!-- Hotel Status & QR Tagging Banner -->
+<div class="bg-surface-container-low p-pad-lg rounded-xl flex flex-col xl:flex-row items-start xl:items-center justify-between gap-pad-lg shadow-sm">
+<div class="flex flex-col gap-pad-xs max-w-2xl">
+<div class="flex items-center gap-pad-sm">
+<span class="px-pad-sm py-pad-xs rounded bg-surface-container text-primary-container font-tech-badge text-tech-badge uppercase">Capacidad: 80% Ocupación</span>
+<span class="font-tech-badge text-tech-badge text-on-surface-variant">32 DE 40 JUEGOS ALMACENADOS</span>
+</div>
+<div class="font-headline-lg text-headline-lg text-on-surface">Guarda Segura con Control Telemétrico de Desgaste</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Cada juego ingresa protegido en funda termocontraíble, etiquetado con QR serializado y con medición en fosa del relieve milimétrico para venta preventiva de cubiertas nuevas.</p>
+</div>
+<div class="flex flex-wrap items-center gap-pad-sm w-full xl:w-auto">
+<button class="h-touch-min px-pad-lg bg-primary-container hover:bg-primary-fixed-dim text-on-primary-container rounded font-headline-sm text-headline-sm font-bold flex items-center justify-center gap-pad-sm shadow-md transition-transform active:scale-95 w-full sm:w-auto" onclick="openNewTireModal()" type="button">
+<span class="material-symbols-outlined text-2xl">add_box</span>
+<span>+ Ingresar Nuevo Juego a Custodia</span>
+</button>
+</div>
+</div>
+<!-- Tire Hotel Rack Inventory Table -->
+<div class="bg-surface-container-low rounded-xl overflow-hidden shadow-sm">
+<div class="p-pad-md bg-surface-container flex flex-col sm:flex-row items-start sm:items-center justify-between gap-pad-sm">
+<div class="flex items-center gap-pad-sm">
+<span class="material-symbols-outlined text-primary-container">qr_code_2</span>
+<span class="font-tech-data-md text-tech-data-md text-on-surface font-bold uppercase">Planilla de Custodia Activa & Calibración de Huella</span>
+</div>
+<div class="font-tech-badge text-tech-badge text-on-surface-variant">CUSTODIA RESPALDADA CON PÓLIZA Nº TR-9941</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left font-body-md text-body-md min-w-[1100px]">
+<thead class="bg-surface-container-highest text-on-surface-variant font-tech-badge text-tech-badge uppercase tracking-wider">
+<tr>
+<th class="py-pad-md px-pad-md">Rack Asignado</th>
+<th class="py-pad-md px-pad-md">Cliente & Teléfono</th>
+<th class="py-pad-md px-pad-md">Vehículo & Patente</th>
+<th class="py-pad-md px-pad-md">Neumáticos & Medida</th>
+<th class="py-pad-md px-pad-md text-center">Temporada</th>
+<th class="py-pad-md px-pad-md text-center">Dibujo Remanente</th>
+<th class="py-pad-md px-pad-md">Fecha Depósito</th>
+<th class="py-pad-md px-pad-md text-right">Ficha / Etiqueta</th>
+</tr>
+</thead>
+<tbody class="text-on-surface divide-y-0">
+<!-- Tire Row 1 -->
+<tr class="bg-surface-container-lowest hover:bg-surface-container transition-colors">
+<td class="py-pad-md px-pad-md font-tech-data-lg text-tech-data-lg font-bold text-primary-container">
+<div class="flex items-center gap-pad-xs">
+<span class="material-symbols-outlined text-base">shelves</span>
+<span>Rack Aéreo N-14</span>
+</div>
+</td>
+<td class="py-pad-md px-pad-md">
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold">Mauricio Benítez</div>
+<div class="font-tech-data-md text-tech-data-md text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">call</span> +54 376 449-0129
+                  </div>
+</td>
+<td class="py-pad-md px-pad-md">
+<div class="font-body-md text-body-md text-on-surface">Volkswagen Amarok V6</div>
+<!-- Vehicle Plate Container -->
+<div class="inline-block mt-1 px-2 py-0.5 rounded bg-surface text-on-surface font-tech-badge text-tech-badge font-bold tracking-widest uppercase">
+                    AF 419 LK
+                  </div>
+</td>
+<td class="py-pad-md px-pad-md">
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold">255/60 R18 (x4)</div>
+<div class="font-tech-badge text-tech-badge text-on-surface-variant">Bridgestone Dueler A/T</div>
+</td>
+<td class="py-pad-md px-pad-md text-center">
+<span class="px-pad-sm py-pad-xs rounded bg-surface-container-high text-on-surface font-tech-badge text-tech-badge uppercase">
+                    ☀️ Verano
+                  </span>
+</td>
+<td class="py-pad-md px-pad-md text-center">
+<div class="inline-flex flex-col items-center">
+<span class="font-tech-data-lg text-tech-data-lg font-bold text-on-surface">5.8 mm</span>
+<span class="px-pad-xs py-0.5 rounded bg-surface-container text-on-surface-variant font-tech-badge text-tech-badge">Óptimo (+65%)</span>
+</div>
+</td>
+<td class="py-pad-md px-pad-md font-tech-data-md text-tech-data-md text-on-surface-variant">
+<div>12/04/2024</div>
+<div class="font-tech-badge text-tech-badge text-on-surface-variant">42 días en guarda</div>
+</td>
+<td class="py-pad-md px-pad-md text-right">
+<button class="h-touch-compact px-pad-md rounded bg-surface-container-high hover:bg-surface-bright text-on-surface font-tech-badge text-tech-badge uppercase inline-flex items-center gap-pad-xs transition-colors" onclick="printQrTag('AF-419-LK', 'Rack Aéreo N-14', 'Mauricio Benítez')" type="button">
+<span class="material-symbols-outlined text-base text-primary-container">print</span>
+<span>Reimprimir QR</span>
+</button>
+</td>
+</tr>
+<!-- Tire Row 2: REEMPLAZO SUGERIDO -->
+<tr class="bg-surface-container-low hover:bg-surface-container transition-colors">
+<td class="py-pad-md px-pad-md font-tech-data-lg text-tech-data-lg font-bold text-primary-container">
+<div class="flex items-center gap-pad-xs">
+<span class="material-symbols-outlined text-base">shelves</span>
+<span>Rack Inferior S-03</span>
+</div>
+</td>
+<td class="py-pad-md px-pad-md">
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold">Carolina Vega</div>
+<div class="font-tech-data-md text-tech-data-md text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">call</span> +54 376 488-7711
+                  </div>
+</td>
+<td class="py-pad-md px-pad-md">
+<div class="font-body-md text-body-md text-on-surface">Toyota Corolla Cross</div>
+<div class="inline-block mt-1 px-2 py-0.5 rounded bg-surface text-on-surface font-tech-badge text-tech-badge font-bold tracking-widest uppercase">
+                    AE 883 PO
+                  </div>
+</td>
+<td class="py-pad-md px-pad-md">
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold">215/60 R17 (x4)</div>
+<div class="font-tech-badge text-tech-badge text-on-surface-variant">Pirelli Scorpion Verde</div>
+</td>
+<td class="py-pad-md px-pad-md text-center">
+<span class="px-pad-sm py-pad-xs rounded bg-surface-container-high text-on-surface font-tech-badge text-tech-badge uppercase">
+                    ❄️ Invierno M+S
+                  </span>
+</td>
+<td class="py-pad-md px-pad-md text-center">
+<div class="inline-flex flex-col items-center">
+<span class="font-tech-data-lg text-tech-data-lg font-bold text-error">2.1 mm</span>
+<span class="px-pad-xs py-0.5 rounded bg-error-container text-error font-tech-badge text-tech-badge animate-pulse">Sugerir Reemplazo</span>
+</div>
+</td>
+<td class="py-pad-md px-pad-md font-tech-data-md text-tech-data-md text-on-surface-variant">
+<div>28/03/2024</div>
+<div class="font-tech-badge text-tech-badge text-on-surface-variant">57 días en guarda</div>
+</td>
+<td class="py-pad-md px-pad-md text-right">
+<div class="inline-flex items-center gap-pad-xs">
+<button class="h-touch-compact px-pad-sm rounded bg-primary-container text-on-primary-container font-tech-badge text-tech-badge uppercase inline-flex items-center gap-1 font-bold" onclick="notifyClientTireSale('Carolina Vega', '215/60 R17')" type="button">
+<span class="material-symbols-outlined text-sm">send</span> Presupuestar Nuevos
+                    </button>
+<button class="h-touch-compact px-pad-sm rounded bg-surface-container-high text-on-surface font-tech-badge text-tech-badge uppercase" onclick="printQrTag('AE-883-PO', 'Rack S-03', 'Carolina Vega')" type="button">
+<span class="material-symbols-outlined text-sm">qr_code</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Tire Row 3 -->
+<tr class="bg-surface-container-lowest hover:bg-surface-container transition-colors">
+<td class="py-pad-md px-pad-md font-tech-data-lg text-tech-data-lg font-bold text-primary-container">
+<div class="flex items-center gap-pad-xs">
+<span class="material-symbols-outlined text-base">shelves</span>
+<span>Rack Aéreo N-08</span>
+</div>
+</td>
+<td class="py-pad-md px-pad-md">
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold">Agustín Duarte</div>
+<div class="font-tech-data-md text-tech-data-md text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">call</span> +54 376 412-4455
+                  </div>
+</td>
+<td class="py-pad-md px-pad-md">
+<div class="font-body-md text-body-md text-on-surface">Ford Ranger XLT 3.2</div>
+<div class="inline-block mt-1 px-2 py-0.5 rounded bg-surface text-on-surface font-tech-badge text-tech-badge font-bold tracking-widest uppercase">
+                    AD 552 ZQ
+                  </div>
+</td>
+<td class="py-pad-md px-pad-md">
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold">265/65 R17 (x4)</div>
+<div class="font-tech-badge text-tech-badge text-on-surface-variant">Michelin LTX Force</div>
+</td>
+<td class="py-pad-md px-pad-md text-center">
+<span class="px-pad-sm py-pad-xs rounded bg-surface-container-high text-on-surface font-tech-badge text-tech-badge uppercase">
+                    ☀️ Verano All-Terrain
+                  </span>
+</td>
+<td class="py-pad-md px-pad-md text-center">
+<div class="inline-flex flex-col items-center">
+<span class="font-tech-data-lg text-tech-data-lg font-bold text-on-surface">4.9 mm</span>
+<span class="px-pad-xs py-0.5 rounded bg-surface-container text-on-surface-variant font-tech-badge text-tech-badge">Bueno (+50%)</span>
+</div>
+</td>
+<td class="py-pad-md px-pad-md font-tech-data-md text-tech-data-md text-on-surface-variant">
+<div>05/05/2024</div>
+<div class="font-tech-badge text-tech-badge text-on-surface-variant">19 días en guarda</div>
+</td>
+<td class="py-pad-md px-pad-md text-right">
+<button class="h-touch-compact px-pad-md rounded bg-surface-container-high hover:bg-surface-bright text-on-surface font-tech-badge text-tech-badge uppercase inline-flex items-center gap-pad-xs transition-colors" onclick="printQrTag('AD-552-ZQ', 'Rack Aéreo N-08', 'Agustín Duarte')" type="button">
+<span class="material-symbols-outlined text-base text-primary-container">print</span>
+<span>Reimprimir QR</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<!-- Visual Rack Distribution & Warehouse Planogram -->
+<div class="bg-surface-container-low p-pad-lg rounded-xl shadow-sm flex flex-col xl:flex-row items-center justify-between gap-pad-lg">
+<div class="flex items-center gap-pad-md">
+<div class="p-pad-md rounded-xl bg-surface-container flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-3xl">grid_view</span>
+</div>
+<div>
+<div class="font-headline-sm text-headline-sm text-on-surface">Mapa Físico de Estanterías y Pallets Taller Os-Car</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Racks Aéreos de Neumáticos (Bahías 1 a 4) • Estanterías Insumos Livianos Frente al Mostrador</p>
+</div>
+</div>
+<div class="flex flex-wrap items-center gap-pad-md">
+<div class="flex items-center gap-pad-xs font-tech-badge text-tech-badge text-on-surface-variant">
+<span class="w-3 h-3 rounded-full bg-error"></span> Alerta de Vacante Baja
+        </div>
+<div class="flex items-center gap-pad-xs font-tech-badge text-tech-badge text-on-surface-variant">
+<span class="w-3 h-3 rounded-full bg-primary-container"></span> Disponible Rápido
+        </div>
+<div class="flex items-center gap-pad-xs font-tech-badge text-tech-badge text-on-surface-variant">
+<span class="w-3 h-3 rounded-full bg-surface-container-highest"></span> Bloqueado / Mantenimiento
+        </div>
+</div>
+</div>
+</div>
+<!-- MODAL: GENERAR ORDEN DE COMPRA AUTOMÁTICA -->
+<div class="fixed inset-0 z-50 bg-surface-container-lowest/80 backdrop-blur-sm hidden flex items-center justify-center p-pad-md" id="modal-po">
+<div class="bg-surface-container-high rounded-xl max-w-2xl w-full p-pad-lg shadow-xl flex flex-col gap-pad-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-pad-sm">
+<span class="p-pad-xs rounded bg-surface-container text-primary-container">
+<span class="material-symbols-outlined text-2xl">receipt_long</span>
+</span>
+<div>
+<div class="font-headline-md text-headline-md text-on-surface">Orden de Compra Sugerida (Reposición)</div>
+<div class="font-tech-badge text-tech-badge text-on-surface-variant">GENERADA POR ALGORITMO DE QUIEBRE DE STOCK</div>
+</div>
+</div>
+<button class="w-touch-compact h-touch-compact rounded hover:bg-surface-container text-on-surface-variant flex items-center justify-center" onclick="closeModal('modal-po')" type="button">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="bg-surface-container-lowest p-pad-md rounded-lg flex flex-col gap-pad-sm font-tech-data-md text-tech-data-md">
+<div class="flex justify-between text-on-surface-variant">
+<span>Proveedor Primario: Distribuidora Misiones AutoPartes</span>
+<span>Fecha: 24/05/2024</span>
+</div>
+<div class="divide-y divide-surface-container-high/40">
+<div class="py-pad-xs flex justify-between items-center text-on-surface">
+<div>
+<span class="font-bold text-primary-container">FRAM-PH5949</span> - Filtro Fram Blindado
+            </div>
+<div class="text-right">
+<span class="font-bold">+10 unidades</span> (Estock actual: 2)
+            </div>
+</div>
+<div class="py-pad-xs flex justify-between items-center text-on-surface">
+<div>
+<span class="font-bold text-primary-container">MOTUL-8100-5W40</span> - Motul 8100 4L
+            </div>
+<div class="text-right">
+<span class="font-bold">+8 bidones</span> (Estock actual: 4)
+            </div>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-tech-data-md text-tech-data-md">
+<span>Presupuesto Estimado Reposición:</span>
+<span class="font-tech-data-lg text-tech-data-lg text-primary-container font-bold">$342.600 ARS</span>
+</div>
+<div class="flex items-center justify-end gap-pad-sm pt-pad-sm">
+<button class="h-touch-compact px-pad-md rounded bg-surface-container text-on-surface font-body-md text-body-md hover:bg-surface-bright" onclick="closeModal('modal-po')" type="button">
+          Cancelar
+        </button>
+<button class="h-touch-compact px-pad-lg bg-primary-container hover:bg-primary-fixed-dim text-on-primary-container rounded font-tech-data-md text-tech-data-md font-bold uppercase flex items-center gap-pad-xs shadow-md" onclick="sendPurchaseOrder()" type="button">
+<span class="material-symbols-outlined text-lg">outgoing_mail</span>
+<span>Enviar Pedido por WhatsApp / API</span>
+</button>
+</div>
+</div>
+</div>
+<!-- MODAL: INGRESAR NUEVO JUEGO A CUSTODIA (TIRE HOTEL) -->
+<div class="fixed inset-0 z-50 bg-surface-container-lowest/80 backdrop-blur-sm hidden flex items-center justify-center p-pad-md" id="modal-new-tire">
+<div class="bg-surface-container-high rounded-xl max-w-3xl w-full p-pad-lg shadow-xl flex flex-col gap-pad-md max-h-[90vh] overflow-y-auto">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-pad-sm">
+<span class="p-pad-xs rounded bg-surface-container text-primary-container">
+<span class="material-symbols-outlined text-2xl">tire_repair</span>
+</span>
+<div>
+<div class="font-headline-md text-headline-md text-on-surface">Ingreso de Neumáticos en Custodia</div>
+<div class="font-tech-badge text-tech-badge text-on-surface-variant">GENERACIÓN DE ETIQUETA QR & UBICACIÓN DE RACK</div>
+</div>
+</div>
+<button class="w-touch-compact h-touch-compact rounded hover:bg-surface-container text-on-surface-variant flex items-center justify-center" onclick="closeModal('modal-new-tire')" type="button">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<form class="flex flex-col gap-pad-md" id="newTireForm" onsubmit="handleTireSubmit(event)">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-pad-md">
+<div class="flex flex-col gap-pad-xs">
+<label class="font-tech-badge text-tech-badge text-on-surface-variant uppercase">Nombre y Apellido Cliente</label>
+<input class="h-touch-compact px-pad-md rounded bg-surface-container text-on-surface focus:outline-none focus:ring-1 focus:ring-primary-container font-body-md text-body-md" placeholder="Ej: Marcos Silveira" required="" type="text"/>
+</div>
+<div class="flex flex-col gap-pad-xs">
+<label class="font-tech-badge text-tech-badge text-on-surface-variant uppercase">Teléfono Móvil (WhatsApp)</label>
+<input class="h-touch-compact px-pad-md rounded bg-surface-container text-on-surface focus:outline-none focus:ring-1 focus:ring-primary-container font-tech-data-md text-tech-data-md" placeholder="+54 376..." required="" type="tel"/>
+</div>
+<div class="flex flex-col gap-pad-xs">
+<label class="font-tech-badge text-tech-badge text-on-surface-variant uppercase">Vehículo & Patente</label>
+<input class="h-touch-compact px-pad-md rounded bg-surface-container text-on-surface focus:outline-none focus:ring-1 focus:ring-primary-container font-body-md text-body-md" placeholder="Ej: Toyota Hilux / AD 991 JK" required="" type="text"/>
+</div>
+<div class="flex flex-col gap-pad-xs">
+<label class="font-tech-badge text-tech-badge text-on-surface-variant uppercase">Marca y Medida de Cubiertas</label>
+<input class="h-touch-compact px-pad-md rounded bg-surface-container text-on-surface focus:outline-none focus:ring-1 focus:ring-primary-container font-body-md text-body-md" placeholder="Ej: Michelin 265/65 R17 (4 unidades)" required="" type="text"/>
+</div>
+<div class="flex flex-col gap-pad-xs">
+<label class="font-tech-badge text-tech-badge text-on-surface-variant uppercase">Temporada / Tipo de Uso</label>
+<select class="h-touch-compact px-pad-md rounded bg-surface-container text-on-surface focus:outline-none focus:ring-1 focus:ring-primary-container font-body-md text-body-md">
+<option>☀️ Verano / Carretera</option>
+<option>❄️ Invierno con Clavos / M+S</option>
+<option>🏔️ All-Terrain 50/50</option>
+<option>🏁 Competición / Track Day</option>
+</select>
+</div>
+<div class="flex flex-col gap-pad-xs">
+<label class="font-tech-badge text-tech-badge text-on-surface-variant uppercase">Profundidad de Huella Medida (mm)</label>
+<input class="h-touch-compact px-pad-md rounded bg-surface-container text-on-surface focus:outline-none focus:ring-1 focus:ring-primary-container font-tech-data-md text-tech-data-md" placeholder="Ej: 6.2" required="" step="0.1" type="number"/>
+</div>
+<div class="flex flex-col gap-pad-xs md:col-span-2">
+<label class="font-tech-badge text-tech-badge text-on-surface-variant uppercase">Ubicación Asignada en Rack</label>
+<select class="h-touch-compact px-pad-md rounded bg-surface-container text-on-surface focus:outline-none focus:ring-1 focus:ring-primary-container font-tech-data-md text-tech-data-md">
+<option>Rack Aéreo N-15 (Bahía 2 - Vacante)</option>
+<option>Rack Aéreo N-16 (Bahía 2 - Vacante)</option>
+<option>Rack Inferior S-04 (Bahía 4 - Vacante)</option>
+<option>Rack Especial R-01 (Guarda Larga Duración)</option>
+</select>
+</div>
+</div>
+<div class="bg-surface-container p-pad-md rounded flex items-center justify-between">
+<div class="flex items-center gap-pad-sm">
+<span class="material-symbols-outlined text-primary-container text-2xl">qr_code</span>
+<span class="font-body-sm text-body-sm text-on-surface">Imprimir automáticamente 4 etiquetas térmicas adhesivas para fundas</span>
+</div>
+<input checked="" class="w-6 h-6 rounded bg-surface-container-high text-primary-container focus:ring-0" type="checkbox"/>
+</div>
+<div class="flex items-center justify-end gap-pad-sm pt-pad-sm">
+<button class="h-touch-compact px-pad-md rounded bg-surface-container text-on-surface font-body-md text-body-md hover:bg-surface-bright" onclick="closeModal('modal-new-tire')" type="button">
+            Cancelar
+          </button>
+<button class="h-touch-compact px-pad-lg bg-primary-container hover:bg-primary-fixed-dim text-on-primary-container rounded font-tech-data-md text-tech-data-md font-bold uppercase flex items-center gap-pad-xs shadow-md" type="submit">
+<span class="material-symbols-outlined text-lg">check_circle</span>
+<span>Confirmar Ingreso & Imprimir QR</span>
+</button>
+</div>
+</form>
+</div>
+</div>
+<!-- Toast Notification Simulator -->
+<div class="fixed bottom-6 right-6 z-50 bg-surface-container-highest text-on-surface px-pad-md py-pad-sm rounded-lg shadow-xl border border-primary-container/30 flex items-center gap-pad-sm transition-all duration-300 transform translate-y-24 opacity-0" id="toast-banner">
+<span class="material-symbols-outlined text-primary-container" id="toast-icon">check_circle</span>
+<span class="font-tech-data-md text-tech-data-md" id="toast-msg">Acción procesada en almacén</span>
+</div>
+<script>
+    // Tab switcher logic
+    function switchView(viewName) {
+      const suppliesView = document.getElementById('view-supplies');
+      const tiresView = document.getElementById('view-tires');
+      const btnSupplies = document.getElementById('tab-btn-supplies');
+      const btnTires = document.getElementById('tab-btn-tires');
+
+      if (viewName === 'supplies') {
+        suppliesView.classList.remove('hidden');
+        tiresView.classList.add('hidden');
+        
+        btnSupplies.className = 'h-touch-compact px-pad-md rounded font-tech-data-md text-tech-data-md font-bold uppercase transition-all flex items-center gap-pad-xs bg-surface-container-highest text-on-surface shadow-sm';
+        btnTires.className = 'h-touch-compact px-pad-md rounded font-tech-data-md text-tech-data-md font-bold uppercase transition-all flex items-center gap-pad-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high';
+      } else {
+        suppliesView.classList.add('hidden');
+        tiresView.classList.remove('hidden');
+
+        btnTires.className = 'h-touch-compact px-pad-md rounded font-tech-data-md text-tech-data-md font-bold uppercase transition-all flex items-center gap-pad-xs bg-surface-container-highest text-on-surface shadow-sm';
+        btnSupplies.className = 'h-touch-compact px-pad-md rounded font-tech-data-md text-tech-data-md font-bold uppercase transition-all flex items-center gap-pad-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high';
+      }
+    }
+
+    // Quick Stepper adjust
+    function adjustStock(sku, delta) {
+      const el = document.getElementById('stock-' + sku);
+      if (!el) return;
+      let currentVal = parseInt(el.innerText, 10) || 0;
+      let newVal = Math.max(0, currentVal + delta);
+      el.innerText = newVal;
+      showToast('Stock SKU ' + sku + ' actualizado a ' + newVal + ' un.');
+    }
+
+    // Category Filtering
+    function setCategoryFilter(category, btnElement) {
+      const rows = document.querySelectorAll('.inventory-row');
+      rows.forEach(row => {
+        if (category === 'all' || row.getAttribute('data-category') === category) {
+          row.classList.remove('hidden');
+        } else {
+          row.classList.add('hidden');
+        }
+      });
+
+      // Update chip styles
+      document.querySelectorAll('.category-chip').forEach(chip => {
+        chip.className = 'category-chip h-touch-compact px-pad-md rounded font-tech-badge text-tech-badge uppercase tracking-wider bg-surface-container text-on-surface-variant hover:text-on-surface';
+      });
+      btnElement.className = 'category-chip h-touch-compact px-pad-md rounded font-tech-badge text-tech-badge uppercase tracking-wider bg-surface-container-highest text-on-surface';
+    }
+
+    // Text search filter
+    function filterTable() {
+      const input = document.getElementById('inventorySearchInput').value.toLowerCase();
+      const rows = document.querySelectorAll('.inventory-row');
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        if (text.includes(input)) {
+          row.classList.remove('hidden');
+        } else {
+          row.classList.add('hidden');
+        }
+      });
+    }
+
+    // Barcode scanner simulation
+    function simulateBarcodeScan() {
+      showToast('Lector óptico conectado: Escaneando...');
+      setTimeout(() => {
+        adjustStock('FRAM-PH5949', -1);
+        showToast('Código detectado: FRAM-PH5949 (-1 en Fosa 2)');
+      }, 1000);
+    }
+
+    // Modals
+    function triggerPurchaseOrderModal() {
+      document.getElementById('modal-po').classList.remove('hidden');
+    }
+
+    function openNewTireModal() {
+      document.getElementById('modal-new-tire').classList.remove('hidden');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+
+    function sendPurchaseOrder() {
+      closeModal('modal-po');
+      showToast('Orden #OC-4481 emitida al distribuidor exitosamente.');
+    }
+
+    function handleTireSubmit(e) {
+      e.preventDefault();
+      closeModal('modal-new-tire');
+      showToast('Juego ingresado. Impresora Zebra: Generando 4 etiquetas QR...');
+    }
+
+    function printQrTag(plate, rack, client) {
+      showToast('Reimprimiendo QR para ' + plate + ' (' + rack + ')');
+    }
+
+    function notifyClientTireSale(client, size) {
+      showToast('Enviando cotización de cubiertas ' + size + ' a ' + client + ' vía WhatsApp');
+    }
+
+    // Toast helper
+    function showToast(message) {
+      const toast = document.getElementById('toast-banner');
+      const msg = document.getElementById('toast-msg');
+      if (!toast || !msg) return;
+      msg.innerText = message;
+      toast.classList.remove('translate-y-24', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-24', 'opacity-0');
+      }, 3500);
+    }
+  </script>
+</div></main><footer class="w-full bg-surface-container-lowest py-pad-lg mt-auto"><div class="w-full px-gutter-desktop flex flex-col md:flex-row items-center justify-between gap-pad-md"><div class="flex items-center gap-pad-md"><span class="font-headline-sm text-headline-sm text-on-surface">TallerPro OS</span><span class="font-tech-badge text-tech-badge text-on-surface-variant">v2.4.8-telemetry</span></div><div class="text-on-surface-variant font-body-sm text-body-sm text-center">© 2024 Taller Mecánico Os-Car. Posadas, Misiones. Todos los derechos reservados.</div><div class="flex items-center gap-pad-md text-on-surface-variant font-tech-data-md text-tech-data-md"><span class="flex items-center gap-pad-xs"><span class="w-2 h-2 rounded-full bg-primary-container"></span> Servidor Conectado</span></div></div></footer></body></html>

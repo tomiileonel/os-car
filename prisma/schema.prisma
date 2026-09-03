@@ -1,0 +1,775 @@
+// =========================================================================
+// OS-CAR — MOTOR DE BASE DE DATOS Y PERSISTENCIA MAESTRA
+// Archivo: prisma/schema.prisma
+// Dialecto: PostgreSQL 15+ (NeonDB / Cloud Hosted)
+// Invariantes: C1, C2, C3, A1, A2, A3, A4
+// =========================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// -------------------------------------------------------------------------
+// ENUMS DE DOMINIO Y GOBERNANZA
+// -------------------------------------------------------------------------
+
+enum AdminRole {
+  OWNER
+  TALLER_SUPERVISOR
+  MECANICO
+  RECEPCIONISTA
+  ADMIN
+}
+
+enum OrderStatus {
+  INGRESADO
+  DIAGNOSTICO
+  ESPERANDO_REPARACION
+  EN_REPARACION
+  CONTROL
+  LISTO
+  ENTREGADO
+  CANCELADA
+}
+
+enum BlockerType {
+  APROBACION_PRESUPUESTO
+  REPUESTO_PENDIENTE
+  AUTORIZACION_TRABAJO_ADICIONAL
+  CONTROL_CALIDAD_RECHAZADO
+  CAPACIDAD_TALLER
+  DOCUMENTACION_VEHICULO
+  ESPERA_DECISION_CLIENTE
+  PAGO_PENDIENTE
+  OTRO
+}
+
+enum BayStatus {
+  LIBRE
+  OCUPADA
+}
+
+enum WorkItemStatus {
+  PENDIENTE
+  EN_CURSO
+  COMPLETADO
+  CANCELADO
+}
+
+enum PartStatus {
+  PENDIENTE
+  SOLICITADO
+  CONSEGUIDO
+  RECIBIDO
+  INSTALADO
+  DEVOLUCION_PENDIENTE
+  DEVUELTO
+  CANCELADO
+}
+
+enum BudgetStatus {
+  BORRADOR
+  PENDIENTE_APROBACION
+  APROBADO
+  RECHAZADO
+  SUPERSEDED
+}
+
+enum ApprovalDecision {
+  APROBADO
+  RECHAZADO
+}
+
+enum FuelLevel {
+  VACIO
+  CUARTO
+  MITAD
+  TRES_CUARTOS
+  LLENO
+}
+
+enum DamageType {
+  RAYON
+  ABOLLADURA
+  ROTURA
+  CRISTAL
+  OTRO
+}
+
+enum MediaKind {
+  FOTO_INGRESO
+  FOTO_DANO
+  FOTO_CONTROL
+  FOTO_ENTREGA
+}
+
+enum InventoryMovementType {
+  INGRESO
+  RESERVA
+  CONSUMO
+  DEVOLUCION
+  AJUSTE
+}
+
+enum ActorType {
+  ADMIN
+  CLIENTE
+  SYSTEM
+}
+
+enum HistoryEventType {
+  INGRESO
+  DIAGNOSTICO_INICIADO
+  DIAGNOSTICO_FINALIZADO
+  PRESUPUESTO_PUBLICADO
+  PRESUPUESTO_APROBADO
+  PRESUPUESTO_RECHAZADO
+  TRABAJO_AGREGADO
+  TRABAJO_INICIADO
+  TRABAJO_FINALIZADO
+  REPUESTO_SOLICITADO
+  REPUESTO_CONSEGUIDO
+  REPUESTO_INSTALADO
+  BLOQUEO_ACTIVADO
+  BLOQUEO_RESUELTO
+  BAHIA_ASIGNADA
+  BAHIA_REASIGNADA
+  BAHIA_LIBERADA
+  CONTROL_INICIADO
+  CONTROL_APROBADO
+  CONTROL_OBSERVADO
+  LISTO_PARA_ENTREGA
+  ENTREGA_REALIZADA
+  ORDEN_CANCELADA
+  KILOMETRAJE_CORREGIDO
+  CODIGO_REGENERADO
+  OTRO
+}
+
+enum IdempotencyStatus {
+  IN_PROGRESS
+  RESOLVED
+  FAILED
+}
+
+// -------------------------------------------------------------------------
+// MODELOS CORE: MULTI-TENANT, USUARIOS Y CLIENTES
+// -------------------------------------------------------------------------
+
+model Workshop {
+  id        String    @id @default(cuid())
+  name      String
+  timezone  String    @default("America/Argentina/Buenos_Aires")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  admins          AdminUser[]
+  customers       Customer[]
+  vehicles        Vehicle[]
+  workOrders      WorkOrder[]
+  bays            Bay[]
+  inventoryItems  InventoryItem[]
+  auditLogs       AuditLog[]
+  idempotencyKeys IdempotencyRecord[]
+  blockers        OrderBlocker[]
+
+  @@map("workshops")
+}
+
+model AdminUser {
+  id                String    @id @default(cuid())
+  workshopId        String
+  authUserId        String    @unique
+  displayName       String
+  email             String?
+  role              AdminRole @default(ADMIN)
+  active            Boolean   @default(true)
+  tokenVersion      Int       @default(1)
+  passwordChangedAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  workshop             Workshop            @relation(fields: [workshopId], references: [id], onDelete: Restrict)
+  createdOrders        WorkOrder[]         @relation("OrderCreatedBy")
+  assignedWorkItems    WorkItem[]          @relation("WorkItemAssignee")
+  createdWorkItems     WorkItem[]          @relation("WorkItemCreatedBy")
+  createdPartItems     PartItem[]          @relation("PartItemCreatedBy")
+  assignedBays         BayAssignment[]     @relation("BayAssignedBy")
+  createdBudgets       BudgetVersion[]     @relation("BudgetCreatedBy")
+  decidedApprovals     BudgetApproval[]    @relation("ApprovalAdmin")
+  statusEvents         StatusHistory[]     @relation("StatusEventActor")
+  auditLogs            AuditLog[]          @relation("AuditActor")
+  inventoryMovements   InventoryMovement[] @relation("InventoryMovementActor")
+  qualityControls      QualityControl[]    @relation("QualityInspector")
+  deliveryRecords      DeliveryRecord[]    @relation("DeliveryActor")
+  supervisedDeliveries DeliveryRecord[]    @relation("DeliverySupervisor")
+  createdBlockers      OrderBlocker[]      @relation("BlockerCreatedBy")
+  resolvedBlockers     OrderBlocker[]      @relation("BlockerResolvedBy")
+
+  @@index([workshopId, active])
+  @@index([workshopId, email])
+  @@map("admin_users")
+}
+
+model Customer {
+  id              String    @id @default(cuid())
+  workshopId      String
+  fullName        String
+  phoneE164       String
+  phoneNormalized String
+  email           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  workshop   Workshop    @relation(fields: [workshopId], references: [id], onDelete: Restrict)
+  vehicles   Vehicle[]
+  workOrders WorkOrder[]
+
+  @@unique([workshopId, phoneNormalized])
+  @@index([workshopId, fullName])
+  @@map("customers")
+}
+
+model Vehicle {
+  id                     String    @id @default(cuid())
+  workshopId             String
+  customerId             String
+  licensePlate           String
+  licensePlateNormalized String
+  vin                    String?
+  make                   String?
+  model                  String?
+  modelYear              Int?
+  color                  String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  deletedAt              DateTime?
+
+  workshop   Workshop    @relation(fields: [workshopId], references: [id], onDelete: Restrict)
+  customer   Customer    @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  workOrders WorkOrder[]
+
+  @@unique([workshopId, licensePlateNormalized])
+  @@index([workshopId, vin])
+  @@index([customerId, createdAt])
+  @@map("vehicles")
+}
+
+// -------------------------------------------------------------------------
+// MODELOS OPERATIVOS: ÓRDENES, BAHÍAS Y BLOQUEADORES CONCURRENTES
+// -------------------------------------------------------------------------
+
+model WorkOrder {
+  id                    String      @id @default(cuid())
+  workshopId            String
+  customerId            String
+  vehicleId             String
+  createdById           String?
+  trackingCodeHash      String      @unique
+  trackingCodeIssuedAt  DateTime    @default(now())
+  trackingCodeRevokedAt DateTime?
+  status                OrderStatus @default(INGRESADO)
+  version               Int         @default(1)
+  openedAt              DateTime    @default(now())
+  diagnosedAt           DateTime?
+  repairStartedAt       DateTime?
+  qualityControlAt      DateTime?
+  readyAt               DateTime?
+  deliveredAt           DateTime?
+  cancelledAt           DateTime?
+  cancellationReason    String?
+  laborSubtotal         Decimal     @default(0) @db.Decimal(12, 2)
+  partsSubtotal         Decimal     @default(0) @db.Decimal(12, 2)
+  totalEstimated        Decimal     @default(0) @db.Decimal(12, 2)
+  totalFinal            Decimal     @default(0) @db.Decimal(12, 2)
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  deletedAt             DateTime?
+
+  workshop       Workshop        @relation(fields: [workshopId], references: [id], onDelete: Restrict)
+  customer       Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  vehicle        Vehicle         @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  createdBy      AdminUser?      @relation("OrderCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  intakeRecord   IntakeRecord?
+  workItems      WorkItem[]
+  partItems      PartItem[]
+  blockers       OrderBlocker[]
+  bayAssignments BayAssignment[]
+  budget         Budget?
+  statusHistory  StatusHistory[]
+  auditLogs      AuditLog[]
+  qualityControl QualityControl?
+  deliveryRecord DeliveryRecord?
+
+  @@index([workshopId, status, updatedAt])
+  @@index([workshopId, vehicleId, status])
+  @@index([customerId, createdAt])
+  @@map("work_orders")
+}
+
+model OrderBlocker {
+  id               String      @id @default(cuid())
+  workshopId       String
+  workOrderId      String
+  type             BlockerType
+  reason           String
+  isActive         Boolean     @default(true)
+  blockedAt        DateTime    @default(now())
+  blockedByUserId  String
+  resolvedAt       DateTime?
+  resolvedByUserId String?
+  resolutionNotes  String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  workshop       Workshop   @relation(fields: [workshopId], references: [id], onDelete: Restrict)
+  workOrder      WorkOrder  @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  blockedByUser  AdminUser  @relation("BlockerCreatedBy", fields: [blockedByUserId], references: [id], onDelete: Restrict)
+  resolvedByUser AdminUser? @relation("BlockerResolvedBy", fields: [resolvedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([workOrderId, isActive])
+  @@index([workshopId, isActive, type])
+  @@index([blockedByUserId])
+  @@map("order_blockers")
+}
+
+model Bay {
+  id                      String    @id @default(cuid())
+  workshopId              String
+  code                    String
+  ordinal                 Int
+  status                  BayStatus @default(LIBRE)
+  isEnabled               Boolean   @default(true)
+  decommissionRequestedAt DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  deletedAt               DateTime?
+
+  workshop    Workshop        @relation(fields: [workshopId], references: [id], onDelete: Restrict)
+  assignments BayAssignment[]
+
+  @@unique([workshopId, code])
+  @@unique([workshopId, ordinal])
+  @@index([workshopId, isEnabled, status])
+  @@map("bays")
+}
+
+model BayAssignment {
+  id            String    @id @default(cuid())
+  bayId         String
+  workOrderId   String
+  assignedById  String?
+  assignedAt    DateTime  @default(now())
+  releasedAt    DateTime?
+  releaseReason String?
+
+  bay        Bay        @relation(fields: [bayId], references: [id], onDelete: Restrict)
+  workOrder  WorkOrder  @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
+  assignedBy AdminUser? @relation("BayAssignedBy", fields: [assignedById], references: [id], onDelete: Restrict)
+
+  @@index([bayId, releasedAt])
+  @@index([workOrderId, releasedAt])
+  @@map("bay_assignments")
+}
+
+// -------------------------------------------------------------------------
+// LÍNEAS DE TRABAJO, REPUESTOS E INVENTARIO (CONCURRENCIA OPTIMISTA C1)
+// -------------------------------------------------------------------------
+
+model WorkItem {
+  id                 String         @id @default(cuid())
+  workshopId         String
+  workOrderId        String
+  assignedAdminId    String?
+  createdById        String?
+  description        String
+  internalNote       String?
+  estimatedMinutes   Int
+  hourlyRateCharged  Decimal        @db.Decimal(12, 2)
+  internalCostAmount Decimal?       @db.Decimal(12, 2)
+  actualMinutes      Int            @default(0)
+  status             WorkItemStatus @default(PENDIENTE)
+  isAdditional       Boolean        @default(false)
+  requiresApproval   Boolean        @default(false)
+  version            Int            @default(1)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  deletedAt          DateTime?
+
+  workOrder     WorkOrder         @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
+  assignedAdmin AdminUser?        @relation("WorkItemAssignee", fields: [assignedAdminId], references: [id], onDelete: Restrict)
+  createdBy     AdminUser?        @relation("WorkItemCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  budgetLines   BudgetLaborLine[]
+
+  @@index([workshopId, workOrderId, status])
+  @@index([assignedAdminId, status])
+  @@map("work_items")
+}
+
+model PartItem {
+  id               String     @id @default(cuid())
+  workshopId       String
+  workOrderId      String
+  inventoryItemId  String?
+  createdById      String?
+  partNumber       String?
+  description      String
+  quantity         Int
+  unitCost         Decimal?   @db.Decimal(12, 2)
+  unitPriceCharged Decimal    @db.Decimal(12, 2)
+  status           PartStatus @default(PENDIENTE)
+  isAdditional     Boolean    @default(false)
+  requiresApproval Boolean    @default(false)
+  version          Int        @default(1)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  deletedAt        DateTime?
+
+  workOrder          WorkOrder           @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
+  inventoryItem      InventoryItem?      @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+  createdBy          AdminUser?          @relation("PartItemCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  budgetLines        BudgetPartLine[]
+  inventoryMovements InventoryMovement[]
+
+  @@index([workshopId, workOrderId, status])
+  @@index([inventoryItemId, status])
+  @@map("part_items")
+}
+
+model InventoryItem {
+  id            String    @id @default(cuid())
+  workshopId    String
+  sku           String
+  description   String
+  stockQuantity Int       @default(0)
+  reorderPoint  Int       @default(0)
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  workshop  Workshop            @relation(fields: [workshopId], references: [id], onDelete: Restrict)
+  partItems PartItem[]
+  movements InventoryMovement[]
+
+  @@unique([workshopId, sku])
+  @@index([workshopId, active])
+  @@map("inventory_items")
+}
+
+model InventoryMovement {
+  id              String                @id @default(cuid())
+  workshopId      String
+  inventoryItemId String
+  partItemId      String?
+  actorAdminId    String?
+  movementType    InventoryMovementType
+  quantity        Int
+  note            String?
+  createdAt       DateTime              @default(now())
+
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+  partItem      PartItem?     @relation(fields: [partItemId], references: [id], onDelete: Restrict)
+  actorAdmin    AdminUser?    @relation("InventoryMovementActor", fields: [actorAdminId], references: [id], onDelete: Restrict)
+
+  @@index([inventoryItemId, createdAt])
+  @@index([partItemId, createdAt])
+  @@map("inventory_movements")
+}
+
+// -------------------------------------------------------------------------
+// PRESUPUESTO VERSIONADO Y APROBACIÓN (INVARIANTE C3)
+// -------------------------------------------------------------------------
+
+model Budget {
+  id               String   @id @default(cuid())
+  workOrderId      String   @unique
+  currentVersionId String?  @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  workOrder      WorkOrder       @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
+  currentVersion BudgetVersion?  @relation("CurrentBudgetVersion", fields: [currentVersionId], references: [id], onDelete: Restrict)
+  versions       BudgetVersion[] @relation("BudgetVersions")
+
+  @@map("budgets")
+}
+
+model BudgetVersion {
+  id              String       @id @default(cuid())
+  budgetId        String
+  versionNumber   Int
+  createdById     String?
+  status          BudgetStatus @default(BORRADOR)
+  subtotalLabor   Decimal      @db.Decimal(12, 2)
+  subtotalParts   Decimal      @db.Decimal(12, 2)
+  totalEstimated  Decimal      @db.Decimal(12, 2)
+  publishedAt     DateTime?
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+  rejectionReason String?
+  createdAt       DateTime     @default(now())
+
+  budget     Budget            @relation("BudgetVersions", fields: [budgetId], references: [id], onDelete: Restrict)
+  currentFor Budget?           @relation("CurrentBudgetVersion")
+  createdBy  AdminUser?        @relation("BudgetCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  laborLines BudgetLaborLine[]
+  partLines  BudgetPartLine[]
+  approvals  BudgetApproval[]
+
+  @@unique([budgetId, versionNumber])
+  @@index([budgetId, status])
+  @@map("budget_versions")
+}
+
+model BudgetLaborLine {
+  id                String  @id @default(cuid())
+  budgetVersionId   String
+  workItemId        String?
+  description       String
+  estimatedMinutes  Int
+  hourlyRateCharged Decimal @db.Decimal(12, 2)
+  lineTotal         Decimal @db.Decimal(12, 2)
+
+  budgetVersion BudgetVersion @relation(fields: [budgetVersionId], references: [id], onDelete: Restrict)
+  workItem      WorkItem?     @relation(fields: [workItemId], references: [id], onDelete: Restrict)
+
+  @@map("budget_labor_lines")
+}
+
+model BudgetPartLine {
+  id               String  @id @default(cuid())
+  budgetVersionId  String
+  partItemId       String?
+  partNumber       String?
+  description      String
+  quantity         Int
+  unitPriceCharged Decimal @db.Decimal(12, 2)
+  lineTotal        Decimal @db.Decimal(12, 2)
+
+  budgetVersion BudgetVersion @relation(fields: [budgetVersionId], references: [id], onDelete: Restrict)
+  partItem      PartItem?     @relation(fields: [partItemId], references: [id], onDelete: Restrict)
+
+  @@map("budget_part_lines")
+}
+
+model BudgetApproval {
+  id              String           @id @default(cuid())
+  budgetVersionId String
+  actorType       ActorType
+  actorAdminId    String?
+  decision        ApprovalDecision
+  phoneHash       String?
+  contentHash     String
+  ipHash          String?
+  userAgentHash   String?
+  decidedAt       DateTime         @default(now())
+  reason          String?
+
+  budgetVersion BudgetVersion @relation(fields: [budgetVersionId], references: [id], onDelete: Restrict)
+  actorAdmin    AdminUser?    @relation("ApprovalAdmin", fields: [actorAdminId], references: [id], onDelete: Restrict)
+
+  @@index([budgetVersionId, decidedAt])
+  @@map("budget_approvals")
+}
+
+// -------------------------------------------------------------------------
+// RECEPCIÓN, CONTROL Y ENTREGA CON AUDITORÍA DE ODÓMETRO (GATE A4)
+// -------------------------------------------------------------------------
+
+model IntakeRecord {
+  id                  String    @id @default(cuid())
+  workOrderId         String    @unique
+  odometerAtIntake    Int
+  odometerCorrectedTo Int?
+  fuelLevel           FuelLevel
+  customerComplaint   String
+  intakeNotes         String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  correctedAt         DateTime?
+  correctionReason    String?
+
+  workOrder      WorkOrder              @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
+  inventoryCheck VehicleInventoryCheck?
+  damageMarks    DamageMark[]
+  media          MediaAsset[]
+
+  @@map("intake_records")
+}
+
+model VehicleInventoryCheck {
+  id                String   @id @default(cuid())
+  intakeRecordId    String   @unique
+  spareWheelPresent Boolean
+  jackPresent       Boolean
+  wheelKeyPresent   Boolean
+  documentsPresent  Boolean
+  declaredItems     Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  intakeRecord IntakeRecord @relation(fields: [intakeRecordId], references: [id], onDelete: Restrict)
+
+  @@map("vehicle_inventory_checks")
+}
+
+model DamageMark {
+  id             String     @id @default(cuid())
+  intakeRecordId String
+  zone           String
+  damageType     DamageType
+  xPercent       Decimal    @db.Decimal(5, 2)
+  yPercent       Decimal    @db.Decimal(5, 2)
+  note           String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  intakeRecord IntakeRecord @relation(fields: [intakeRecordId], references: [id], onDelete: Restrict)
+  media        MediaAsset[]
+
+  @@index([intakeRecordId, zone])
+  @@map("damage_marks")
+}
+
+model MediaAsset {
+  id               String    @id @default(cuid())
+  intakeRecordId   String?
+  damageMarkId     String?
+  qualityControlId String?
+  deliveryRecordId String?
+  kind             MediaKind
+  objectKey        String
+  sha256           String
+  mimeType         String
+  createdAt        DateTime  @default(now())
+
+  intakeRecord   IntakeRecord?   @relation(fields: [intakeRecordId], references: [id], onDelete: Restrict)
+  damageMark     DamageMark?     @relation(fields: [damageMarkId], references: [id], onDelete: Restrict)
+  qualityControl QualityControl? @relation(fields: [qualityControlId], references: [id], onDelete: Restrict)
+  deliveryRecord DeliveryRecord? @relation(fields: [deliveryRecordId], references: [id], onDelete: Restrict)
+
+  @@index([intakeRecordId, kind])
+  @@index([damageMarkId])
+  @@map("media_assets")
+}
+
+model QualityControl {
+  id            String   @id @default(cuid())
+  workOrderId   String   @unique
+  inspectedById String?
+  passed        Boolean
+  notes         String?
+  checklist     Json
+  inspectedAt   DateTime @default(now())
+
+  workOrder   WorkOrder    @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
+  inspectedBy AdminUser?   @relation("QualityInspector", fields: [inspectedById], references: [id], onDelete: Restrict)
+  media       MediaAsset[]
+
+  @@map("quality_controls")
+}
+
+model DeliveryRecord {
+  id                     String   @id @default(cuid())
+  workOrderId            String   @unique
+  deliveredById          String?
+  recipientName          String
+  recipientDocumentLast4 String?
+  keysHandedOver         Boolean
+  conformityAccepted     Boolean
+  odometerAtDelivery     Int
+  routeTestDistanceKm    Int      @default(0)
+  supervisorOverride     Boolean  @default(false)
+  supervisorOverrideId   String?
+  supervisorNotes        String?
+  notes                  String?
+  deliveredAt            DateTime @default(now())
+
+  workOrder   WorkOrder    @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
+  deliveredBy AdminUser?   @relation("DeliveryActor", fields: [deliveredById], references: [id], onDelete: Restrict)
+  supervisor  AdminUser?   @relation("DeliverySupervisor", fields: [supervisorOverrideId], references: [id], onDelete: Restrict)
+  media       MediaAsset[]
+
+  @@map("delivery_records")
+}
+
+// -------------------------------------------------------------------------
+// TRAZABILIDAD, IDEMPOTENCIA (A2) Y AUDITORÍA
+// -------------------------------------------------------------------------
+
+model StatusHistory {
+  id                  String           @id @default(cuid())
+  workOrderId         String
+  actorType           ActorType
+  actorAdminId        String?
+  eventType           HistoryEventType
+  fromStatus          OrderStatus?
+  toStatus            OrderStatus?
+  publicVisible       Boolean          @default(true)
+  publicDescription   String
+  internalDescription String?
+  metadata            Json?
+  createdAt           DateTime         @default(now())
+
+  workOrder  WorkOrder  @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
+  actorAdmin AdminUser? @relation("StatusEventActor", fields: [actorAdminId], references: [id], onDelete: Restrict)
+
+  @@index([workOrderId, createdAt])
+  @@index([workOrderId, publicVisible, createdAt])
+  @@map("status_histories")
+}
+
+model AuditLog {
+  id           String    @id @default(cuid())
+  workshopId   String
+  workOrderId  String?
+  actorType    ActorType
+  actorAdminId String?
+  action       String
+  entityType   String
+  entityId     String
+  before       Json?
+  after        Json?
+  reason       String?
+  requestId    String?
+  ipHash       String?
+  createdAt    DateTime  @default(now())
+
+  workshop   Workshop   @relation(fields: [workshopId], references: [id], onDelete: Restrict)
+  workOrder  WorkOrder? @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
+  actorAdmin AdminUser? @relation("AuditActor", fields: [actorAdminId], references: [id], onDelete: Restrict)
+
+  @@index([workshopId, createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@index([workOrderId, createdAt])
+  @@map("audit_logs")
+}
+
+model IdempotencyRecord {
+  id             String            @id @default(cuid())
+  workshopId     String
+  key            String
+  route          String
+  requestHash    String
+  status         IdempotencyStatus @default(IN_PROGRESS)
+  responseStatus Int?
+  responseBody   Json?
+  createdAt      DateTime          @default(now())
+  expiresAt      DateTime
+
+  workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Restrict)
+
+  @@unique([workshopId, key])
+  @@index([expiresAt])
+  @@map("idempotency_records")
+}
