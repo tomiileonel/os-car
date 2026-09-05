@@ -26,6 +26,7 @@ build/
 *.tar.gz
 *.rar
 *.7z
+*-bundle.md
 
 # Prisma
 prisma/*.db

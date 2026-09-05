@@ -1,39 +1,52 @@
 import { betterAuth } from "better-auth";
-import { APIError } from "better-auth/api";
-import { Pool } from "pg";
-import { attachDatabasePool } from "@vercel/functions";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+const WEAK_SECRET_PATTERNS = [/^(secret|changeme|123456|password|admin|default)$/i];
 
-attachDatabasePool(pool);
+export function assertAuthEnvironment(env: NodeJS.ProcessEnv = process.env): void {
+  const missing: string[] = [];
+  const secret = env.BETTER_AUTH_SECRET;
+  const url = env.BETTER_AUTH_URL;
+  const dbUrl = env.DATABASE_URL;
+
+  if (typeof secret !== "string" || secret.trim().length === 0) {
+    missing.push("BETTER_AUTH_SECRET");
+  } else if (
+    secret.length < 32 ||
+    WEAK_SECRET_PATTERNS.some((pattern) => pattern.test(secret.trim()))
+  ) {
+    throw new Error(
+      "[OS-CAR AUTH][FATAL] BETTER_AUTH_SECRET es débil o es un valor por defecto conocido. Debe tener al menos 32 caracteres y no usar valores triviales."
+    );
+  }
+  if (typeof url !== "string" || url.trim().length === 0) {
+    missing.push("BETTER_AUTH_URL");
+  }
+  if (typeof dbUrl !== "string" || dbUrl.trim().length === 0) {
+    missing.push("DATABASE_URL");
+  }
+
+  if (missing.length > 0) {
+    throw new Error(
+      `[OS-CAR AUTH][FATAL] Variables de entorno obligatorias ausentes o vacías: ${missing.join(
+        ", "
+      )}. El proceso no puede iniciar sin secretos de autenticación.`
+    );
+  }
+}
+
+assertAuthEnvironment();
 
 export const auth = betterAuth({
-  database: pool,
-  emailAndPassword: {
-    enabled: true,
-  },
-  rateLimit: {
-    storage: "database",
-  },
-  databaseHooks: {
-    user: {
-      create: {
-        before: async (user) => {
-          const allowed = (process.env.ALLOWED_EMAILS ?? "")
-            .split(",")
-            .map((e) => e.trim().toLowerCase())
-            .filter(Boolean);
-
-          if (!allowed.includes(user.email.toLowerCase())) {
-            throw new APIError("BAD_REQUEST", { message: "Registro no habilitado" });
-          }
-        },
-      },
+  secret: process.env.BETTER_AUTH_SECRET,
+  baseURL: process.env.BETTER_AUTH_URL,
+  advanced: {
+    defaultCookieAttributes: {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
     },
   },
 });
 
 export type Session = typeof auth.$Infer.Session;
-

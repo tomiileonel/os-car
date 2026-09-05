@@ -1,127 +1,234 @@
-import { PrismaClient, Prisma, ActorType } from '@prisma/client';
-import {
-  StaleBudgetVersionException,
-  DomainConflictException,
-  NotFoundException,
-} from '../../shared/errors';
+import { createHash } from "node:crypto";
+import type { Prisma, AdminUser } from "@prisma/client";
+import { DomainConflictException, NotFoundException, ValidationException, ForbiddenException } from "@/shared/errors";
+import { withSerializableRetry } from "./order-calculation.service";
+import { recalculateBlockersInTx } from "./order-blocker.service";
+import type { BlockReasonName, BlockerServiceTx } from "./order-blocker.service";
 
-export interface ApproveBudgetInput {
-  budgetId: string;
+export type BudgetDecision = "APROBADO" | "RECHAZADO";
+export type ActorTypeBudget = "ADMIN" | "CLIENTE" | "SYSTEM";
+
+export interface BudgetDecisionCommand {
+  workshopId: string;
+  workOrderId: string;
   budgetVersionId: string;
-  actorType: ActorType;
+  decision: BudgetDecision;
+  actorType: ActorTypeBudget;
   actorAdminId?: string;
-  contentHash: string;
   phoneHash?: string;
-  ipAddress?: string;
-  userAgent?: string;
+  ipHash?: string;
+  userAgentHash?: string;
+  rejectionReason?: string;
 }
 
-export class BudgetApprovalService {
-  constructor(private readonly prisma: PrismaClient) {}
+interface BudgetVersionRow {
+  id: string;
+  status: string;
+  budgetId: string;
+  versionNumber: number;
+  budget: {
+    workOrderId: string;
+    workOrder: { workshopId: string };
+  };
+  laborLines: ReadonlyArray<{
+    description: string;
+    estimatedMinutes: number;
+    hourlyRateCharged: string;
+  }>;
+  partLines: ReadonlyArray<{
+    description: string;
+    quantity: number;
+    unitPriceCharged: string;
+  }>;
+}
 
-  public async approveBudget(workshopId: string, input: ApproveBudgetInput) {
-    return await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const budget = await tx.budget.findUnique({
-        where: { id: input.budgetId },
-        include: {
-          workOrder: {
-            select: { id: true, workshopId: true, status: true },
-          },
-        },
-      });
+export type BudgetApprovalServiceTx = BlockerServiceTx & {
+  adminUser: {
+    findFirst(args: { where: Record<string, unknown>; select?: unknown }): Promise<AdminUser | null>;
+  };
+  budget: {
+    findFirst: BlockerServiceTx["budget"]["findFirst"];
+    update(args: { where: { id: string }; data: Record<string, unknown> }): Promise<{ id: string }>;
+  };
+  budgetVersion: {
+    findFirst(args: { where: { id: string }; select: unknown }): Promise<BudgetVersionRow | null>;
+    update(args: { where: { id: string }; data: Record<string, unknown> }): Promise<{ id: string }>;
+    updateMany(args: {
+      where: Record<string, unknown>;
+      data: Record<string, unknown>;
+    }): Promise<{ count: number }>;
+  };
+  budgetApproval: {
+    create(args: { data: Record<string, unknown> }): Promise<{ id: string }>;
+  };
+  statusHistory: {
+    create(args: { data: Record<string, unknown> }): Promise<{ id: string }>;
+  };
+};
 
-      if (!budget || budget.workOrder.workshopId !== workshopId) {
-        throw new NotFoundException({
-          resourceId: input.budgetId,
-          resourceType: 'Budget',
-        });
-      }
+export interface BudgetApprovalPrismaClient {
+  $transaction<T>(
+    fn: (tx: BudgetApprovalServiceTx) => Promise<T>,
+    options?: { isolationLevel?: Prisma.TransactionIsolationLevel }
+  ): Promise<T>;
+}
 
-      if (!budget.currentVersionId || budget.currentVersionId !== input.budgetVersionId) {
-        throw new StaleBudgetVersionException({
-          workOrderId: budget.workOrderId,
-          expectedVersionId: input.budgetVersionId,
-          currentVersionId: budget.currentVersionId ?? 'NINGUNA_VERSION_ACTIVA',
-        });
-      }
+const BUDGET_VERSION_SELECT = {
+  id: true,
+  status: true,
+  budgetId: true,
+  versionNumber: true,
+  budget: { select: { workOrderId: true, workOrder: { select: { workshopId: true } } } },
+  laborLines: { select: { description: true, estimatedMinutes: true, hourlyRateCharged: true } },
+  partLines: { select: { description: true, quantity: true, unitPriceCharged: true } },
+} as const;
 
-      const budgetVersion = await tx.budgetVersion.findUnique({
-        where: { id: input.budgetVersionId },
-      });
+export async function assertActiveWorkshopUser(
+  tx: BudgetApprovalServiceTx,
+  workshopId: string,
+  adminId: string,
+  roles?: string[]
+): Promise<AdminUser> {
+  const user = await tx.adminUser.findFirst({
+    where: {
+      id: adminId,
+      workshopId: workshopId,
+      active: true,
+      deletedAt: null,
+      ...(roles && roles.length > 0 ? { role: { in: roles } } : {}),
+    },
+  });
+  if (!user) {
+    throw new ForbiddenException("USER_NOT_ACTIVE_OR_UNAUTHORIZED", "El usuario no pertenece al taller o no está activo.");
+  }
+  return user;
+}
 
-      if (!budgetVersion) {
-        throw new NotFoundException({
-          resourceId: input.budgetVersionId,
-          resourceType: 'BudgetVersion',
-        });
-      }
+function hashBudgetContent(version: BudgetVersionRow): string {
+  const canonical = JSON.stringify({
+    budgetVersionId: version.id,
+    versionNumber: version.versionNumber,
+    laborLines: [...version.laborLines].sort((a, b) => a.description.localeCompare(b.description)),
+    partLines: [...version.partLines].sort((a, b) => a.description.localeCompare(b.description)),
+  });
+  return createHash("sha256").update(canonical).digest("hex");
+}
 
-      if (budgetVersion.status === 'APROBADO') {
-        throw new DomainConflictException({
-          resourceId: input.budgetVersionId,
-          expectedVersion: budgetVersion.versionNumber,
-          currentVersion: budgetVersion.versionNumber,
-          resourceType: 'BudgetVersion (Ya aprobada previamente)',
-        });
-      }
+export async function decideBudgetVersionInTx(
+  tx: BudgetApprovalServiceTx,
+  command: BudgetDecisionCommand
+): Promise<{ budgetVersionId: string; decision: BudgetDecision; blockReason: BlockReasonName }> {
+  const version = await tx.budgetVersion.findFirst({
+    where: { id: command.budgetVersionId },
+    select: BUDGET_VERSION_SELECT,
+  });
 
-      const approval = await tx.budgetApproval.create({
-        data: {
-          budgetVersionId: input.budgetVersionId,
-          actorType: input.actorType,
-          actorAdminId: input.actorAdminId,
-          decision: 'APROBADO',
-          phoneHash: input.phoneHash,
-          contentHash: input.contentHash,
-          ipHash: input.ipAddress ? Buffer.from(input.ipAddress).toString('base64') : null,
-          userAgentHash: input.userAgent ? Buffer.from(input.userAgent).toString('base64') : null,
-          decidedAt: new Date(),
-        },
-      });
+  const scopedCorrectly =
+    version !== null &&
+    version.budget.workOrderId === command.workOrderId &&
+    version.budget.workOrder.workshopId === command.workshopId;
 
-      await tx.budgetVersion.update({
-        where: { id: input.budgetVersionId },
-        data: {
-          status: 'APROBADO',
-          approvedAt: new Date(),
-        },
-      });
+  if (!version || !scopedCorrectly) {
+    throw new NotFoundException(
+      "BUDGET_VERSION_NOT_FOUND",
+      "La versión de presupuesto no existe dentro del tenant.",
+      { budgetVersionId: command.budgetVersionId }
+    );
+  }
 
-      await tx.orderBlocker.updateMany({
-        where: {
-          workOrderId: budget.workOrderId,
-          type: 'APROBACION_PRESUPUESTO',
-          isActive: true,
-        },
-        data: {
-          isActive: false,
-          resolvedAt: new Date(),
-          resolvedByUserId: input.actorAdminId ?? 'CLIENT_PORTAL_AUTOMATION',
-          resolutionNotes: `Presupuesto aprobado formalmente mediante versión ${input.budgetVersionId} (Hash: ${input.contentHash.substring(0, 8)}...)`,
-        },
-      });
+  if (version.status !== "PENDIENTE_APROBACION") {
+    throw new DomainConflictException(
+      "BUDGET_NOT_DECIDABLE",
+      `La versión de presupuesto no está pendiente de aprobación (estado actual: ${version.status}).`,
+      { currentStatus: version.status }
+    );
+  }
 
-      await tx.statusHistory.create({
-        data: {
-          workOrderId: budget.workOrderId,
-          actorType: input.actorType,
-          actorAdminId: input.actorAdminId,
-          eventType: 'PRESUPUESTO_APROBADO',
-          publicVisible: true,
-          publicDescription: 'El presupuesto ha sido aprobado y autorizado para inicio de trabajos.',
-          metadata: {
-            budgetVersionId: input.budgetVersionId,
-            totalEstimated: budgetVersion.totalEstimated.toString(),
-          },
-        },
-      });
+  if (
+    command.decision === "RECHAZADO" &&
+    (command.rejectionReason === undefined || command.rejectionReason.trim().length < 5)
+  ) {
+    throw new ValidationException(
+      "REJECTION_REASON_REQUIRED",
+      "El rechazo de un presupuesto exige un motivo de al menos 5 caracteres."
+    );
+  }
 
-      return {
-        success: true,
-        approvalId: approval.id,
-        budgetVersionId: input.budgetVersionId,
-        approvedAt: approval.decidedAt,
-      };
+  // S2: Validación de Tenant Activo para Staff
+  if (command.actorType === "ADMIN" && command.actorAdminId) {
+    await assertActiveWorkshopUser(tx, command.workshopId, command.actorAdminId, ["ADMIN"]);
+  }
+
+  const now = new Date();
+  const contentHash = hashBudgetContent(version);
+
+  await tx.budgetVersion.update({
+    where: { id: version.id },
+    data:
+      command.decision === "APROBADO"
+        ? { status: "APROBADO", approvedAt: now }
+        : { status: "RECHAZADO", rejectedAt: now, rejectionReason: command.rejectionReason ?? null },
+  });
+
+  // B1: actorAdminId null para clientes/sistema, ID para ADMIN
+  const actorAdminId = command.actorType === "ADMIN" && command.actorAdminId ? command.actorAdminId : null;
+
+  await tx.budgetApproval.create({
+    data: {
+      budgetVersionId: version.id,
+      actorType: command.actorType,
+      actorAdminId,
+      decision: command.decision,
+      phoneHash: command.phoneHash ?? null,
+      contentHash,
+      ipHash: command.ipHash ?? null,
+      userAgentHash: command.userAgentHash ?? null,
+      reason: command.rejectionReason ?? null,
+      decidedAt: now,
+    },
+  });
+
+  if (command.decision === "APROBADO") {
+    await tx.budgetVersion.updateMany({
+      where: { budgetId: version.budgetId, status: "APROBADO", id: { not: version.id } },
+      data: { status: "SUPERSEDED" },
+    });
+    await tx.budget.update({
+      where: { id: version.budgetId },
+      data: { currentVersionId: version.id },
     });
   }
+
+  const blockReason = await recalculateBlockersInTx(tx, {
+    workshopId: command.workshopId,
+    workOrderId: command.workOrderId,
+    actorAdminId: actorAdminId,
+  });
+
+  await tx.statusHistory.create({
+    data: {
+      workOrderId: command.workOrderId,
+      actorType: command.actorType,
+      actorAdminId: command.actorAdminId ?? null,
+      eventType: command.decision === "APROBADO" ? "PRESUPUESTO_APROBADO" : "PRESUPUESTO_RECHAZADO",
+      publicVisible: true,
+      publicDescription:
+        command.decision === "APROBADO" ? "El presupuesto fue aprobado." : "El presupuesto fue rechazado.",
+      createdAt: now,
+      metadata: { budgetVersionId: version.id, decision: command.decision, blockReason },
+    },
+  });
+
+  return { budgetVersionId: version.id, decision: command.decision, blockReason };
+}
+
+export async function decideBudgetVersion(
+  prismaClient: BudgetApprovalPrismaClient,
+  command: BudgetDecisionCommand
+): Promise<{ budgetVersionId: string; decision: BudgetDecision; blockReason: BlockReasonName }> {
+  return withSerializableRetry(() =>
+    prismaClient.$transaction((tx) => decideBudgetVersionInTx(tx, command), {
+      isolationLevel: "Serializable",
+    })
+  );
 }

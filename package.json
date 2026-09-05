@@ -16,13 +16,15 @@
     "prisma:deploy": "prisma migrate deploy",
     "auth:generate": "npx @better-auth/cli generate",
     "auth:migrate": "node ./scripts/run-migrations.mjs",
-    "auth:test-rate-limit": "node ./scripts/test-rate-limit.mjs"
+    "auth:test-rate-limit": "node ./scripts/test-rate-limit.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "@vercel/functions": "^3.9.5",
     "better-auth": "^1.1.21",
     "decimal.js": "^10.6.0",
+    "ioredis": "^6.0.0",
     "next": "^15.1.0",
     "pg": "^8.13.1",
     "react": "^19.0.0",
@@ -31,12 +33,14 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@types/ioredis": "^4.28.10",
     "@types/node": "^22.10.0",
     "@types/pg": "^8.11.10",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/redis": "^4.0.10",
     "prisma": "^6.19.3",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.11"
   }
 }

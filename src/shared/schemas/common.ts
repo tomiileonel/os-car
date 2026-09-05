@@ -1,156 +1,53 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-/**
- * Schema para IDs generados con CUID.
- * Soporta CUID v1 y CUID v2 para máxima interoperabilidad.
- */
-export const cuidSchema = z.union([
-  z.string().cuid(),
-  z.string().cuid2(),
-]);
+export const cuidSchema = z.string().cuid();
+export const workshopIdSchema = z.string().cuid();
 
-/**
- * Schema para UUIDs v4
- */
-export const uuidSchema = z.string().uuid();
-
-/**
- * Schema para fechas ISO 8601
- */
-export const isoDateSchema = z.string().datetime();
-
-/**
- * Schema para Decimales (dinero, horas, kilometraje)
- */
-export const decimalSchema = z.union([
-  z.string().regex(/^\d+(\.\d{1,2})?$/),
-  z.number(),
-]).transform((val) => {
-  if (typeof val === 'string') {
-    return parseFloat(val);
-  }
-  return val;
-});
-
-/**
- * Schema para strings no vacíos
- */
-export const nonEmptyStringSchema = z.string().min(1, 'El campo es obligatorio');
-
-/**
- * Schema para strings con longitud máxima
- */
-export const maxLengthStringSchema = (max: number) => 
-  z.string().max(max, `Máximo ${max} caracteres`);
-
-/**
- * Schema para patentes vehiculares
- */
-export const plateSchema = z
+export const moneyStringSchema = z
   .string()
-  .regex(/^[A-Z0-9]{6,7}$/, 'Patente inválida. Use formato AAA111 o AA111AA')
-  .transform((val) => val.toUpperCase());
+  .regex(/^\d{1,10}(\.\d{1,2})?$/, "MONEY_FORMAT_INVALID");
 
-/**
- * Schema para años de vehículos
- */
-export const vehicleYearSchema = z
-  .number()
-  .int()
-  .min(1950, 'Año mínimo: 1950')
-  .max(new Date().getFullYear() + 1, 'Año máximo: próximo año');
+export const positiveIntSchema = z.number().int().positive();
+export const nonNegativeIntSchema = z.number().int().nonnegative();
 
-/**
- * Schema para odómetro (kilometraje)
- */
-export const odometerSchema = z
-  .number()
-  .int()
-  .min(0, 'El kilometraje no puede ser negativo');
+export const phoneE164Schema = z
+  .string()
+  .trim()
+  .regex(/^\+[1-9][0-9]{7,14}$/, "PHONE_MUST_BE_E164");
 
-/**
- * Schema para tipos de vehículos
- */
-export const vehicleTypeSchema = z.enum(['AUTO', 'CAMIONETA', 'CAMION', 'MOTO']);
-export type VehicleType = z.infer<typeof vehicleTypeSchema>;
+export const emailSchema = z.string().trim().email().max(254);
 
-/**
- * Schema para estados de orden de trabajo
- */
-export const workOrderStatusSchema = z.enum([
-  'INGRESADO',
-  'DIAGNOSTICO',
-  'ESPERANDO_REPARACION',
-  'EN_REPARACION',
-  'CONTROL',
-  'LISTO',
-  'ENTREGADO',
-  'CANCELADA',
-]);
-export type WorkOrderStatus = z.infer<typeof workOrderStatusSchema>;
+export const documentNumberSchema = z
+  .string()
+  .trim()
+  .regex(/^[0-9]{6,12}$/, "DOCUMENT_NUMBER_INVALID");
 
-/**
- * Schema para estados de repuestos
- */
-export const partStatusSchema = z.enum([
-  'PENDIENTE',
-  'SOLICITADO',
-  'CONSEGUIDO',
-  'RECIBIDO',
-  'INSTALADO',
-  'DEVOLUCION_PENDIENTE',
-  'DEVUELTO',
-  'CANCELADO',
-]);
-export type PartStatus = z.infer<typeof partStatusSchema>;
+export const licensePlateSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .transform((value) => value.replace(/[\s-]/g, ""))
+  .pipe(z.string().min(5).max(10).regex(/^[A-Z0-9]+$/, "LICENSE_PLATE_INVALID"));
 
-/**
- * Schema para tipos de bloqueadores (Gate A1)
- */
-export const blockerTypeSchema = z.enum([
-  'APROBACION_PRESUPUESTO',
-  'REPUESTO_PENDIENTE',
-  'AUTORIZACION_TRABAJO_ADICIONAL',
-  'CONTROL_CALIDAD_RECHAZADO',
-  'CAPACIDAD_TALLER',
-  'DOCUMENTACION_VEHICULO',
-  'ESPERA_DECISION_CLIENTE',
-  'PAGO_PENDIENTE',
-  'OTRO',
-]);
-export type BlockerType = z.infer<typeof blockerTypeSchema>;
+export const vinSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-HJ-NPR-Z0-9]{17}$/, "VIN_INVALID");
 
-/**
- * Schema para roles de usuario
- */
-export const userRoleSchema = z.enum([
-  'OWNER',
-  'TALLER_SUPERVISOR',
-  'MECANICO',
-  'RECEPCIONISTA',
-  'ADMIN',
-]);
-export type UserRole = z.infer<typeof userRoleSchema>;
+export const trackingCodeSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-HJ-NP-Z]{3}-[2-9A-HJ-NP-Z]{4}$/, "INVALID_TRACKING_CODE");
 
-/**
- * Schema para validación de Idempotency-Key header
- */
-export const idempotencyKeySchema = z.string().uuid();
-
-/**
- * Schema para paginación
- */
-export const paginationSchema = z.object({
-  page: z.number().int().min(1).default(1),
-  pageSize: z.number().int().min(1).max(100).default(20),
+export const paginationQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
 
-/**
- * Schema para filtros comunes
- */
-export const commonFiltersSchema = z.object({
-  search: z.string().optional(),
-  status: z.string().optional(),
-  fromDate: isoDateSchema.optional(),
-  toDate: isoDateSchema.optional(),
-});
+export const actorTypeSchema = z.enum(["ADMIN", "CLIENTE", "SYSTEM"]);
+
+export type PaginationQuery = z.infer<typeof paginationQuerySchema>;
+export type ActorType = z.infer<typeof actorTypeSchema>;
+export type MoneyString = z.infer<typeof moneyStringSchema>;
