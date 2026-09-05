@@ -158,4 +158,82 @@ describe("OrderBlockerService — Invariante A1", () => {
       })
     );
   });
+
+  it("recalculateBlockersInTx resuelve blockedByUserId desde workOrder.createdById cuando no hay actorAdminId", async () => {
+    const tx = buildBlockerTxMock({
+      partItems: [{ status: "PENDIENTE", requiresApproval: false }],
+      budgetStatus: "APROBADO",
+    });
+    vi.mocked(tx.workOrder.findFirst).mockResolvedValueOnce({
+      id: "wo_1",
+      status: "ESPERANDO_REPARACION",
+      createdById: "au_creator",
+    });
+
+    await recalculateBlockersInTx(tx, {
+      workshopId: "ws_1",
+      workOrderId: "wo_1",
+    });
+
+    expect(tx.orderBlocker.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          blockedByUserId: "au_creator",
+        }),
+      })
+    );
+  });
+
+  it("recalculateBlockersInTx resuelve blockedByUserId desde adminUser activo cuando createdById es null", async () => {
+    const tx = buildBlockerTxMock({
+      partItems: [{ status: "PENDIENTE", requiresApproval: false }],
+      budgetStatus: "APROBADO",
+    });
+    vi.mocked(tx.workOrder.findFirst).mockResolvedValueOnce({
+      id: "wo_1",
+      status: "ESPERANDO_REPARACION",
+      createdById: null,
+    });
+    tx.adminUser = {
+      findFirst: vi.fn().mockResolvedValue({ id: "au_workshop_owner" }),
+    };
+
+    await recalculateBlockersInTx(tx, {
+      workshopId: "ws_1",
+      workOrderId: "wo_1",
+    });
+
+    expect(tx.orderBlocker.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          blockedByUserId: "au_workshop_owner",
+        }),
+      })
+    );
+  });
+
+  it("recalculateBlockersInTx arroja DomainConflictException cuando no existe ningún admin en el taller", async () => {
+    const tx = buildBlockerTxMock({
+      partItems: [{ status: "PENDIENTE", requiresApproval: false }],
+      budgetStatus: "APROBADO",
+    });
+    vi.mocked(tx.workOrder.findFirst).mockResolvedValueOnce({
+      id: "wo_1",
+      status: "ESPERANDO_REPARACION",
+      createdById: null,
+    });
+    tx.adminUser = {
+      findFirst: vi.fn().mockResolvedValue(null),
+    };
+
+    await expect(
+      recalculateBlockersInTx(tx, {
+        workshopId: "ws_1",
+        workOrderId: "wo_1",
+      })
+    ).rejects.toMatchObject({
+      name: "DomainConflictException",
+      code: "NO_ADMIN_ACTOR_AVAILABLE",
+    });
+  });
 });

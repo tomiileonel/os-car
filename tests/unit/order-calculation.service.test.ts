@@ -6,6 +6,7 @@ import {
   calculatePartLineTotal,
   recalculateOrderTotals,
   recalculateOrderTotalsInTx,
+  withSerializableRetry,
 } from "@/server/services/order-calculation.service";
 import type {
   OrderTotals,
@@ -40,9 +41,16 @@ describe("OrderCalculationService — precisión decimal", () => {
     expect(total.toFixed(2)).toBe("18000.00");
   });
 
-  it("redondea HALF_EVEN (banker's rounding) al final de la línea", () => {
-    const total = calculateLaborLineTotal({ estimatedMinutes: 1, hourlyRateCharged: "1.00" });
-    expect(total.toFixed(2)).toBe("0.02");
+  it("redondea HALF_EVEN (banker's rounding) en caso de empate exacto .xx5 (30 min a 3.33/h -> 1.66, no 1.67)", () => {
+    // 30 / 60 * 3.33 = 1.665. En HALF_EVEN el último dígito par es 6 -> 1.66. (En HALF_UP daría 1.67)
+    const total = calculateLaborLineTotal({ estimatedMinutes: 30, hourlyRateCharged: "3.33" });
+    expect(total.toFixed(2)).toBe("1.66");
+  });
+
+  it("redondea HALF_EVEN en caso de empate con impar (30 min a 3.35/h -> 1.68)", () => {
+    // 30 / 60 * 3.35 = 1.675. En HALF_EVEN el par más cercano es 8 -> 1.68.
+    const total = calculateLaborLineTotal({ estimatedMinutes: 30, hourlyRateCharged: "3.35" });
+    expect(total.toFixed(2)).toBe("1.68");
   });
 
   it("30 min a 1999.99/h redondean 999.995 a 1000.00", () => {
@@ -116,4 +124,62 @@ describe("OrderCalculationService — precisión decimal", () => {
     expect(result.totalEstimated).toBe("21001.00");
     expect(transactionSpy).toHaveBeenCalledWith(expect.any(Function), { isolationLevel: "Serializable" });
   });
+
+  describe("withSerializableRetry", () => {
+    it("reintenta automáticamente ante error de serialización pg 40001 y resuelve", async () => {
+      let attempts = 0;
+      const fn = vi.fn(async () => {
+        attempts += 1;
+        if (attempts === 1) {
+          const err = new Error("could not serialize access due to read/write dependencies");
+          (err as unknown as { code: string }).code = "40001";
+          throw err;
+        }
+        return "SUCCESS";
+      });
+
+      const result = await withSerializableRetry(fn, 3);
+      expect(result).toBe("SUCCESS");
+      expect(attempts).toBe(2);
+      expect(fn).toHaveBeenCalledTimes(2);
+    });
+
+    it("reintenta automáticamente ante deadlock pg 40P01", async () => {
+      let attempts = 0;
+      const fn = vi.fn(async () => {
+        attempts += 1;
+        if (attempts === 1) {
+          const err = new Error("deadlock detected");
+          (err as unknown as { code: string }).code = "40P01";
+          throw err;
+        }
+        return "SUCCESS_AFTER_DEADLOCK";
+      });
+
+      const result = await withSerializableRetry(fn, 3);
+      expect(result).toBe("SUCCESS_AFTER_DEADLOCK");
+      expect(attempts).toBe(2);
+    });
+
+    it("arroja el error si se agota el número máximo de intentos", async () => {
+      const fn = vi.fn(async () => {
+        const err = new Error("serialization_failure permanent");
+        (err as unknown as { code: string }).code = "40001";
+        throw err;
+      });
+
+      await expect(withSerializableRetry(fn, 3)).rejects.toThrow("serialization_failure permanent");
+      expect(fn).toHaveBeenCalledTimes(3);
+    });
+
+    it("no reintenta ante errores no relacionados a concurrencia y falla inmediatamente", async () => {
+      const fn = vi.fn(async () => {
+        throw new NotFoundException("ORDER_NOT_FOUND", "No existe");
+      });
+
+      await expect(withSerializableRetry(fn, 3)).rejects.toThrow(NotFoundException);
+      expect(fn).toHaveBeenCalledTimes(1);
+    });
+  });
 });
+

@@ -106,7 +106,7 @@ export function money(value: MoneyInput): Decimal {
 }
 
 export function roundMoney(value: Decimal): Decimal {
-  return value.toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+  return value.toDecimalPlaces(2, Decimal.ROUND_HALF_EVEN);
 }
 
 export function toMoneyString(value: Decimal): string {

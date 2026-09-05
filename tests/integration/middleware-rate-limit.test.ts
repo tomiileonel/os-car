@@ -57,4 +57,20 @@ describe("middleware — Sliding Window conectado al tráfico HTTP (G4/G7)", () 
       expect(response.status).toBe(200);
     }
   });
+
+  it("previene evasión de rate limit mediante rotación de headers x-workshop-id", async () => {
+    const path = "/api/auth/sign-in";
+    let response: Response | undefined;
+    for (let index = 0; index < 11; index += 1) {
+      const req = new NextRequest(new URL(path, "http://localhost:3000"), {
+        method: "POST",
+        headers: {
+          "x-forwarded-for": "198.51.100.99",
+          "x-workshop-id": `attacker-ws-${index}`,
+        },
+      });
+      response = await middleware(req);
+    }
+    expect(response?.status).toBe(429);
+  });
 });

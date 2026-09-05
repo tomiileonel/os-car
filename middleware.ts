@@ -43,8 +43,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   }
 
   const ip = clientIp(request);
-  const tenantId = request.headers.get("x-workshop-id") ?? "global";
-  const key = `oscar:rl:${rule.bucket}:${tenantId}:${djb2Hex(`${ip}|${process.env.NODE_ENV ?? "dev"}`)}`;
+  const key = `oscar:rl:${rule.bucket}:${djb2Hex(`${ip}|${process.env.NODE_ENV ?? "dev"}`)}`;
   const member = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
   const decision = await slidingWindowRateLimit(key, rule.limit, rule.windowMs, member);

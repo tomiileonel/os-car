@@ -31,6 +31,7 @@ export const BLOCK_REASON_TO_TYPE: Record<BlockReasonName, BlockerType> = {
 
 export interface BlockerSnapshotInput {
   orderStatus: string;
+  createdById?: string | null;
   intakeRecord: { id: string } | null;
   partItems: ReadonlyArray<{ status: string; requiresApproval: boolean }>;
   workItems: ReadonlyArray<{ isAdditional: boolean; requiresApproval: boolean }>;
@@ -164,7 +165,7 @@ export async function loadBlockerSnapshotInTx(
 ): Promise<BlockerSnapshotInput> {
   const order = await tx.workOrder.findFirst({
     where: { id: args.workOrderId, workshopId: args.workshopId, deletedAt: null },
-    select: { id: true, status: true },
+    select: { id: true, status: true, createdById: true },
   });
   if (!order) {
     throw new NotFoundException("WORK_ORDER_NOT_FOUND", "La orden de trabajo no existe en el tenant.", {
@@ -191,6 +192,7 @@ export async function loadBlockerSnapshotInTx(
 
   return {
     orderStatus: order.status,
+    createdById: order.createdById,
     intakeRecord,
     partItems,
     workItems,
@@ -218,14 +220,7 @@ export async function recalculateBlockersInTx(
   const toResolve = activeDbReasons.filter((r) => !currentBlockers.includes(r));
 
   if (toCreate.length > 0) {
-    let resolvedBlockedByUserId = args.actorAdminId;
-    if (!resolvedBlockedByUserId) {
-      const order = await tx.workOrder.findFirst({
-        where: { id: args.workOrderId, workshopId: args.workshopId, deletedAt: null },
-        select: { id: true, status: true, createdById: true },
-      });
-      resolvedBlockedByUserId = order?.createdById ?? null;
-    }
+    let resolvedBlockedByUserId = args.actorAdminId ?? snapshot.createdById ?? null;
     if (!resolvedBlockedByUserId && tx.adminUser) {
       const admin = await tx.adminUser.findFirst({
         where: { workshopId: args.workshopId, active: true, deletedAt: null },
@@ -234,7 +229,15 @@ export async function recalculateBlockersInTx(
       resolvedBlockedByUserId = admin?.id ?? null;
     }
 
-    const finalBlockedByUserId = resolvedBlockedByUserId ?? "system-automation";
+    if (!resolvedBlockedByUserId) {
+      throw new DomainConflictException(
+        "NO_ADMIN_ACTOR_AVAILABLE",
+        "No se pudo determinar un usuario administrativo válido en el taller para asociar al bloqueo de orden.",
+        { workshopId: args.workshopId, workOrderId: args.workOrderId }
+      );
+    }
+
+    const finalBlockedByUserId = resolvedBlockedByUserId;
 
     await Promise.all(
       toCreate.map((reason) =>
