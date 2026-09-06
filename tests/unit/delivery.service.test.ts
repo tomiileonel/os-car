@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { DomainConflictException, ValidationException } from "@/shared/errors";
+import { ValidationException } from "@/shared/errors";
 import { deliverOrderInTx, validateDeliveryOdometer } from "@/server/services/delivery.service";
 import type { DeliverOrderCommand, DeliveryServiceTx } from "@/server/services/delivery.service";
 

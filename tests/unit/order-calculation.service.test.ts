@@ -114,7 +114,7 @@ describe("OrderCalculationService — precisión decimal", () => {
   it("recalculateOrderTotals abre transacción con aislamiento Serializable", async () => {
     const tx = buildTotalsTxMock();
     const transactionSpy = vi.fn(
-      async (fn: (t: TotalsRecalculationTx) => Promise<OrderTotals>, _options?: { isolationLevel?: string }) =>
+      async (fn: (t: TotalsRecalculationTx) => Promise<OrderTotals>) =>
         fn(tx)
     );
     const prismaStub: OrderTotalsPrismaClient = {
@@ -252,6 +252,23 @@ describe("OrderCalculationService — precisión decimal", () => {
 
       // No debe arrojar RangeError (Maximum call stack size exceeded)
       expect(isRetryableConcurrencyError(circularError)).toBe(false);
+    });
+
+    it("acota la recursión en error.cause a MAX_CAUSE_DEPTH (16) para prevenir desbordamiento de pila en cadenas lineales ultra-profundas", () => {
+      // Cadena de 30 niveles con error 40001 al final (nivel 25)
+      let currentError: Record<string, unknown> = { code: "40001", message: "serialization failure" };
+      for (let i = 0; i < 25; i++) {
+        currentError = { message: `Wrapper level ${i}`, cause: currentError };
+      }
+      // Debido al límite de profundidad MAX_CAUSE_DEPTH (16), no llega al error anidado y retorna false sin desbordar la pila
+      expect(isRetryableConcurrencyError(currentError)).toBe(false);
+
+      // Cadena de 10 niveles con error 40001 al final (nivel 10) -> se encuentra dentro del límite y retorna true
+      let shallowError: Record<string, unknown> = { code: "40001", message: "serialization failure" };
+      for (let i = 0; i < 10; i++) {
+        shallowError = { message: `Wrapper level ${i}`, cause: shallowError };
+      }
+      expect(isRetryableConcurrencyError(shallowError)).toBe(true);
     });
 
     it("ejecuta fail-fast si un código no reintentable (P2002) aparece en cualquier nivel del árbol de causas", () => {

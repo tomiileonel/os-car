@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { Prisma, AdminUser } from "@prisma/client";
 import { DomainConflictException, NotFoundException, ValidationException, ForbiddenException } from "@/shared/errors";
 import { withSerializableRetry } from "./order-calculation.service";
+import type { RetryOptions } from "./order-calculation.service";
 import { recalculateBlockersInTx } from "./order-blocker.service";
 import type { BlockReasonName, BlockerServiceTx } from "./order-blocker.service";
 
@@ -77,7 +78,11 @@ export type BudgetApprovalServiceTx = BlockerServiceTx & {
 export interface BudgetApprovalPrismaClient {
   $transaction<T>(
     fn: (tx: BudgetApprovalServiceTx) => Promise<T>,
-    options?: { isolationLevel?: Prisma.TransactionIsolationLevel }
+    options?: {
+      isolationLevel?: Prisma.TransactionIsolationLevel;
+      maxWait?: number;
+      timeout?: number;
+    }
   ): Promise<T>;
 }
 
@@ -128,6 +133,17 @@ function hashBudgetContent(version: BudgetVersionRow): string {
   return createHash("sha256").update(canonical).digest("hex");
 }
 
+/**
+ * Ejecuta la decisión de presupuesto (aprobación o rechazo) dentro de una transacción activa.
+ *
+ * @precondition IsolationLevel: Serializable
+ * Requiere ejecutarse bajo un contexto transaccional con nivel de aislamiento SERIALIZABLE
+ * (o invocado a través de decideBudgetVersion / withSerializableRetry).
+ * En caso de RECHAZADO, la preservación de currentVersionId = null y la prevención de carreras
+ * entre múltiples rechazos simultáneos o rechazo/aprobación concurrentes dependen estrictamente
+ * de las garantías SSI (Serializable Snapshot Isolation) del motor relacional (SQLSTATE 40001 / P2034)
+ * combinadas con el CAS atómico sobre budget.updatedAt / currentVersionId.
+ */
 export async function decideBudgetVersionInTx(
   tx: BudgetApprovalServiceTx,
   command: BudgetDecisionCommand
@@ -286,13 +302,26 @@ export async function decideBudgetVersionInTx(
   return { budgetVersionId: version.id, decision: command.decision, blockReason };
 }
 
+export interface DecideBudgetVersionOptions {
+  transactionOptions?: { maxWait?: number; timeout?: number };
+  retryOptions?: RetryOptions;
+}
+
 export async function decideBudgetVersion(
   prismaClient: BudgetApprovalPrismaClient,
-  command: BudgetDecisionCommand
+  command: BudgetDecisionCommand,
+  options?: DecideBudgetVersionOptions
 ): Promise<{ budgetVersionId: string; decision: BudgetDecision; blockReason: BlockReasonName }> {
-  return withSerializableRetry(() =>
-    prismaClient.$transaction((tx) => decideBudgetVersionInTx(tx, command), {
-      isolationLevel: "Serializable",
-    })
+  const maxWait = options?.transactionOptions?.maxWait ?? 10_000;
+  const timeout = options?.transactionOptions?.timeout ?? 30_000;
+
+  return withSerializableRetry(
+    () =>
+      prismaClient.$transaction((tx) => decideBudgetVersionInTx(tx, command), {
+        isolationLevel: "Serializable",
+        maxWait,
+        timeout,
+      }),
+    options?.retryOptions
   );
 }

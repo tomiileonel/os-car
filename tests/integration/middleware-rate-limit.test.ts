@@ -77,6 +77,11 @@ describe("middleware — Sliding Window conectado al tráfico HTTP (G4/G7)", () 
       response = await middleware(req);
     }
     expect(response?.status).toBe(429);
+    expect(response?.headers.get("x-ratelimit-limit")).toBe("10");
+    expect(response?.headers.get("x-ratelimit-remaining")).toBe("0");
+    const retryAfter = Number(response?.headers.get("retry-after"));
+    expect(Number.isFinite(retryAfter)).toBe(true);
+    expect(retryAfter).toBeGreaterThan(0);
   });
 
   it("prioriza cabeceras de infraestructura (cf-connecting-ip / x-real-ip)", async () => {
@@ -155,7 +160,6 @@ describe("middleware — Sliding Window conectado al tráfico HTTP (G4/G7)", () 
 
     it("poda timestamps expirados fuera de la ventana", () => {
       const limiter = new MemorySlidingWindow(10);
-      const now = 100_000;
       const windowMs = 10_000; // ventana de 10s
 
       // Registra 2 peticiones en t=91_000
@@ -166,6 +170,17 @@ describe("middleware — Sliding Window conectado al tráfico HTTP (G4/G7)", () 
       const decision = limiter.record("ip-test", 3, windowMs, 105_000);
       expect(decision.allowed).toBe(true);
       expect(decision.remaining).toBe(2); // 3 - 1 petición actual
+    });
+
+    it("mantiene el tamaño acotado (size <= maxEntries) bajo flood masivo de 50.000 IPs distintas", () => {
+      const maxEntries = 10_000;
+      const limiter = new MemorySlidingWindow(maxEntries);
+      const now = Date.now();
+      for (let i = 0; i < 50_000; i += 1) {
+        limiter.record(`flood-ip-${i}`, 5, 60_000, now);
+      }
+      expect(limiter.size).toBe(maxEntries);
+      expect(limiter.size).toBeLessThanOrEqual(10_000);
     });
   });
 });

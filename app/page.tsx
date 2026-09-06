@@ -15,7 +15,7 @@ export default function HomePage() {
     setMessage(null);
     setError(null);
 
-    const { data, error } = await authClient.signIn.email({
+    const { error } = await authClient.signIn.email({
       email,
       password,
     });

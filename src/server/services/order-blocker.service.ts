@@ -1,4 +1,4 @@
-import type { Prisma, BlockerType } from "@prisma/client";
+import type { BlockerType } from "@prisma/client";
 import { DomainConflictException, NotFoundException } from "@/shared/errors";
 
 export type BlockReasonName =

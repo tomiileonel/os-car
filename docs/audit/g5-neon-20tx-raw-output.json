@@ -1,0 +1,1058 @@
+{
+  "run1": [
+    {
+      "workerId": "Tx-01",
+      "decision": "APROBADO",
+      "attemptCount": 1,
+      "attempt1": {
+        "startMs": 1788672931331,
+        "endMs": 1788672933908,
+        "durationMs": 2577
+      },
+      "finalOutcome": "FULFILLED",
+      "totalDurationMs": 2577,
+      "finalErrorCode": "WINNER (COMMITTED)"
+    },
+    {
+      "workerId": "Tx-02",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672931331,
+        "endMs": 1788672933968,
+        "durationMs": 2637,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 6
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 3174,
+      "attempt2": {
+        "startMs": 1788672934096,
+        "observedStatus": "APROBADO",
+        "endMs": 1788672934505,
+        "durationMs": 409,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: APROBADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-03",
+      "decision": "APROBADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672931331,
+        "endMs": 1788672933968,
+        "durationMs": 2637,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 20
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 3219,
+      "attempt2": {
+        "startMs": 1788672934099,
+        "observedStatus": "APROBADO",
+        "endMs": 1788672934550,
+        "durationMs": 451,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: APROBADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-04",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672931331,
+        "endMs": 1788672933968,
+        "durationMs": 2637,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 18
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 3213,
+      "attempt2": {
+        "startMs": 1788672934099,
+        "observedStatus": "APROBADO",
+        "endMs": 1788672934544,
+        "durationMs": 445,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: APROBADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-05",
+      "decision": "APROBADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672931331,
+        "endMs": 1788672933968,
+        "durationMs": 2636,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 13
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 3191,
+      "attempt2": {
+        "startMs": 1788672934094,
+        "observedStatus": "APROBADO",
+        "endMs": 1788672934522,
+        "durationMs": 428,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: APROBADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-06",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672931332,
+        "endMs": 1788672933968,
+        "durationMs": 2636,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 7
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 3202,
+      "attempt2": {
+        "startMs": 1788672934095,
+        "observedStatus": "APROBADO",
+        "endMs": 1788672934534,
+        "durationMs": 439,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: APROBADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-07",
+      "decision": "APROBADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672931332,
+        "endMs": 1788672933968,
+        "durationMs": 2636,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 9
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 3211,
+      "attempt2": {
+        "startMs": 1788672934096,
+        "observedStatus": "APROBADO",
+        "endMs": 1788672934543,
+        "durationMs": 447,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: APROBADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-08",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672931332,
+        "endMs": 1788672933968,
+        "durationMs": 2636,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 7
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 3218,
+      "attempt2": {
+        "startMs": 1788672934096,
+        "observedStatus": "APROBADO",
+        "endMs": 1788672934550,
+        "durationMs": 454,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: APROBADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-09",
+      "decision": "APROBADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672931332,
+        "endMs": 1788672933968,
+        "durationMs": 2636,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 17
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 3218,
+      "attempt2": {
+        "startMs": 1788672934097,
+        "observedStatus": "APROBADO",
+        "endMs": 1788672934550,
+        "durationMs": 453,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: APROBADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-10",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672931332,
+        "endMs": 1788672933968,
+        "durationMs": 2636,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 4
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 3180,
+      "attempt2": {
+        "startMs": 1788672934092,
+        "observedStatus": "APROBADO",
+        "endMs": 1788672934512,
+        "durationMs": 420,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: APROBADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-11",
+      "decision": "APROBADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672931332,
+        "endMs": 1788672933967,
+        "durationMs": 2635,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 13
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 3202,
+      "attempt2": {
+        "startMs": 1788672934095,
+        "observedStatus": "APROBADO",
+        "endMs": 1788672934534,
+        "durationMs": 439,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: APROBADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-12",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672931332,
+        "endMs": 1788672933968,
+        "durationMs": 2636,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 8
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 3250,
+      "attempt2": {
+        "startMs": 1788672934099,
+        "observedStatus": "APROBADO",
+        "endMs": 1788672934582,
+        "durationMs": 483,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: APROBADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-13",
+      "decision": "APROBADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672931332,
+        "endMs": 1788672933968,
+        "durationMs": 2636,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 15
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 3202,
+      "attempt2": {
+        "startMs": 1788672934095,
+        "observedStatus": "APROBADO",
+        "endMs": 1788672934534,
+        "durationMs": 439,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: APROBADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-14",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672931332,
+        "endMs": 1788672933968,
+        "durationMs": 2636,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 8
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 3190,
+      "attempt2": {
+        "startMs": 1788672934094,
+        "observedStatus": "APROBADO",
+        "endMs": 1788672934522,
+        "durationMs": 428,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: APROBADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-15",
+      "decision": "APROBADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672931332,
+        "endMs": 1788672933968,
+        "durationMs": 2636,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 24
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 3218,
+      "attempt2": {
+        "startMs": 1788672934096,
+        "observedStatus": "APROBADO",
+        "endMs": 1788672934550,
+        "durationMs": 454,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: APROBADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-16",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672931332,
+        "endMs": 1788672933968,
+        "durationMs": 2636,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 13
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 3172,
+      "attempt2": {
+        "startMs": 1788672934091,
+        "observedStatus": "APROBADO",
+        "endMs": 1788672934504,
+        "durationMs": 413,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: APROBADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-17",
+      "decision": "APROBADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672931332,
+        "endMs": 1788672933968,
+        "durationMs": 2636,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 11
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 3181,
+      "attempt2": {
+        "startMs": 1788672934093,
+        "observedStatus": "APROBADO",
+        "endMs": 1788672934513,
+        "durationMs": 420,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: APROBADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-18",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672931332,
+        "endMs": 1788672933968,
+        "durationMs": 2636,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 18
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 3179,
+      "attempt2": {
+        "startMs": 1788672934093,
+        "observedStatus": "APROBADO",
+        "endMs": 1788672934511,
+        "durationMs": 418,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: APROBADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-19",
+      "decision": "APROBADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672931332,
+        "endMs": 1788672933968,
+        "durationMs": 2636,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 4
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 3188,
+      "attempt2": {
+        "startMs": 1788672934094,
+        "observedStatus": "APROBADO",
+        "endMs": 1788672934520,
+        "durationMs": 426,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: APROBADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-20",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672931332,
+        "endMs": 1788672933968,
+        "durationMs": 2636,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 15
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 3218,
+      "attempt2": {
+        "startMs": 1788672934096,
+        "observedStatus": "APROBADO",
+        "endMs": 1788672934550,
+        "durationMs": 454,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: APROBADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    }
+  ],
+  "run2": [
+    {
+      "workerId": "Tx-01",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672935831,
+        "endMs": 1788672937589,
+        "durationMs": 1758,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 19
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 2263,
+      "attempt2": {
+        "startMs": 1788672937679,
+        "observedStatus": "RECHAZADO",
+        "endMs": 1788672938094,
+        "durationMs": 415,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: RECHAZADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-02",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672935831,
+        "endMs": 1788672937589,
+        "durationMs": 1758,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 0
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 2303,
+      "attempt2": {
+        "startMs": 1788672937659,
+        "observedStatus": "RECHAZADO",
+        "endMs": 1788672938134,
+        "durationMs": 475,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: RECHAZADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-03",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672935831,
+        "endMs": 1788672937583,
+        "durationMs": 1752,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 14
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 2263,
+      "attempt2": {
+        "startMs": 1788672937655,
+        "observedStatus": "RECHAZADO",
+        "endMs": 1788672938094,
+        "durationMs": 439,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: RECHAZADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-04",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672935831,
+        "endMs": 1788672937589,
+        "durationMs": 1758,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 5
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 2286,
+      "attempt2": {
+        "startMs": 1788672937656,
+        "observedStatus": "RECHAZADO",
+        "endMs": 1788672938117,
+        "durationMs": 461,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: RECHAZADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-05",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672935831,
+        "endMs": 1788672937588,
+        "durationMs": 1757,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 3
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 2268,
+      "attempt2": {
+        "startMs": 1788672937656,
+        "observedStatus": "RECHAZADO",
+        "endMs": 1788672938099,
+        "durationMs": 443,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: RECHAZADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-06",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672935831,
+        "endMs": 1788672937578,
+        "durationMs": 1747,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 4
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 2261,
+      "attempt2": {
+        "startMs": 1788672937639,
+        "observedStatus": "RECHAZADO",
+        "endMs": 1788672938092,
+        "durationMs": 453,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: RECHAZADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-07",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672935831,
+        "endMs": 1788672937583,
+        "durationMs": 1752,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 16
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 2259,
+      "attempt2": {
+        "startMs": 1788672937655,
+        "observedStatus": "RECHAZADO",
+        "endMs": 1788672938090,
+        "durationMs": 435,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: RECHAZADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-08",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672935831,
+        "endMs": 1788672937580,
+        "durationMs": 1749,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 15
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 2258,
+      "attempt2": {
+        "startMs": 1788672937655,
+        "observedStatus": "RECHAZADO",
+        "endMs": 1788672938089,
+        "durationMs": 434,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: RECHAZADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-09",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672935831,
+        "endMs": 1788672937577,
+        "durationMs": 1746,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 9
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 2264,
+      "attempt2": {
+        "startMs": 1788672937644,
+        "observedStatus": "RECHAZADO",
+        "endMs": 1788672938095,
+        "durationMs": 451,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: RECHAZADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-10",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672935831,
+        "endMs": 1788672937589,
+        "durationMs": 1758,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 21
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 2257,
+      "attempt2": {
+        "startMs": 1788672937679,
+        "observedStatus": "RECHAZADO",
+        "endMs": 1788672938088,
+        "durationMs": 409,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: RECHAZADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-11",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672935831,
+        "endMs": 1788672937582,
+        "durationMs": 1751,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 3
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 2271,
+      "attempt2": {
+        "startMs": 1788672937645,
+        "observedStatus": "RECHAZADO",
+        "endMs": 1788672938102,
+        "durationMs": 457,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: RECHAZADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-12",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672935831,
+        "endMs": 1788672937589,
+        "durationMs": 1758,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 3
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 2292,
+      "attempt2": {
+        "startMs": 1788672937658,
+        "observedStatus": "RECHAZADO",
+        "endMs": 1788672938123,
+        "durationMs": 465,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: RECHAZADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-13",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672935831,
+        "endMs": 1788672937583,
+        "durationMs": 1752,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 7
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 2287,
+      "attempt2": {
+        "startMs": 1788672937656,
+        "observedStatus": "RECHAZADO",
+        "endMs": 1788672938118,
+        "durationMs": 462,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: RECHAZADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-14",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672935831,
+        "endMs": 1788672937580,
+        "durationMs": 1749,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 21
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 2260,
+      "attempt2": {
+        "startMs": 1788672937655,
+        "observedStatus": "RECHAZADO",
+        "endMs": 1788672938090,
+        "durationMs": 435,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: RECHAZADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-15",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672935831,
+        "endMs": 1788672937583,
+        "durationMs": 1752,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 19
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 2245,
+      "attempt2": {
+        "startMs": 1788672937654,
+        "observedStatus": "RECHAZADO",
+        "endMs": 1788672938076,
+        "durationMs": 422,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: RECHAZADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-16",
+      "decision": "RECHAZADO",
+      "attemptCount": 1,
+      "attempt1": {
+        "startMs": 1788672935831,
+        "endMs": 1788672937527,
+        "durationMs": 1696
+      },
+      "finalOutcome": "FULFILLED",
+      "totalDurationMs": 1696,
+      "finalErrorCode": "WINNER (COMMITTED)"
+    },
+    {
+      "workerId": "Tx-17",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672935831,
+        "endMs": 1788672937579,
+        "durationMs": 1748,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 19
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 2280,
+      "attempt2": {
+        "startMs": 1788672937657,
+        "observedStatus": "RECHAZADO",
+        "endMs": 1788672938111,
+        "durationMs": 454,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: RECHAZADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-18",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672935831,
+        "endMs": 1788672937577,
+        "durationMs": 1746,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 8
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 2262,
+      "attempt2": {
+        "startMs": 1788672937643,
+        "observedStatus": "RECHAZADO",
+        "endMs": 1788672938093,
+        "durationMs": 450,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: RECHAZADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-19",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672935831,
+        "endMs": 1788672937577,
+        "durationMs": 1746,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 15
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 2266,
+      "attempt2": {
+        "startMs": 1788672937656,
+        "observedStatus": "RECHAZADO",
+        "endMs": 1788672938097,
+        "durationMs": 441,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: RECHAZADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    },
+    {
+      "workerId": "Tx-20",
+      "decision": "RECHAZADO",
+      "attemptCount": 2,
+      "attempt1": {
+        "startMs": 1788672935831,
+        "endMs": 1788672937589,
+        "durationMs": 1758,
+        "errorName": "PrismaClientKnownRequestError",
+        "errorCode": "P2034",
+        "errorMessage": "\nInvalid `tx.budgetVersion.update()` invocation in\nC:\\wamp64\\www\\proyectos\\os-car\\src\\server\\services\\budget-approval.se",
+        "isRetryable": true,
+        "jitterSleepMs": 0
+      },
+      "finalOutcome": "REJECTED",
+      "totalDurationMs": 2348,
+      "attempt2": {
+        "startMs": 1788672937725,
+        "observedStatus": "RECHAZADO",
+        "endMs": 1788672938179,
+        "durationMs": 454,
+        "errorName": "DomainConflictException",
+        "errorCode": "BUDGET_NOT_DECIDABLE",
+        "errorMessage": "La versión de presupuesto no está pendiente de aprobación (estado actual: RECHAZADO)."
+      },
+      "finalErrorCode": "BUDGET_NOT_DECIDABLE"
+    }
+  ]
+}

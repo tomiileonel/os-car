@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint src app middleware.ts",
+    "lint": "eslint src app tests middleware.ts",
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",
     "prisma:format": "prisma format",
@@ -16,8 +16,8 @@
     "prisma:deploy": "prisma migrate deploy",
     "auth:generate": "npx @better-auth/cli generate",
     "auth:migrate": "node ./scripts/run-migrations.mjs",
-    "auth:test-rate-limit": "node ./scripts/test-rate-limit.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:g5-neon": "npx tsx scripts/run-g5-neon-benchmark.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -40,6 +40,7 @@
     "eslint": "^9.39.5",
     "eslint-config-next": "^15.1.0",
     "prisma": "^6.19.3",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.0",
     "vitest": "^4.1.11"
   }

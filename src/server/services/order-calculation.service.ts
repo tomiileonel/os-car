@@ -11,10 +11,16 @@ export interface RetryOptions {
 }
 
 /**
- * Verifica recursivamente si un error o alguno de sus causes contiene un código fatal no reintentable (fail-fast).
+ * Límite máximo de profundidad de inspección de causas de error para prevenir
+ * desbordamientos de pila (RangeError: Maximum call stack size exceeded).
+ * Política Fail-Closed: si una cadena de causas supera los 16 niveles de profundidad,
+ * isRetryableConcurrencyError retorna `false`, re-lanzando el error inmediatamente
+ * sin reintentar a ciegas.
  */
-function hasNonRetryableCode(error: unknown, visited: Set<unknown>): boolean {
-  if (!error || typeof error !== "object" || visited.has(error)) {
+const MAX_CAUSE_DEPTH = 16;
+
+function hasNonRetryableCode(error: unknown, visited: Set<unknown>, depth = 0): boolean {
+  if (!error || typeof error !== "object" || visited.has(error) || depth >= MAX_CAUSE_DEPTH) {
     return false;
   }
   visited.add(error);
@@ -36,7 +42,7 @@ function hasNonRetryableCode(error: unknown, visited: Set<unknown>): boolean {
   }
 
   if (err.cause && typeof err.cause === "object") {
-    return hasNonRetryableCode(err.cause, visited);
+    return hasNonRetryableCode(err.cause, visited, depth + 1);
   }
 
   return false;
@@ -45,19 +51,21 @@ function hasNonRetryableCode(error: unknown, visited: Set<unknown>): boolean {
 /**
  * Predicado de captura multi-capa para conflictos de serialización y deadlocks (F-03 / F-04 / F-05).
  * Inspecciona códigos de Prisma (P2034), SQLSTATE nativos de PostgreSQL (40001, 40P01)
- * a nivel de raíz, meta y recorrido recursivo acíclico en error.cause (@prisma/adapter-pg).
+ * a nivel de raíz, meta y recorrido recursivo acíclico en error.cause (@prisma/adapter-pg),
+ * acotado contra pilas profundas mediante MAX_CAUSE_DEPTH.
  */
 export function isRetryableConcurrencyError(
   error: unknown,
-  visited = new Set<unknown>()
+  visited = new Set<unknown>(),
+  depth = 0
 ): boolean {
-  if (!error || typeof error !== "object" || visited.has(error)) {
+  if (!error || typeof error !== "object" || visited.has(error) || depth >= MAX_CAUSE_DEPTH) {
     return false;
   }
 
   // 1. Fail-fast global: si en la raíz o en cualquier causa anidada existe un error fatal (P2002, P2025, P2003),
   // no reintentar bajo ninguna circunstancia
-  if (hasNonRetryableCode(error, new Set<unknown>())) {
+  if (hasNonRetryableCode(error, new Set<unknown>(), depth)) {
     return false;
   }
 
@@ -102,7 +110,7 @@ export function isRetryableConcurrencyError(
 
   // 6. Recorrido recursivo acíclico de error.cause (DatabaseError emitido por 'pg' / '@prisma/adapter-pg')
   if (err.cause && typeof err.cause === "object") {
-    return isRetryableConcurrencyError(err.cause, visited);
+    return isRetryableConcurrencyError(err.cause, visited, depth + 1);
   }
 
   return false;

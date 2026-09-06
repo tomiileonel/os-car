@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { DomainConflictException, ValidationException } from "@/shared/errors";
+import { ValidationException } from "@/shared/errors";
 import { updatePartItem, updatePartItemInTx } from "@/server/services/part-item.service";
 import type { PartItemPrismaClient, PartItemServiceTx } from "@/server/services/part-item.service";
 

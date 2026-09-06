@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ForbiddenException, NotFoundException, DomainConflictException } from "@/shared/errors";
+import { ForbiddenException, DomainConflictException } from "@/shared/errors";
 import {
   assertActiveWorkshopUser,
   decideBudgetVersionInTx,
