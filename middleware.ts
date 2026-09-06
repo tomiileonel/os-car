@@ -29,8 +29,9 @@ async function sha256Hex(input: string): Promise<string> {
  *
  * JERARQUÍA DE CONFIANZA DE PROXY:
  * 1. Cabeceras gestionadas por CDN / Edge Hosting de primer orden (Vercel / Cloudflare / Nginx real-ip):
- *    - Inyectadas/sanitizadas por el proveedor perimetral, inmunes a spoofing de cliente directo.
- * 2. Socket directo de runtime (request.ip) provisto por el host.
+ *    - Inyectadas/sanitizadas por el proveedor perimetral. Su inviolabilidad frente a spoofing
+ *      es condicional a que el CDN gestione el 100% del tráfico entrante y el origen no esté expuesto directamente.
+ * 2. Socket directo de runtime si es provisto por el host.
  * 3. X-Forwarded-For:
  *    - En topologías con reverse proxy de borde configurado, se extrae la última IP no manipulable
  *      añadida por el reverse proxy confiable.
@@ -49,11 +50,11 @@ function clientIp(request: NextRequest): string {
   const realIp = request.headers.get("x-real-ip");
   if (realIp && realIp.length > 0) return realIp.trim();
 
-  // 2. IP de socket de Next.js (Edge/Node si está expuesta por el host)
-  const hostIp = (request as unknown as { ip?: string }).ip;
-  if (hostIp && hostIp.length > 0) return hostIp;
+  // 2. IP de socket de Next.js runtime (sin aserciones inseguras de tipos)
+  const hostIp = Reflect.get(request, "ip");
+  if (typeof hostIp === "string" && hostIp.length > 0) return hostIp;
 
-  // 3. X-Forwarded-For: en topología de proxy reverso confiable se preserva la IP agregada
+  // 3. X-Forwarded-For: en topología de proxy reverso confiable se preserva la última IP agregada
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) {
     const parts = forwarded.split(",").map((p) => p.trim()).filter(Boolean);
@@ -105,6 +106,8 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
         status: 429,
         headers: {
           "Retry-After": String(retryAfterSeconds),
+          "X-RateLimit-Limit": String(rule.limit),
+          "X-RateLimit-Remaining": "0",
           "Cache-Control": "no-store",
           "X-Content-Type-Options": "nosniff",
         },

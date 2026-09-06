@@ -270,7 +270,29 @@ describe("OrderCalculationService — precisión decimal", () => {
       const lockTimeoutError = new Error("canceling statement due to lock timeout");
       expect(isRetryableConcurrencyError(lockTimeoutError)).toBe(true);
     });
+
+    it("sanitiza opciones de reintento contra NaN, Infinity y valores negativos", async () => {
+      let callCount = 0;
+      const fn = vi.fn(async () => {
+        callCount += 1;
+        if (callCount < 3) {
+          throw new Prisma.PrismaClientKnownRequestError("Serialization failure", {
+            code: "P2034",
+            clientVersion: "6.19.3",
+          });
+        }
+        return "SUCCESS";
+      });
+
+      // Pasar NaN e Infinity no debe provocar bucle infinito ni crash
+      const result = await withSerializableRetry(fn, {
+        maxAttempts: Infinity,
+        baseDelayMs: -10,
+        maxDelayMs: NaN,
+      });
+
+      expect(result).toBe("SUCCESS");
+      expect(callCount).toBe(3);
+    });
   });
 });
-
-

@@ -284,7 +284,7 @@ describe("BudgetApprovalService — B1, S2 e Invariantes de Aprobación", () => 
       });
     });
 
-    it("consolida currentVersionId al rechazar la versión inicial si currentVersionId era null", async () => {
+    it("ejecuta CAS de validación al rechazar la versión inicial sin pervertir currentVersionId", async () => {
       const tx = buildBudgetApprovalTxMock();
       vi.mocked(tx.budgetVersion.findFirst).mockResolvedValueOnce({
         id: "bv_rejected_initial",
@@ -313,7 +313,7 @@ describe("BudgetApprovalService — B1, S2 e Invariantes de Aprobación", () => 
       expect(result.decision).toBe("RECHAZADO");
       expect(tx.budget.updateMany).toHaveBeenCalledWith({
         where: { id: "b_1", currentVersionId: null },
-        data: { currentVersionId: "bv_rejected_initial" },
+        data: { updatedAt: expect.any(Date) },
       });
     });
 

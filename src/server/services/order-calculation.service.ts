@@ -108,18 +108,27 @@ export function isRetryableConcurrencyError(
   return false;
 }
 
+function sanitizeBoundedInt(value: unknown, fallback: number, min: number, max: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || Number.isNaN(value)) {
+    return fallback;
+  }
+  const intVal = Math.floor(value);
+  return Math.min(max, Math.max(min, intVal));
+}
+
 /**
  * Ejecutor con Exponential Backoff y Full Jitter exacto (recomendación PostgreSQL/AWS) (F-05).
  * Formula canónica: sleep = Math.floor(Math.random() * exponentialCap)
  * Garantiza: 0 <= sleep < exponentialCap <= maxDelayMs
+ * Sanitiza opciones contra NaN, Infinity y valores desbordantes.
  */
 export async function withSerializableRetry<T>(
   fn: () => Promise<T>,
   options?: RetryOptions
 ): Promise<T> {
-  const maxAttempts = Math.max(1, Math.floor(options?.maxAttempts ?? 3));
-  const baseDelayMs = Math.max(1, Math.floor(options?.baseDelayMs ?? 25));
-  const maxDelayMs = Math.max(baseDelayMs, Math.floor(options?.maxDelayMs ?? 500));
+  const maxAttempts = sanitizeBoundedInt(options?.maxAttempts, 3, 1, 20);
+  const baseDelayMs = sanitizeBoundedInt(options?.baseDelayMs, 25, 1, 10_000);
+  const maxDelayMs = sanitizeBoundedInt(options?.maxDelayMs, 500, baseDelayMs, 60_000);
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {

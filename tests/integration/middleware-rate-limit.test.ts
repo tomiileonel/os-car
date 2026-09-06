@@ -18,6 +18,8 @@ describe("middleware — Sliding Window conectado al tráfico HTTP (G4/G7)", () 
   it("permite solicitudes dentro de la cuota", async () => {
     const response = await middleware(buildRequest("/api/v1/public/tracking/lookup", "203.0.113.10"));
     expect(response.status).toBe(200);
+    expect(response.headers.get("x-ratelimit-limit")).toBe("20");
+    expect(response.headers.get("x-ratelimit-remaining")).toBe("19");
   });
 
   it("devuelve 429 ProblemDetails (RFC 7807) tras superar la ráfaga", async () => {
@@ -38,7 +40,10 @@ describe("middleware — Sliding Window conectado al tráfico HTTP (G4/G7)", () 
       instance: path,
       retryAfterSeconds: expect.any(Number),
     });
-    expect(response?.headers.get("retry-after")).not.toBeNull();
+    const retryAfter = Number(response?.headers.get("retry-after"));
+    expect(Number.isFinite(retryAfter) && retryAfter >= 1).toBe(true);
+    expect(response?.headers.get("x-ratelimit-limit")).toBe("10");
+    expect(response?.headers.get("x-ratelimit-remaining")).toBe("0");
     expect(response?.headers.get("cache-control")).toBe("no-store");
   });
 
@@ -96,6 +101,20 @@ describe("middleware — Sliding Window conectado al tráfico HTTP (G4/G7)", () 
     });
     const blockedRes = await middleware(blockedReq);
     expect(blockedRes.status).toBe(429);
+  });
+
+  it("extrae la última IP no manipulable en cadenas X-Forwarded-For ante proxies agregadores", async () => {
+    const path = "/api/auth/sign-in";
+    const req = new NextRequest(new URL(path, "http://localhost:3000"), {
+      method: "POST",
+      headers: {
+        "x-forwarded-for": "198.51.100.1, 203.0.113.55",
+      },
+    });
+    const res = await middleware(req);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-ratelimit-limit")).toBe("10");
+    expect(res.headers.get("x-ratelimit-remaining")).toBe("9");
   });
 
   it("aplica cuota compartida estricta ante solicitudes sin IP determinable (unresolved_ip)", async () => {

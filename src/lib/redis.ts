@@ -82,12 +82,19 @@ export async function slidingWindowRateLimit(
         String(limit),
         member
       );
-      const [allowedFlag, remaining, retryAfterMs] = raw as unknown as [number, number, number];
-      return { allowed: allowedFlag === 1, remaining, retryAfterMs };
+      if (Array.isArray(raw) && raw.length >= 3) {
+        const allowedFlag = typeof raw[0] === "number" ? raw[0] : Number(raw[0]);
+        const remaining = typeof raw[1] === "number" ? raw[1] : Number(raw[1]);
+        const retryAfterMs = typeof raw[2] === "number" ? raw[2] : Number(raw[2]);
+        return {
+          allowed: allowedFlag === 1,
+          remaining: Number.isFinite(remaining) ? Math.max(0, remaining) : 0,
+          retryAfterMs: Number.isFinite(retryAfterMs) ? Math.max(0, retryAfterMs) : 0,
+        };
+      }
     } catch {
       lastFailureAt = Date.now();
     }
   }
   return memoryLimiter.record(key, limit, windowMs, Date.now());
 }
-
