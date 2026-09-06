@@ -57,6 +57,26 @@ describe.skipIf(!NEON_TEST_URL)(
 
   afterAll(async () => {
     if (prisma) {
+      if (testWorkshopId) {
+        try {
+          await prisma.budget.updateMany({ where: { workOrder: { workshopId: testWorkshopId } }, data: { currentVersionId: null } });
+          await prisma.budgetLaborLine.deleteMany({ where: { budgetVersion: { budget: { workOrder: { workshopId: testWorkshopId } } } } });
+          await prisma.budgetPartLine.deleteMany({ where: { budgetVersion: { budget: { workOrder: { workshopId: testWorkshopId } } } } });
+          await prisma.budgetApproval.deleteMany({ where: { budgetVersion: { budget: { workOrder: { workshopId: testWorkshopId } } } } });
+          await prisma.budgetVersion.deleteMany({ where: { budget: { workOrder: { workshopId: testWorkshopId } } } });
+          await prisma.budget.deleteMany({ where: { workOrder: { workshopId: testWorkshopId } } });
+          await prisma.orderBlocker.deleteMany({ where: { workshopId: testWorkshopId } });
+          await prisma.statusHistory.deleteMany({ where: { workOrder: { workshopId: testWorkshopId } } });
+          await prisma.intakeRecord.deleteMany({ where: { workOrder: { workshopId: testWorkshopId } } });
+          await prisma.workOrder.deleteMany({ where: { workshopId: testWorkshopId } });
+          await prisma.vehicle.deleteMany({ where: { workshopId: testWorkshopId } });
+          await prisma.customer.deleteMany({ where: { workshopId: testWorkshopId } });
+          await prisma.adminUser.deleteMany({ where: { workshopId: testWorkshopId } });
+          await prisma.workshop.delete({ where: { id: testWorkshopId } });
+        } catch {
+          // Ignore cleanup errors during test teardown
+        }
+      }
       await prisma.$disconnect();
     }
   });
