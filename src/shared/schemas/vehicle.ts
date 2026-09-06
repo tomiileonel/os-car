@@ -27,7 +27,6 @@ export type VehicleType = z.infer<typeof vehicleTypeSchema>;
 
 export const createVehicleSchema = z
   .object({
-    workshopId: cuidSchema.optional(),
     customerId: cuidSchema,
     licensePlate: z.string().transform((v) => normalizeLicensePlate(v)).pipe(
       z
@@ -55,7 +54,6 @@ export const createVehicleSchema = z
 export const updateVehicleSchema = z
   .object({
     vehicleId: cuidSchema,
-    workshopId: cuidSchema.optional(),
     vin: z
       .string()
       .trim()

@@ -9,7 +9,7 @@ import {
   toErrorEnvelope,
 } from "@/shared/errors";
 import { BadRequestException } from "@/shared/errors";
-import { auth } from "~/lib/auth";
+import { requireActiveAdminApi } from "@/server/auth/active-admin";
 
 interface VehicleDto {
   id: string;
@@ -96,12 +96,7 @@ function buildVehicleWhere(workshopId: string, query: VehicleQuery): Prisma.Vehi
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const session = await auth.api.getSession({ headers: request.headers });
-    if (!session || !(session.user as Record<string, unknown>).workshopId) {
-      throw new DomainConflictException("UNAUTHENTICATED", "Se requiere sesión administrativa.");
-    }
-
-    const workshopId = (session.user as Record<string, unknown>).workshopId as string;
+    const { workshopId } = await requireActiveAdminApi();
 
     const params = request.nextUrl.searchParams;
     const query = vehicleQuerySchema.parse({
@@ -135,12 +130,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const session = await auth.api.getSession({ headers: request.headers });
-    if (!session || !(session.user as Record<string, unknown>).workshopId) {
-      throw new DomainConflictException("UNAUTHENTICATED", "Se requiere sesión administrativa.");
-    }
-
-    const workshopId = (session.user as Record<string, unknown>).workshopId as string;
+    const { workshopId } = await requireActiveAdminApi();
     const body = await readJsonBody(request);
     const input = createVehicleSchema.parse(body);
 

@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { headers } from "next/headers";
-import { requireActiveAdmin } from "../../src/server/auth/active-admin";
+import {
+  requireActiveAdmin,
+  requireActiveAdminSsr,
+  requireActiveAdminApi,
+} from "../../src/server/auth/active-admin";
 import { UnauthorizedException, ForbiddenException } from "../../src/shared/errors";
 
 const mocks = vi.hoisted(() => ({
@@ -226,6 +230,136 @@ describe("auth-rbac — requireActiveAdmin", () => {
 
       expect(result.workshopId).toBe("ws_from_db");
       expect(result.adminUser.workshopId).toBe("ws_from_db");
+    });
+  });
+
+  describe("requireActiveAdminSsr — variante explícita SSR / RSC", () => {
+    it("redirige a /admin/login si la sesión es nula", async () => {
+      mocks.auth.api.getSession.mockResolvedValue(null);
+
+      await expect(requireActiveAdminSsr()).rejects.toThrow("REDIRECT:/admin/login");
+      expect(mocks.redirect).toHaveBeenCalledWith("/admin/login");
+    });
+
+    it("redirige a /admin/login si no existe adminUser activo", async () => {
+      mocks.auth.api.getSession.mockResolvedValue({
+        user: { id: "user_1", email: "u1@test.com" },
+      });
+      mocks.prisma.adminUser.findFirst.mockResolvedValue(null);
+
+      await expect(requireActiveAdminSsr()).rejects.toThrow("REDIRECT:/admin/login");
+      expect(mocks.redirect).toHaveBeenCalledWith("/admin/login");
+    });
+
+    it("redirige a /admin/login si el rol es insuficiente", async () => {
+      mocks.auth.api.getSession.mockResolvedValue({
+        user: { id: "user_1", email: "u1@test.com" },
+      });
+      mocks.prisma.adminUser.findFirst.mockResolvedValue({
+        id: "admin_1",
+        authUserId: "user_1",
+        workshopId: "ws_1",
+        role: "MECANICO",
+        active: true,
+      });
+
+      await expect(
+        requireActiveAdminSsr({ roles: ["SUPER_ADMIN"] })
+      ).rejects.toThrow("REDIRECT:/admin/login");
+      expect(mocks.redirect).toHaveBeenCalledWith("/admin/login");
+    });
+
+    it("retorna contexto válido en autenticación exitosa", async () => {
+      mocks.auth.api.getSession.mockResolvedValue({
+        user: { id: "user_1", email: "u1@test.com", name: "User One" },
+      });
+      mocks.prisma.adminUser.findFirst.mockResolvedValue({
+        id: "admin_1",
+        authUserId: "user_1",
+        workshopId: "ws_1",
+        role: "ADMIN_TALLER",
+        active: true,
+      });
+
+      const context = await requireActiveAdminSsr({
+        roles: ["ADMIN_TALLER", "SUPER_ADMIN"],
+      });
+
+      expect(context.adminUser.role).toBe("ADMIN_TALLER");
+      expect(context.workshopId).toBe("ws_1");
+    });
+  });
+
+  describe("requireActiveAdminApi — variante explícita Route Handlers", () => {
+    it("lanza UnauthorizedException (SESSION_REQUIRED) si no hay sesión", async () => {
+      mocks.auth.api.getSession.mockResolvedValue(null);
+
+      await expect(requireActiveAdminApi()).rejects.toThrow(UnauthorizedException);
+      try {
+        await requireActiveAdminApi();
+      } catch (error) {
+        if (error instanceof UnauthorizedException) {
+          expect(error.problem.code).toBe("SESSION_REQUIRED");
+        }
+      }
+    });
+
+    it("lanza ForbiddenException (ADMIN_INACTIVE) si el admin no existe o está inactivo", async () => {
+      mocks.auth.api.getSession.mockResolvedValue({
+        user: { id: "user_2", email: "u2@test.com" },
+      });
+      mocks.prisma.adminUser.findFirst.mockResolvedValue(null);
+
+      await expect(requireActiveAdminApi()).rejects.toThrow(ForbiddenException);
+      try {
+        await requireActiveAdminApi();
+      } catch (error) {
+        if (error instanceof ForbiddenException) {
+          expect(error.problem.code).toBe("ADMIN_INACTIVE");
+        }
+      }
+    });
+
+    it("lanza ForbiddenException (INSUFFICIENT_ROLE_PERMISSIONS) si el rol no es suficiente", async () => {
+      mocks.auth.api.getSession.mockResolvedValue({
+        user: { id: "user_2", email: "u2@test.com" },
+      });
+      mocks.prisma.adminUser.findFirst.mockResolvedValue({
+        id: "admin_2",
+        authUserId: "user_2",
+        workshopId: "ws_2",
+        role: "RECEPCIONISTA",
+        active: true,
+      });
+
+      await expect(
+        requireActiveAdminApi({ roles: ["SUPER_ADMIN"] })
+      ).rejects.toThrow(ForbiddenException);
+      try {
+        await requireActiveAdminApi({ roles: ["SUPER_ADMIN"] });
+      } catch (error) {
+        if (error instanceof ForbiddenException) {
+          expect(error.problem.code).toBe("INSUFFICIENT_ROLE_PERMISSIONS");
+        }
+      }
+    });
+
+    it("retorna contexto con workshopId vinculado desde DB", async () => {
+      mocks.auth.api.getSession.mockResolvedValue({
+        user: { id: "user_2", email: "u2@test.com" },
+      });
+      mocks.prisma.adminUser.findFirst.mockResolvedValue({
+        id: "admin_2",
+        authUserId: "user_2",
+        workshopId: "ws_db_enforced",
+        role: "SUPER_ADMIN",
+        active: true,
+      });
+
+      const context = await requireActiveAdminApi({ roles: ["SUPER_ADMIN"] });
+
+      expect(context.workshopId).toBe("ws_db_enforced");
+      expect(context.adminUser.id).toBe("admin_2");
     });
   });
 });

@@ -105,7 +105,6 @@ describe("domain-contracts — vehicle", () => {
 
   it("acepta patente válida", () => {
     const r = createVehicleSchema.safeParse({
-      workshopId: WS_ID,
       customerId: CUST_ID,
       licensePlate: "AB 123 CD",
     });
@@ -116,7 +115,6 @@ describe("domain-contracts — vehicle", () => {
   it("rechaza patente con Ñ", () => {
     expect(
       createVehicleSchema.safeParse({
-        workshopId: WS_ID,
         customerId: CUST_ID,
         licensePlate: "AÑ123CD",
       }).success
@@ -125,7 +123,6 @@ describe("domain-contracts — vehicle", () => {
 
   it("aplica default AUTO para vehicleType", () => {
     const r = createVehicleSchema.safeParse({
-      workshopId: WS_ID,
       customerId: CUST_ID,
       licensePlate: "AB123CD",
     });
@@ -134,7 +131,6 @@ describe("domain-contracts — vehicle", () => {
 
   it("acepta vehicleType CAMIONETA", () => {
     const r = createVehicleSchema.safeParse({
-      workshopId: WS_ID,
       customerId: CUST_ID,
       licensePlate: "AB123CD",
       vehicleType: "CAMIONETA",
@@ -145,7 +141,6 @@ describe("domain-contracts — vehicle", () => {
   it("rechaza vehicleType desconocido", () => {
     expect(
       createVehicleSchema.safeParse({
-        workshopId: WS_ID,
         customerId: CUST_ID,
         licensePlate: "AB123CD",
         vehicleType: "MOTO",
@@ -156,7 +151,6 @@ describe("domain-contracts — vehicle", () => {
   it("rechaza VIN con letra O", () => {
     expect(
       createVehicleSchema.safeParse({
-        workshopId: WS_ID,
         customerId: CUST_ID,
         licensePlate: "AB123CD",
         vin: "1HGCM82633O004352",

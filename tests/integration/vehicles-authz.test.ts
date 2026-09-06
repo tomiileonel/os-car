@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { ForbiddenException } from "@/shared/errors";
 
 const mocks = vi.hoisted(() => ({
   prisma: {
@@ -13,29 +14,39 @@ const mocks = vi.hoisted(() => ({
       findFirst: vi.fn(),
     },
   },
-  auth: {
-    api: {
-      getSession: vi.fn(),
-    },
-  },
+  requireActiveAdminApi: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: mocks.prisma,
 }));
 
-vi.mock("~/lib/auth", () => ({
-  auth: mocks.auth,
+vi.mock("@/server/auth/active-admin", () => ({
+  requireActiveAdminApi: mocks.requireActiveAdminApi,
 }));
 
 import { GET, POST } from "~/app/api/vehicles/route";
 
-const adminSession = {
-  user: {
+const adminContext = {
+  session: {
+    user: {
+      id: "au_1",
+      name: "Ada Admin",
+    },
+  },
+  sessionUser: {
     id: "au_1",
-    workshopId: "ws_1",
+    email: "admin@example.com",
     name: "Ada Admin",
   },
+  adminUser: {
+    id: "admin_1",
+    authUserId: "au_1",
+    workshopId: "ws_1",
+    active: true,
+    deletedAt: null,
+  },
+  workshopId: "ws_1",
 };
 
 const testCustomerId = "clh0000000000000000000000";
@@ -66,16 +77,18 @@ function buildRequest(method: "GET" | "POST", path: string, body?: unknown): Nex
 describe("/api/vehicles — segregación de contexto (G4/G7)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.auth.api.getSession.mockResolvedValue(null);
+    mocks.requireActiveAdminApi.mockResolvedValue(adminContext);
   });
 
-  it("GET sin sesión responde 409 (DomainConflict fallback a error envelope)", async () => {
+  it("GET sin administrador activo responde 401/403 estructurado", async () => {
+    mocks.requireActiveAdminApi.mockRejectedValue(
+      new ForbiddenException("ADMIN_INACTIVE", "Administrador no autorizado.")
+    );
     const response = await GET(buildRequest("GET", "/api/vehicles"));
-    expect(response.status).toBe(409);
+    expect(response.status).toBe(403);
   });
 
-  it("GET filtra por workshopId de sesión e ignora parámetros no autorizados", async () => {
-    mocks.auth.api.getSession.mockResolvedValue(adminSession);
+  it("GET filtra por workshopId inyectado por el guard e ignora parámetros no autorizados", async () => {
     mocks.prisma.vehicle.findMany.mockResolvedValue([]);
     mocks.prisma.vehicle.count.mockResolvedValue(0);
 
@@ -90,10 +103,10 @@ describe("/api/vehicles — segregación de contexto (G4/G7)", () => {
     const body: unknown = await response.json();
     expect(body).toMatchObject({ success: true, data: { items: [], total: 0 } });
     expect(body).toMatchObject({ meta: { requestId: expect.any(String) } });
+    expect(mocks.requireActiveAdminApi).toHaveBeenCalledOnce();
   });
 
   it("POST con payload inválido responde 400 VALIDATION_FAILED", async () => {
-    mocks.auth.api.getSession.mockResolvedValue(adminSession);
     const response = await POST(buildRequest("POST", "/api/vehicles", { licensePlate: "!!" }));
     expect(response.status).toBe(400);
     const body: unknown = await response.json();
@@ -101,7 +114,6 @@ describe("/api/vehicles — segregación de contexto (G4/G7)", () => {
   });
 
   it("POST administrativo fuerza creación estándar sin source/approvalStatus", async () => {
-    mocks.auth.api.getSession.mockResolvedValue(adminSession);
     mocks.prisma.customer.findFirst.mockResolvedValue({ id: testCustomerId });
     mocks.prisma.vehicle.findFirst.mockResolvedValue(null);
     mocks.prisma.vehicle.create.mockResolvedValue(vehicleRow);
@@ -124,8 +136,20 @@ describe("/api/vehicles — segregación de contexto (G4/G7)", () => {
     expect(createArgs.data).not.toHaveProperty("approvalStatus");
   });
 
+  it("POST rechaza workshopId enviado por el cliente", async () => {
+    const response = await POST(
+      buildRequest("POST", "/api/vehicles", {
+        customerId: testCustomerId,
+        licensePlate: "AB123CD",
+        workshopId: "ws_attacker",
+      })
+    );
+
+    expect(response.status).toBe(400);
+    expect(mocks.prisma.vehicle.create).not.toHaveBeenCalled();
+  });
+
   it("POST con patente duplicada responde 409 LICENSE_PLATE_EXISTS", async () => {
-    mocks.auth.api.getSession.mockResolvedValue(adminSession);
     mocks.prisma.customer.findFirst.mockResolvedValue({ id: testCustomerId, workshopId: "ws_1" });
     mocks.prisma.vehicle.findFirst.mockResolvedValue({ id: "veh_9" });
 

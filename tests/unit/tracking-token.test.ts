@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterEach, vi } from "vitest";
+import { createHmac } from "crypto";
 import {
   generateTrackingToken,
   verifyTrackingToken,
@@ -84,7 +85,8 @@ describe("tracking-token — generación y verificación", () => {
       const token = generateTrackingToken(workOrderId, createdAt);
       const parts = token.split(".");
 
-      const tamperedSignature = parts[1].slice(0, -1) + "X";
+      const tamperedChar = parts[1][0] === "A" ? "B" : "A";
+      const tamperedSignature = tamperedChar + parts[1].slice(1);
       const tamperedToken = `${parts[0]}.${tamperedSignature}`;
 
       const result = verifyTrackingToken(tamperedToken);
@@ -164,6 +166,67 @@ describe("tracking-token — generación y verificación", () => {
       expect(result1.error).toBe("INVALID_SIGNATURE");
       expect(result2.valid).toBe(false);
       expect(result2.error).toBe("INVALID_SIGNATURE");
+    });
+  });
+
+  describe("seguridad criptográfica y validaciones fail-fast (R-5)", () => {
+    it("rechaza token firmado con clave HMAC diferente (wrong key)", () => {
+      const token = generateTrackingToken(workOrderId, createdAt);
+      const parts = token.split(".");
+
+      const wrongKeySignature = createHmac(
+        "sha256",
+        "different-secret-key-at-least-32-chars-long-012345"
+      )
+        .update(parts[0])
+        .digest("base64url");
+
+      const tamperedToken = `${parts[0]}.${wrongKeySignature}`;
+      const result = verifyTrackingToken(tamperedToken);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe("INVALID_SIGNATURE");
+    });
+
+    it("rechaza token con firma de longitud menor a 32 bytes decodificados", () => {
+      const token = generateTrackingToken(workOrderId, createdAt);
+      const parts = token.split(".");
+
+      const truncatedSignature = Buffer.from("truncated_16_byte").toString("base64url");
+      const truncatedToken = `${parts[0]}.${truncatedSignature}`;
+
+      const result = verifyTrackingToken(truncatedToken);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe("INVALID_SIGNATURE");
+    });
+
+    it("falla al inicializar el módulo si TRACKING_HMAC_SECRET tiene menos de 32 bytes", async () => {
+      const originalSecret = process.env.TRACKING_HMAC_SECRET;
+      try {
+        vi.resetModules();
+        process.env.TRACKING_HMAC_SECRET = "secret-menor-a-32-bytes";
+        await expect(import("../../src/lib/tracking-token")).rejects.toThrow(
+          "TRACKING_HMAC_SECRET must be set and be at least 32 bytes"
+        );
+      } finally {
+        process.env.TRACKING_HMAC_SECRET = originalSecret;
+        vi.resetModules();
+      }
+    });
+
+    it("falla al inicializar el módulo si TRACKING_HMAC_SECRET está ausente", async () => {
+      const originalSecret = process.env.TRACKING_HMAC_SECRET;
+      try {
+        vi.resetModules();
+        delete process.env.TRACKING_HMAC_SECRET;
+        await expect(import("../../src/lib/tracking-token")).rejects.toThrow(
+          "TRACKING_HMAC_SECRET must be set and be at least 32 bytes"
+        );
+      } finally {
+        process.env.TRACKING_HMAC_SECRET = originalSecret;
+        vi.resetModules();
+      }
     });
   });
 

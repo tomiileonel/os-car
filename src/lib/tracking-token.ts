@@ -4,21 +4,13 @@ const TRACKING_TOKEN_BYTES = 32;
 const TTL_DAYS = 30;
 const TTL_MS = TTL_DAYS * 24 * 60 * 60 * 1000;
 
-function getTrackingSecret(): string {
-  const secret =
-    process.env.TRACKING_HMAC_SECRET ||
-    process.env.BETTER_AUTH_SECRET ||
-    process.env.JWT_SECRET;
-  if (!secret) {
-    if (process.env.NODE_ENV === "test") {
-      return "test-tracking-hmac-secret-at-least-32-chars-long";
-    }
-    throw new Error(
-      "TRACKING_HMAC_SECRET environment variable is required but not set"
-    );
-  }
-  return secret;
+const secret = process.env.TRACKING_HMAC_SECRET;
+if (!secret || Buffer.byteLength(secret, "utf-8") < 32) {
+  throw new Error("TRACKING_HMAC_SECRET must be set and be at least 32 bytes");
 }
+
+const TRACKING_HMAC_SECRET = secret;
+const HMAC_DIGEST_LENGTH = 32; // SHA-256 produces 32 bytes
 
 /**
  * Codifica un string o buffer en Base64URL (RFC 4648 §5)
@@ -81,14 +73,13 @@ export function generateTrackingToken(
   workOrderId: string,
   createdAt: Date
 ): string {
-  const secret = getTrackingSecret();
   const payload: TokenPayload = {
     id: workOrderId,
     exp: createdAt.getTime() + TTL_MS,
   };
 
   const payloadString = toBase64URL(JSON.stringify(payload));
-  const signature = createHmac("sha256", secret)
+  const signature = createHmac("sha256", TRACKING_HMAC_SECRET)
     .update(payloadString)
     .digest();
   const signatureString = toBase64URL(signature);
@@ -130,13 +121,15 @@ export function verifyTrackingToken(token: string): VerifyResult {
       return { valid: false, error: "INVALID_PAYLOAD_FIELDS" };
     }
 
-    const secret = getTrackingSecret();
-    const expectedSignature = createHmac("sha256", secret)
+    const expectedSignature = createHmac("sha256", TRACKING_HMAC_SECRET)
       .update(payloadString)
       .digest();
     const actualSignature = fromBase64URL(signatureString);
 
-    if (expectedSignature.length !== actualSignature.length) {
+    if (
+      expectedSignature.length !== HMAC_DIGEST_LENGTH ||
+      actualSignature.length !== HMAC_DIGEST_LENGTH
+    ) {
       return { valid: false, error: "INVALID_SIGNATURE" };
     }
 
