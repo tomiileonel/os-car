@@ -13,6 +13,8 @@ export interface ProblemDetailsResponse {
 
 export type ProblemType =
   | "VALIDATION_ERROR"
+  | "UNAUTHORIZED"
+  | "FORBIDDEN"
   | "DOMAIN_CONFLICT"
   | "INVALID_STATE_TRANSITION"
   | "ENTITY_NOT_FOUND"

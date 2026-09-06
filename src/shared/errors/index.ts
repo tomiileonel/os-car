@@ -1,5 +1,6 @@
 import { ZodError } from "zod";
 import { DomainError, isDomainError } from "./DomainError";
+import { type ProblemDetailsResponse } from "./ProblemDetails";
 
 export { DomainError, isDomainError } from "./DomainError";
 export { ValidationException, type ValidationIssue } from "./ValidationException";
@@ -17,18 +18,51 @@ export class BadRequestException extends DomainError {
 }
 
 export class UnauthorizedException extends DomainError {
-  constructor(code = "UNAUTHENTICATED", message = "Se requiere sesión válida.") {
+  public readonly instance?: string;
+
+  constructor(code = "UNAUTHENTICATED", message = "Se requiere sesión válida.", instance?: string) {
     super(code, message, 401);
+    this.instance = instance;
+  }
+
+  get problem(): ProblemDetailsResponse & { code: string } {
+    return {
+      type: "https://os-car.local/errors/UNAUTHORIZED",
+      title: "Unauthorized",
+      status: 401,
+      detail: this.message,
+      instance: this.instance,
+      timestamp: new Date().toISOString(),
+      code: this.code,
+    };
   }
 }
 
 export class ForbiddenException extends DomainError {
+  public readonly instance?: string;
+
   constructor(
     code = "FORBIDDEN",
     message = "La sesión no posee la capacidad requerida.",
-    details?: Record<string, unknown>
+    detailsOrInstance?: Record<string, unknown> | string
   ) {
+    const details = typeof detailsOrInstance === "object" ? detailsOrInstance : undefined;
+    const instance = typeof detailsOrInstance === "string" ? detailsOrInstance : undefined;
     super(code, message, 403, details);
+    this.instance = instance;
+  }
+
+  get problem(): ProblemDetailsResponse & { code: string } {
+    return {
+      type: "https://os-car.local/errors/FORBIDDEN",
+      title: "Forbidden",
+      status: 403,
+      detail: this.message,
+      instance: this.instance,
+      timestamp: new Date().toISOString(),
+      code: this.code,
+      ...this.details,
+    };
   }
 }
 
