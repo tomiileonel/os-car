@@ -28,6 +28,7 @@ interface BudgetVersionRow {
   versionNumber: number;
   budget: {
     workOrderId: string;
+    currentVersionId?: string | null;
     workOrder: { workshopId: string };
   };
   laborLines: ReadonlyArray<{
@@ -78,7 +79,13 @@ const BUDGET_VERSION_SELECT = {
   status: true,
   budgetId: true,
   versionNumber: true,
-  budget: { select: { workOrderId: true, workOrder: { select: { workshopId: true } } } },
+  budget: {
+    select: {
+      workOrderId: true,
+      currentVersionId: true,
+      workOrder: { select: { workshopId: true } },
+    },
+  },
   laborLines: { select: { description: true, estimatedMinutes: true, hourlyRateCharged: true } },
   partLines: { select: { description: true, quantity: true, unitPriceCharged: true } },
 } as const;
@@ -133,6 +140,19 @@ export async function decideBudgetVersionInTx(
       "BUDGET_VERSION_NOT_FOUND",
       "La versión de presupuesto no existe dentro del tenant.",
       { budgetVersionId: command.budgetVersionId }
+    );
+  }
+
+  // Invariante BUDGET-01: Sólo se puede decidir sobre la versión vigente
+  if (version.budget.currentVersionId && version.budget.currentVersionId !== version.id) {
+    throw new DomainConflictException(
+      "BUDGET_VERSION_SUPERSEDED",
+      "La versión del presupuesto ha sido superada por una nueva versión vigente.",
+      {
+        requestedVersionId: version.id,
+        currentVersionId: version.budget.currentVersionId,
+        workOrderId: command.workOrderId,
+      }
     );
   }
 

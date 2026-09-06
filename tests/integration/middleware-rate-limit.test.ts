@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 import { middleware } from "~/middleware";
-import { memoryLimiter } from "@/lib/redis";
+import { memoryLimiter } from "@/lib/rate-limit";
 
 function buildRequest(path: string, ip: string): NextRequest {
   return new NextRequest(new URL(path, "http://localhost:3000"), {

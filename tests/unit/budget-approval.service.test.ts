@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ForbiddenException, NotFoundException } from "@/shared/errors";
+import { ForbiddenException, NotFoundException, DomainConflictException } from "@/shared/errors";
 import {
   assertActiveWorkshopUser,
   decideBudgetVersionInTx,
@@ -14,6 +14,7 @@ function buildBudgetApprovalTxMock(): BudgetApprovalServiceTx {
     versionNumber: 1,
     budget: {
       workOrderId: "wo_1",
+      currentVersionId: "bv_1",
       workOrder: { workshopId: "ws_1" },
     },
     laborLines: [
@@ -164,4 +165,91 @@ describe("BudgetApprovalService — B1, S2 e Invariantes de Aprobación", () => 
       })
     );
   });
+
+  describe("Invariante BUDGET-01 — Validación de Versión Vigente", () => {
+    it("arroja DomainConflictException(BUDGET_VERSION_SUPERSEDED) si la versión fue superada por una nueva versión", async () => {
+      const tx = buildBudgetApprovalTxMock();
+      // Simula que la versión vigente en el Budget es bv_2, pero se intenta aprobar bv_1
+      vi.mocked(tx.budgetVersion.findFirst).mockResolvedValueOnce({
+        id: "bv_1",
+        status: "PENDIENTE_APROBACION",
+        budgetId: "b_1",
+        versionNumber: 1,
+        budget: {
+          workOrderId: "wo_1",
+          currentVersionId: "bv_2", // Versión 2 vigente
+          workOrder: { workshopId: "ws_1" },
+        },
+        laborLines: [],
+        partLines: [],
+      });
+
+      await expect(
+        decideBudgetVersionInTx(tx, {
+          workshopId: "ws_1",
+          workOrderId: "wo_1",
+          budgetVersionId: "bv_1",
+          decision: "APROBADO",
+          actorType: "ADMIN",
+          actorAdminId: "au_admin",
+        })
+      ).rejects.toMatchObject({
+        name: "DomainConflictException",
+        code: "BUDGET_VERSION_SUPERSEDED",
+        details: expect.objectContaining({
+          requestedVersionId: "bv_1",
+          currentVersionId: "bv_2",
+          workOrderId: "wo_1",
+        }),
+      });
+    });
+
+    it("permite decidir una versión cuando coincide con currentVersionId", async () => {
+      const tx = buildBudgetApprovalTxMock();
+      // currentVersionId es bv_1 y se aprueba bv_1
+      const result = await decideBudgetVersionInTx(tx, {
+        workshopId: "ws_1",
+        workOrderId: "wo_1",
+        budgetVersionId: "bv_1",
+        decision: "APROBADO",
+        actorType: "ADMIN",
+        actorAdminId: "au_admin",
+      });
+
+      expect(result.budgetVersionId).toBe("bv_1");
+      expect(result.decision).toBe("APROBADO");
+      expect(tx.budget.update).toHaveBeenCalledWith({
+        where: { id: "b_1" },
+        data: { currentVersionId: "bv_1" },
+      });
+    });
+
+    it("previene condición de carrera rechazando aprobación si la versión quedó desactualizada", async () => {
+      const tx = buildBudgetApprovalTxMock();
+      vi.mocked(tx.budgetVersion.findFirst).mockResolvedValueOnce({
+        id: "bv_old",
+        status: "PENDIENTE_APROBACION",
+        budgetId: "b_1",
+        versionNumber: 1,
+        budget: {
+          workOrderId: "wo_1",
+          currentVersionId: "bv_published_race",
+          workOrder: { workshopId: "ws_1" },
+        },
+        laborLines: [],
+        partLines: [],
+      });
+
+      await expect(
+        decideBudgetVersionInTx(tx, {
+          workshopId: "ws_1",
+          workOrderId: "wo_1",
+          budgetVersionId: "bv_old",
+          decision: "APROBADO",
+          actorType: "CLIENTE",
+        })
+      ).rejects.toThrow(DomainConflictException);
+    });
+  });
 });
+

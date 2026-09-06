@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { slidingWindowRateLimit } from "./src/lib/redis";
+import { slidingWindowRateLimit } from "./src/lib/rate-limit";
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 
@@ -16,12 +16,12 @@ const RULES: readonly RateLimitRule[] = [
   { matcher: (path) => path === "/api/vehicles", bucket: "vehicles", limit: 30, windowMs: FIFTEEN_MINUTES_MS },
 ];
 
-function djb2Hex(input: string): string {
-  let hash = 5381;
-  for (let index = 0; index < input.length; index += 1) {
-    hash = ((hash << 5) + hash + input.charCodeAt(index)) | 0;
-  }
-  return (hash >>> 0).toString(16);
+async function sha256Hex(input: string): Promise<string> {
+  const buffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  const bytes = new Uint8Array(buffer);
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 function clientIp(request: NextRequest): string {
@@ -43,7 +43,8 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   }
 
   const ip = clientIp(request);
-  const key = `oscar:rl:${rule.bucket}:${djb2Hex(`${ip}|${process.env.NODE_ENV ?? "dev"}`)}`;
+  const hash = await sha256Hex(`${ip}|${process.env.NODE_ENV ?? "dev"}`);
+  const key = `oscar:rl:${rule.bucket}:${hash}`;
   const member = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
   const decision = await slidingWindowRateLimit(key, rule.limit, rule.windowMs, member);
