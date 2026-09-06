@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
+import { Prisma } from "@prisma/client";
 import { ValidationException, NotFoundException } from "@/shared/errors";
 import {
   calculateLaborLineTotal,
   calculateOrderTotals,
   calculatePartLineTotal,
+  isRetryableConcurrencyError,
   recalculateOrderTotals,
   recalculateOrderTotalsInTx,
   withSerializableRetry,
@@ -125,60 +127,107 @@ describe("OrderCalculationService — precisión decimal", () => {
     expect(transactionSpy).toHaveBeenCalledWith(expect.any(Function), { isolationLevel: "Serializable" });
   });
 
-  describe("withSerializableRetry", () => {
-    it("reintenta automáticamente ante error de serialización pg 40001 y resuelve", async () => {
-      let attempts = 0;
+  describe("withSerializableRetry — Motor Resiliente de Reintentos SSI", () => {
+    it("intercepta exitosamente PrismaClientKnownRequestError con código P2034 en intento 1 y resuelve en intento 2", async () => {
+      let callCount = 0;
       const fn = vi.fn(async () => {
-        attempts += 1;
-        if (attempts === 1) {
-          const err = new Error("could not serialize access due to read/write dependencies");
-          (err as unknown as { code: string }).code = "40001";
-          throw err;
+        callCount += 1;
+        if (callCount === 1) {
+          throw new Prisma.PrismaClientKnownRequestError(
+            "Transaction failed due to a write conflict or a deadlock. Please retry your transaction",
+            {
+              code: "P2034",
+              clientVersion: "6.19.3",
+            }
+          );
         }
-        return "SUCCESS";
+        return { success: true, attempts: callCount };
       });
 
-      const result = await withSerializableRetry(fn, 3);
-      expect(result).toBe("SUCCESS");
-      expect(attempts).toBe(2);
+      const result = await withSerializableRetry(fn, {
+        maxAttempts: 3,
+        baseDelayMs: 5,
+        maxDelayMs: 20,
+      });
+      expect(result).toEqual({ success: true, attempts: 2 });
       expect(fn).toHaveBeenCalledTimes(2);
     });
 
-    it("reintenta automáticamente ante deadlock pg 40P01", async () => {
-      let attempts = 0;
+    it("intercepta errores con código 40001 anidado en error.cause (@prisma/adapter-pg)", async () => {
+      let callCount = 0;
       const fn = vi.fn(async () => {
-        attempts += 1;
-        if (attempts === 1) {
-          const err = new Error("deadlock detected");
-          (err as unknown as { code: string }).code = "40P01";
-          throw err;
+        callCount += 1;
+        if (callCount === 1) {
+          const error = new Error("Database error occurred");
+          (error as unknown as Record<string, unknown>).cause = {
+            code: "40001",
+            message: "could not serialize access due to read/write dependencies among transactions",
+          };
+          throw error;
         }
-        return "SUCCESS_AFTER_DEADLOCK";
+        return "RECOVERED_FROM_ADAPTER_ERROR";
       });
 
-      const result = await withSerializableRetry(fn, 3);
-      expect(result).toBe("SUCCESS_AFTER_DEADLOCK");
-      expect(attempts).toBe(2);
+      const result = await withSerializableRetry(fn, { maxAttempts: 2, baseDelayMs: 2 });
+      expect(result).toBe("RECOVERED_FROM_ADAPTER_ERROR");
+      expect(fn).toHaveBeenCalledTimes(2);
+    });
+
+    it("intercepta error con código 40P01 (deadlock)", async () => {
+      let callCount = 0;
+      const fn = vi.fn(async () => {
+        callCount += 1;
+        if (callCount === 1) {
+          const error = new Error("deadlock detected");
+          (error as unknown as Record<string, unknown>).code = "40P01";
+          throw error;
+        }
+        return "RECOVERED_DEADLOCK";
+      });
+
+      const result = await withSerializableRetry(fn, { maxAttempts: 2, baseDelayMs: 2 });
+      expect(result).toBe("RECOVERED_DEADLOCK");
+      expect(fn).toHaveBeenCalledTimes(2);
+    });
+
+    it("rechaza de inmediato sin reintentar ante P2002 (Unique Violation) o NotFoundException", async () => {
+      const fnUnique = vi.fn(async () => {
+        throw new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
+          code: "P2002",
+          clientVersion: "6.19.3",
+        });
+      });
+
+      await expect(withSerializableRetry(fnUnique, { maxAttempts: 3 })).rejects.toThrow(
+        Prisma.PrismaClientKnownRequestError
+      );
+      expect(fnUnique).toHaveBeenCalledTimes(1);
+
+      const fnNotFound = vi.fn(async () => {
+        throw new NotFoundException("RECORD_NOT_FOUND", "No existe registro.");
+      });
+
+      await expect(withSerializableRetry(fnNotFound, { maxAttempts: 3 })).rejects.toThrow(
+        NotFoundException
+      );
+      expect(fnNotFound).toHaveBeenCalledTimes(1);
     });
 
     it("arroja el error si se agota el número máximo de intentos", async () => {
       const fn = vi.fn(async () => {
-        const err = new Error("serialization_failure permanent");
-        (err as unknown as { code: string }).code = "40001";
-        throw err;
+        throw new Prisma.PrismaClientKnownRequestError(
+          "Transaction failed due to a write conflict",
+          {
+            code: "P2034",
+            clientVersion: "6.19.3",
+          }
+        );
       });
 
-      await expect(withSerializableRetry(fn, 3)).rejects.toThrow("serialization_failure permanent");
+      await expect(
+        withSerializableRetry(fn, { maxAttempts: 3, baseDelayMs: 2, maxDelayMs: 5 })
+      ).rejects.toThrow(Prisma.PrismaClientKnownRequestError);
       expect(fn).toHaveBeenCalledTimes(3);
-    });
-
-    it("no reintenta ante errores no relacionados a concurrencia y falla inmediatamente", async () => {
-      const fn = vi.fn(async () => {
-        throw new NotFoundException("ORDER_NOT_FOUND", "No existe");
-      });
-
-      await expect(withSerializableRetry(fn, 3)).rejects.toThrow(NotFoundException);
-      expect(fn).toHaveBeenCalledTimes(1);
     });
   });
 });

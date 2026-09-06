@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 import { middleware } from "~/middleware";
-import { memoryLimiter } from "@/lib/rate-limit";
+import { memoryLimiter, MemorySlidingWindow } from "@/lib/rate-limit";
 
 function buildRequest(path: string, ip: string): NextRequest {
   return new NextRequest(new URL(path, "http://localhost:3000"), {
@@ -72,5 +72,81 @@ describe("middleware — Sliding Window conectado al tráfico HTTP (G4/G7)", () 
       response = await middleware(req);
     }
     expect(response?.status).toBe(429);
+  });
+
+  it("prioriza cabeceras de infraestructura (cf-connecting-ip / x-real-ip)", async () => {
+    const path = "/api/auth/sign-in";
+    for (let index = 0; index < 10; index += 1) {
+      const req = new NextRequest(new URL(path, "http://localhost:3000"), {
+        method: "POST",
+        headers: {
+          "cf-connecting-ip": "100.64.0.1",
+          "x-forwarded-for": "1.2.3.4",
+        },
+      });
+      const res = await middleware(req);
+      expect(res.status).toBe(200);
+    }
+    const blockedReq = new NextRequest(new URL(path, "http://localhost:3000"), {
+      method: "POST",
+      headers: {
+        "cf-connecting-ip": "100.64.0.1",
+        "x-forwarded-for": "9.8.7.6", // header XFF falsificado no altera el bucket
+      },
+    });
+    const blockedRes = await middleware(blockedReq);
+    expect(blockedRes.status).toBe(429);
+  });
+
+  it("aplica cuota compartida estricta ante solicitudes sin IP determinable (unresolved_ip)", async () => {
+    const path = "/api/auth/sign-in";
+    for (let index = 0; index < 10; index += 1) {
+      const req = new NextRequest(new URL(path, "http://localhost:3000"), {
+        method: "POST",
+      });
+      const res = await middleware(req);
+      expect(res.status).toBe(200);
+    }
+    const req11 = new NextRequest(new URL(path, "http://localhost:3000"), {
+      method: "POST",
+    });
+    const res11 = await middleware(req11);
+    expect(res11.status).toBe(429);
+  });
+
+  describe("MemorySlidingWindow — LRU y Cap de Isolate Edge", () => {
+    it("desaloja la clave más antigua cuando se alcanza el límite máximo de buckets", () => {
+      const limiter = new MemorySlidingWindow(3);
+      const now = Date.now();
+
+      limiter.record("ip-1", 5, 60_000, now);
+      limiter.record("ip-2", 5, 60_000, now);
+      limiter.record("ip-3", 5, 60_000, now);
+      expect(limiter.size).toBe(3);
+
+      // Inserción de una cuarta clave debe desalojar ip-1 (la más antigua)
+      limiter.record("ip-4", 5, 60_000, now);
+      expect(limiter.size).toBe(3);
+
+      // ip-1 ahora es nueva y debe tener cuota completa limpia
+      const decision = limiter.record("ip-1", 5, 60_000, now);
+      expect(decision.allowed).toBe(true);
+      expect(decision.remaining).toBe(4);
+    });
+
+    it("poda timestamps expirados fuera de la ventana", () => {
+      const limiter = new MemorySlidingWindow(10);
+      const now = 100_000;
+      const windowMs = 10_000; // ventana de 10s
+
+      // Registra 2 peticiones en t=91_000
+      limiter.record("ip-test", 3, windowMs, 91_000);
+      limiter.record("ip-test", 3, windowMs, 91_000);
+
+      // En t=105_000 (14s después), las peticiones previas ya expiraron
+      const decision = limiter.record("ip-test", 3, windowMs, 105_000);
+      expect(decision.allowed).toBe(true);
+      expect(decision.remaining).toBe(2); // 3 - 1 petición actual
+    });
   });
 });

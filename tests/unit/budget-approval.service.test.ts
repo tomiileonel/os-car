@@ -250,6 +250,71 @@ describe("BudgetApprovalService — B1, S2 e Invariantes de Aprobación", () => 
         })
       ).rejects.toThrow(DomainConflictException);
     });
+
+    it("permite decidir una versión inicial cuando currentVersionId es null y consolida la versión en el presupuesto", async () => {
+      const tx = buildBudgetApprovalTxMock();
+      vi.mocked(tx.budgetVersion.findFirst).mockResolvedValueOnce({
+        id: "bv_initial",
+        status: "PENDIENTE_APROBACION",
+        budgetId: "b_1",
+        versionNumber: 1,
+        budget: {
+          workOrderId: "wo_1",
+          currentVersionId: null, // Presupuesto inicial sin versión consolidada previa
+          workOrder: { workshopId: "ws_1" },
+        },
+        laborLines: [],
+        partLines: [],
+      });
+
+      const result = await decideBudgetVersionInTx(tx, {
+        workshopId: "ws_1",
+        workOrderId: "wo_1",
+        budgetVersionId: "bv_initial",
+        decision: "APROBADO",
+        actorType: "ADMIN",
+        actorAdminId: "au_admin",
+      });
+
+      expect(result.decision).toBe("APROBADO");
+      expect(tx.budget.update).toHaveBeenCalledWith({
+        where: { id: "b_1" },
+        data: { currentVersionId: "bv_initial" },
+      });
+    });
+
+    it("consolida currentVersionId al rechazar la versión inicial si currentVersionId era null", async () => {
+      const tx = buildBudgetApprovalTxMock();
+      vi.mocked(tx.budgetVersion.findFirst).mockResolvedValueOnce({
+        id: "bv_rejected_initial",
+        status: "PENDIENTE_APROBACION",
+        budgetId: "b_1",
+        versionNumber: 1,
+        budget: {
+          workOrderId: "wo_1",
+          currentVersionId: null,
+          workOrder: { workshopId: "ws_1" },
+        },
+        laborLines: [],
+        partLines: [],
+      });
+
+      const result = await decideBudgetVersionInTx(tx, {
+        workshopId: "ws_1",
+        workOrderId: "wo_1",
+        budgetVersionId: "bv_rejected_initial",
+        decision: "RECHAZADO",
+        actorType: "ADMIN",
+        actorAdminId: "au_admin",
+        rejectionReason: "Presupuesto inicial desestimado por el cliente",
+      });
+
+      expect(result.decision).toBe("RECHAZADO");
+      expect(tx.budget.update).toHaveBeenCalledWith({
+        where: { id: "b_1" },
+        data: { currentVersionId: "bv_rejected_initial" },
+      });
+    });
   });
 });
 

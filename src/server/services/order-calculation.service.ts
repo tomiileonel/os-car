@@ -4,26 +4,87 @@ import { NotFoundException, ValidationException } from "@/shared/errors";
 
 Decimal.set({ precision: 24, rounding: Decimal.ROUND_HALF_EVEN });
 
+export interface RetryOptions {
+  maxAttempts?: number;
+  baseDelayMs?: number;
+  maxDelayMs?: number;
+}
+
+/**
+ * Predicado de captura multi-capa para conflictos de serialización y deadlocks.
+ * Inspecciona códigos de Prisma (P2034), SQLSTATE nativos de PostgreSQL (40001, 40P01)
+ * a nivel de raíz, meta y error.cause (necesario para @prisma/adapter-pg).
+ */
+export function isRetryableConcurrencyError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  const err = error as {
+    code?: string;
+    message?: string;
+    meta?: Record<string, unknown>;
+    cause?: unknown;
+  };
+  // Errores no reintentables bajo ninguna circunstancia
+  if (err.code === "P2002" || err.code === "P2025" || err.code === "P2003") {
+    return false;
+  }
+  // 1. Detección estándar de Prisma Client Known Request Error
+  if (err.code === "P2034") {
+    return true;
+  }
+  // 2. Detección en meta (Prisma Driver Adapter / Raw Query meta wrapper)
+  const metaCode = String(err.meta?.code ?? err.meta?.database_error_code ?? "");
+  if (metaCode === "40001" || metaCode === "40P01") {
+    return true;
+  }
+  // 3. Detección directa de PostgreSQL SQLSTATE en la raíz
+  if (err.code === "40001" || err.code === "40P01") {
+    return true;
+  }
+  // 4. Detección recursiva en error.cause (DatabaseError emitido por 'pg' / '@prisma/adapter-pg')
+  if (err.cause && typeof err.cause === "object") {
+    const cause = err.cause as { code?: string; message?: string };
+    if (cause.code === "40001" || cause.code === "40P01") {
+      return true;
+    }
+  }
+  // 5. Análisis semántico de mensajes nativos del motor PostgreSQL
+  const message = typeof err.message === "string" ? err.message : "";
+  return (
+    /could not serialize access due to read\/write dependencies/i.test(message) ||
+    /deadlock detected/i.test(message) ||
+    /serialization_failure/i.test(message) ||
+    /write conflict/i.test(message)
+  );
+}
+
+/**
+ * Ejecutor con Exponential Backoff y Full Jitter (recomendación PostgreSQL/AWS).
+ * Formula: sleep = Math.floor(Math.random() * Math.min(maxDelay, baseDelay * 2 ** (attempt - 1)))
+ */
 export async function withSerializableRetry<T>(
   fn: () => Promise<T>,
-  maxAttempts = 3
+  options?: RetryOptions
 ): Promise<T> {
+  const maxAttempts = Math.max(1, options?.maxAttempts ?? 3);
+  const baseDelayMs = Math.max(1, options?.baseDelayMs ?? 25);
+  const maxDelayMs = Math.max(baseDelayMs, options?.maxDelayMs ?? 500);
+
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
       return await fn();
     } catch (error) {
-      const pgCode = (error as { code?: string; message?: string })?.code;
-      const isSerializationFailure =
-        pgCode === "40001" ||
-        pgCode === "40P01" ||
-        Boolean((error as { message?: string })?.message?.includes("serialization_failure"));
-      if (!isSerializationFailure || attempt === maxAttempts) {
+      if (!isRetryableConcurrencyError(error) || attempt === maxAttempts) {
         throw error;
       }
-      await new Promise((resolve) => setTimeout(resolve, 25 * attempt));
+      // Full Jitter Backoff
+      const exponentialCap = Math.min(maxDelayMs, baseDelayMs * Math.pow(2, attempt - 1));
+      const sleepDuration = Math.floor(Math.random() * (exponentialCap + 1));
+      await new Promise((resolve) => setTimeout(resolve, sleepDuration));
     }
   }
-  throw new Error("unreachable");
+  throw new Error("UNREACHABLE_RETRY_STATE");
 }
 
 export type MoneyInput = string | Decimal;

@@ -144,13 +144,14 @@ export async function decideBudgetVersionInTx(
   }
 
   // Invariante BUDGET-01: Sólo se puede decidir sobre la versión vigente
-  if (version.budget.currentVersionId && version.budget.currentVersionId !== version.id) {
+  const currentVersionId = version.budget.currentVersionId;
+  if (currentVersionId !== null && currentVersionId !== undefined && currentVersionId !== version.id) {
     throw new DomainConflictException(
       "BUDGET_VERSION_SUPERSEDED",
       "La versión del presupuesto ha sido superada por una nueva versión vigente.",
       {
         requestedVersionId: version.id,
-        currentVersionId: version.budget.currentVersionId,
+        currentVersionId,
         workOrderId: command.workOrderId,
       }
     );
@@ -213,6 +214,12 @@ export async function decideBudgetVersionInTx(
       where: { budgetId: version.budgetId, status: "APROBADO", id: { not: version.id } },
       data: { status: "SUPERSEDED" },
     });
+    await tx.budget.update({
+      where: { id: version.budgetId },
+      data: { currentVersionId: version.id },
+    });
+  } else if (command.decision === "RECHAZADO" && !version.budget.currentVersionId) {
+    // Si no existía currentVersionId y se rechaza la versión inicial, consolidar para cerrar el ciclo de la versión base
     await tx.budget.update({
       where: { id: version.budgetId },
       data: { currentVersionId: version.id },
