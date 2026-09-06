@@ -3,6 +3,7 @@ import Decimal from "decimal.js";
 import { NotFoundException, ValidationException } from "@/shared/errors";
 
 Decimal.set({ precision: 24, rounding: Decimal.ROUND_HALF_EVEN });
+export { Decimal };
 
 export interface RetryOptions {
   maxAttempts?: number;
@@ -154,12 +155,18 @@ export async function withSerializableRetry<T>(
   throw new Error("UNREACHABLE_RETRY_STATE");
 }
 
-export type MoneyInput = string | Decimal;
+export type MoneyInput = string | number | Decimal;
 
 export interface OrderTotals {
   laborSubtotal: string;
   partsSubtotal: string;
   totalEstimated: string;
+}
+
+export interface PureOrderTotals {
+  laborSubtotal: Decimal;
+  partsSubtotal: Decimal;
+  totalEstimated: Decimal;
 }
 
 export interface LaborLineInput {
@@ -225,7 +232,7 @@ const EXCLUDED_LINE_STATUSES: ReadonlySet<string> = new Set(["CANCELADO"]);
 
 export function money(value: MoneyInput): Decimal {
   try {
-    return new Decimal(value);
+    return value instanceof Decimal ? value : new Decimal(value);
   } catch {
     throw new ValidationException("MONEY_INVALID", `Valor monetario inválido: ${String(value)}.`, {
       value: String(value),
@@ -244,36 +251,69 @@ export function toMoneyString(value: Decimal): string {
 export function calculateLaborLineTotal(input: LaborLineInput): Decimal {
   if (!Number.isInteger(input.estimatedMinutes) || input.estimatedMinutes <= 0) {
     throw new ValidationException(
-      "INVALID_ESTIMATED_MINUTES",
-      "Los minutos estimados deben ser un entero positivo.",
+      "LABOR_MINUTES_MUST_BE_POSITIVE_INTEGER",
+      "LABOR_MINUTES_MUST_BE_POSITIVE_INTEGER",
       { estimatedMinutes: input.estimatedMinutes }
     );
   }
   const rate = money(input.hourlyRateCharged);
   if (rate.isNegative()) {
-    throw new ValidationException("INVALID_HOURLY_RATE", "La tarifa horaria no puede ser negativa.", {
-      hourlyRateCharged: String(input.hourlyRateCharged),
-    });
+    throw new ValidationException(
+      "HOURLY_RATE_MUST_BE_NON_NEGATIVE",
+      "HOURLY_RATE_MUST_BE_NON_NEGATIVE",
+      { hourlyRateCharged: String(input.hourlyRateCharged) }
+    );
   }
   return roundMoney(new Decimal(input.estimatedMinutes).dividedBy(60).mul(rate));
 }
 
 export function calculatePartLineTotal(input: PartLineInput): Decimal {
   if (!Number.isInteger(input.quantity) || input.quantity <= 0) {
-    throw new ValidationException("INVALID_PART_QUANTITY", "La cantidad debe ser un entero positivo.", {
-      quantity: input.quantity,
-    });
+    throw new ValidationException(
+      "PART_QUANTITY_MUST_BE_POSITIVE_INTEGER",
+      "PART_QUANTITY_MUST_BE_POSITIVE_INTEGER",
+      { quantity: input.quantity }
+    );
   }
   const unitPrice = money(input.unitPriceCharged);
   if (unitPrice.isNegative()) {
-    throw new ValidationException("INVALID_UNIT_PRICE", "El precio unitario no puede ser negativo.", {
-      unitPriceCharged: String(input.unitPriceCharged),
-    });
+    throw new ValidationException(
+      "UNIT_PRICE_MUST_BE_NON_NEGATIVE",
+      "UNIT_PRICE_MUST_BE_NON_NEGATIVE",
+      { unitPriceCharged: String(input.unitPriceCharged) }
+    );
   }
   return roundMoney(new Decimal(input.quantity).mul(unitPrice));
 }
 
-export function calculateOrderTotals(snapshot: OrderItemsSnapshot): OrderTotals {
+export function calculateOrderTotals(snapshot: OrderItemsSnapshot): OrderTotals;
+export function calculateOrderTotals(
+  laborLines: LaborLineInput[],
+  partLines: PartLineInput[]
+): PureOrderTotals;
+export function calculateOrderTotals(
+  first: OrderItemsSnapshot | LaborLineInput[],
+  second?: PartLineInput[]
+): OrderTotals | PureOrderTotals {
+  if (Array.isArray(first)) {
+    const laborLines = first;
+    const partLines = second ?? [];
+    let laborSubtotal = new Decimal(0);
+    for (const line of laborLines) {
+      laborSubtotal = laborSubtotal.plus(calculateLaborLineTotal(line));
+    }
+    let partsSubtotal = new Decimal(0);
+    for (const line of partLines) {
+      partsSubtotal = partsSubtotal.plus(calculatePartLineTotal(line));
+    }
+    return {
+      laborSubtotal,
+      partsSubtotal,
+      totalEstimated: laborSubtotal.plus(partsSubtotal),
+    };
+  }
+
+  const snapshot = first;
   const laborSubtotal = snapshot.workItems
     .filter((item) => !EXCLUDED_LINE_STATUSES.has(item.status))
     .reduce(

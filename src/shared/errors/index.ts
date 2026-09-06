@@ -2,8 +2,9 @@ import { ZodError } from "zod";
 import { DomainError, isDomainError } from "./DomainError";
 
 export { DomainError, isDomainError } from "./DomainError";
-export { ValidationException } from "./ValidationException";
-export { DomainConflictException } from "./DomainConflictException";
+export { ValidationException, type ValidationIssue } from "./ValidationException";
+export { DomainConflictException, type DomainConflictOptions, type DomainConflictErrorCode } from "./DomainConflictException";
+export { ProblemDetails, type ProblemDetailsResponse, type ProblemType, buildProblem } from "./ProblemDetails";
 
 export class BadRequestException extends DomainError {
   constructor(

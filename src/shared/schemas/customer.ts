@@ -1,34 +1,42 @@
+// src/shared/schemas/customer.ts
 import { z } from "zod";
-import {
-  cuidSchema,
-  documentNumberSchema,
-  emailSchema,
-  paginationQuerySchema,
-  phoneE164Schema,
-} from "./common";
 
-const customerEditableFields = {
-  fullName: z.string().trim().min(2).max(120),
-  phoneE164: phoneE164Schema,
-  email: emailSchema.optional(),
-  documentNumber: documentNumberSchema.optional(),
-} as const;
+const E164_PHONE = /^\+[1-9][0-9]{7,14}$/;
 
-export const createCustomerSchema = z.object(customerEditableFields).strict();
+export const phoneSchema = z
+  .string()
+  .trim()
+  .regex(E164_PHONE, "PHONE_MUST_BE_E164");
 
-export const updateCustomerSchema = z
-  .object({ customerId: cuidSchema, ...customerEditableFields })
-  .partial()
-  .required({ customerId: true })
-  .strict();
+export function normalizePhoneForIndex(phone: string): string {
+  return phone.replace(/[^0-9]/g, "");
+}
 
-export const listCustomersQuerySchema = paginationQuerySchema
-  .extend({
-    q: z.string().trim().max(120).optional(),
-    phone: phoneE164Schema.optional(),
+export const createCustomerSchema = z
+  .object({
+    workshopId: z.string().cuid(),
+    fullName: z.string().trim().min(2).max(120),
+    phoneE164: phoneSchema,
+    email: z.string().trim().email().max(254).optional(),
   })
   .strict();
 
+export const updateCustomerSchema = z
+  .object({
+    customerId: z.string().cuid(),
+    workshopId: z.string().cuid(),
+    fullName: z.string().trim().min(2).max(120).optional(),
+    phoneE164: phoneSchema.optional(),
+    email: z.string().trim().email().max(254).nullable().optional(),
+  })
+  .strict()
+  .refine(
+    (v) =>
+      v.fullName !== undefined ||
+      v.phoneE164 !== undefined ||
+      v.email !== undefined,
+    { message: "AT_LEAST_ONE_FIELD_REQUIRED" },
+  );
+
 export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
 export type UpdateCustomerInput = z.infer<typeof updateCustomerSchema>;
-export type ListCustomersQuery = z.infer<typeof listCustomersQuerySchema>;

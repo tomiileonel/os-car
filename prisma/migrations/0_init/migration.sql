@@ -24,11 +24,13 @@ ALTER TABLE delivery_records
 ADD CONSTRAINT chk_odometer_delivery_non_negative
 CHECK ("odometerAtDelivery" >= 0);
 
--- 5. Unicidad Parcial: Un ítem de inventario sólo puede tener un movimiento "en curso" por SKU
-CREATE UNIQUE INDEX IF NOT EXISTS inventory_movement_one_active_per_item
+-- 5. Unicidad Parcial: Un ítem de inventario sólo puede tener una reserva activa.
+--    [G3-FIX] Se elimina la cláusula DATE("createdAt") = CURRENT_DATE porque
+--    CURRENT_DATE es VOLATILE y PostgreSQL rechaza el índice con SQLSTATE 42P17
+--    ("functions in index must be marked IMMUTABLE").
+CREATE UNIQUE INDEX IF NOT EXISTS inventory_movement_one_active_reservation_per_item
 ON inventory_movements ("inventoryItemId", "movementType")
-WHERE "movementType" = 'RESERVA'
-  AND DATE("createdAt") = CURRENT_DATE;
+WHERE "movementType" = 'RESERVA';
 
 -- 6. Performance: Índice compuesto para consultas de seguimiento público (trackingCode)
 CREATE INDEX IF NOT EXISTS work_order_tracking_code_active_idx

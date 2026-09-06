@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { clientIp } from "./src/lib/client-ip";
 import { slidingWindowRateLimit } from "./src/lib/rate-limit";
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
@@ -12,6 +13,7 @@ interface RateLimitRule {
 
 const RULES: readonly RateLimitRule[] = [
   { matcher: (path) => path.startsWith("/api/auth/"), bucket: "auth", limit: 10, windowMs: FIFTEEN_MINUTES_MS },
+  { matcher: (path) => path.startsWith("/api/public/"), bucket: "public", limit: 20, windowMs: FIFTEEN_MINUTES_MS },
   { matcher: (path) => path.startsWith("/api/v1/public/"), bucket: "public", limit: 20, windowMs: FIFTEEN_MINUTES_MS },
   { matcher: (path) => path === "/api/vehicles", bucket: "vehicles", limit: 30, windowMs: FIFTEEN_MINUTES_MS },
 ];
@@ -22,49 +24,6 @@ async function sha256Hex(input: string): Promise<string> {
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-}
-
-/**
- * Determinación jerárquica y segura de la dirección IP de origen (F-01 / F-02).
- *
- * JERARQUÍA DE CONFIANZA DE PROXY:
- * 1. Cabeceras gestionadas por CDN / Edge Hosting de primer orden (Vercel / Cloudflare / Nginx real-ip):
- *    - Inyectadas/sanitizadas por el proveedor perimetral. Su inviolabilidad frente a spoofing
- *      es condicional a que el CDN gestione el 100% del tráfico entrante y el origen no esté expuesto directamente.
- * 2. Socket directo de runtime si es provisto por el host.
- * 3. X-Forwarded-For:
- *    - En topologías con reverse proxy de borde configurado, se extrae la última IP no manipulable
- *      añadida por el reverse proxy confiable.
- * 4. Fallback 'unresolved_ip':
- *    - Cuando no es posible determinar la IP con certeza, se aísla en un bucket común dedicado ('unresolved_ip')
- *      para evitar agotar la cuota de clientes legítimos identificables.
- */
-function clientIp(request: NextRequest): string {
-  // 1. Cabeceras de infraestructura gestionadas (Vercel, Cloudflare, Nginx real-ip)
-  const vercelIp = request.headers.get("x-vercel-forwarded-for");
-  if (vercelIp && vercelIp.length > 0) return vercelIp.split(",")[0]?.trim() ?? "unresolved_ip";
-
-  const cfIp = request.headers.get("cf-connecting-ip");
-  if (cfIp && cfIp.length > 0) return cfIp.trim();
-
-  const realIp = request.headers.get("x-real-ip");
-  if (realIp && realIp.length > 0) return realIp.trim();
-
-  // 2. IP de socket de Next.js runtime (sin aserciones inseguras de tipos)
-  const hostIp = Reflect.get(request, "ip");
-  if (typeof hostIp === "string" && hostIp.length > 0) return hostIp;
-
-  // 3. X-Forwarded-For: en topología de proxy reverso confiable se preserva la última IP agregada
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) {
-    const parts = forwarded.split(",").map((p) => p.trim()).filter(Boolean);
-    if (parts.length > 0) {
-      return parts[parts.length - 1] ?? "unresolved_ip";
-    }
-  }
-
-  // 4. Política explícita para solicitudes sin IP determinable
-  return "unresolved_ip";
 }
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
@@ -123,6 +82,7 @@ export default middleware;
 export const config = {
   matcher: [
     "/api/auth/:path*",
+    "/api/public/:path*",
     "/api/v1/public/:path*",
     "/api/vehicles",
   ],

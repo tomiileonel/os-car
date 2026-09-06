@@ -94,6 +94,12 @@ enum FuelLevel {
   LLENO
 }
 
+enum VehicleType {
+  AUTO
+  CAMIONETA
+  CAMION
+}
+
 enum DamageType {
   RAYON
   ABOLLADURA
@@ -243,6 +249,7 @@ model Vehicle {
   id                     String    @id @default(cuid())
   workshopId             String
   customerId             String
+  vehicleType            VehicleType @default(AUTO)
   licensePlate           String
   licensePlateNormalized String
   vin                    String?
