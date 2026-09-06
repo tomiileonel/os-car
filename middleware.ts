@@ -24,6 +24,20 @@ async function sha256Hex(input: string): Promise<string> {
     .join("");
 }
 
+/**
+ * Determinación jerárquica y segura de la dirección IP de origen (F-01 / F-02).
+ *
+ * JERARQUÍA DE CONFIANZA DE PROXY:
+ * 1. Cabeceras gestionadas por CDN / Edge Hosting de primer orden (Vercel / Cloudflare / Nginx real-ip):
+ *    - Inyectadas/sanitizadas por el proveedor perimetral, inmunes a spoofing de cliente directo.
+ * 2. Socket directo de runtime (request.ip) provisto por el host.
+ * 3. X-Forwarded-For:
+ *    - En topologías con reverse proxy de borde configurado, se extrae la última IP no manipulable
+ *      añadida por el reverse proxy confiable.
+ * 4. Fallback 'unresolved_ip':
+ *    - Cuando no es posible determinar la IP con certeza, se aísla en un bucket común dedicado ('unresolved_ip')
+ *      para evitar agotar la cuota de clientes legítimos identificables.
+ */
 function clientIp(request: NextRequest): string {
   // 1. Cabeceras de infraestructura gestionadas (Vercel, Cloudflare, Nginx real-ip)
   const vercelIp = request.headers.get("x-vercel-forwarded-for");

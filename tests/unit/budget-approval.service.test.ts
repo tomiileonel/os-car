@@ -34,6 +34,7 @@ function buildBudgetApprovalTxMock(): BudgetApprovalServiceTx {
     budget: {
       findFirst: vi.fn().mockResolvedValue({ currentVersion: { status: "PENDIENTE_APROBACION" } }),
       update: vi.fn().mockResolvedValue({ id: "b_1" }),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     intakeRecord: { findFirst: vi.fn().mockResolvedValue({ id: "ir_1" }) },
     qualityControl: { findFirst: vi.fn().mockResolvedValue(null) },
@@ -218,8 +219,8 @@ describe("BudgetApprovalService — B1, S2 e Invariantes de Aprobación", () => 
 
       expect(result.budgetVersionId).toBe("bv_1");
       expect(result.decision).toBe("APROBADO");
-      expect(tx.budget.update).toHaveBeenCalledWith({
-        where: { id: "b_1" },
+      expect(tx.budget.updateMany).toHaveBeenCalledWith({
+        where: { id: "b_1", currentVersionId: "bv_1" },
         data: { currentVersionId: "bv_1" },
       });
     });
@@ -277,8 +278,8 @@ describe("BudgetApprovalService — B1, S2 e Invariantes de Aprobación", () => 
       });
 
       expect(result.decision).toBe("APROBADO");
-      expect(tx.budget.update).toHaveBeenCalledWith({
-        where: { id: "b_1" },
+      expect(tx.budget.updateMany).toHaveBeenCalledWith({
+        where: { id: "b_1", currentVersionId: null },
         data: { currentVersionId: "bv_initial" },
       });
     });
@@ -310,10 +311,57 @@ describe("BudgetApprovalService — B1, S2 e Invariantes de Aprobación", () => 
       });
 
       expect(result.decision).toBe("RECHAZADO");
-      expect(tx.budget.update).toHaveBeenCalledWith({
-        where: { id: "b_1" },
+      expect(tx.budget.updateMany).toHaveBeenCalledWith({
+        where: { id: "b_1", currentVersionId: null },
         data: { currentVersionId: "bv_rejected_initial" },
       });
+    });
+
+    it("CAS collision: arroja BUDGET_VERSION_SUPERSEDED si tx.budget.updateMany retorna count 0 durante la aprobación", async () => {
+      const tx = buildBudgetApprovalTxMock();
+      // Simula colisión concurrente donde otra transacción actualizó currentVersionId entre el findFirst y el updateMany
+      vi.mocked(tx.budget.updateMany).mockResolvedValueOnce({ count: 0 });
+
+      await expect(
+        decideBudgetVersionInTx(tx, {
+          workshopId: "ws_1",
+          workOrderId: "wo_1",
+          budgetVersionId: "bv_1",
+          decision: "APROBADO",
+          actorType: "ADMIN",
+          actorAdminId: "au_admin",
+        })
+      ).rejects.toThrow(DomainConflictException);
+    });
+
+    it("CAS collision: arroja BUDGET_VERSION_SUPERSEDED si tx.budget.updateMany retorna count 0 durante el rechazo inicial", async () => {
+      const tx = buildBudgetApprovalTxMock();
+      vi.mocked(tx.budgetVersion.findFirst).mockResolvedValueOnce({
+        id: "bv_init_clash",
+        status: "PENDIENTE_APROBACION",
+        budgetId: "b_1",
+        versionNumber: 1,
+        budget: {
+          workOrderId: "wo_1",
+          currentVersionId: null,
+          workOrder: { workshopId: "ws_1" },
+        },
+        laborLines: [],
+        partLines: [],
+      });
+      vi.mocked(tx.budget.updateMany).mockResolvedValueOnce({ count: 0 });
+
+      await expect(
+        decideBudgetVersionInTx(tx, {
+          workshopId: "ws_1",
+          workOrderId: "wo_1",
+          budgetVersionId: "bv_init_clash",
+          decision: "RECHAZADO",
+          actorType: "ADMIN",
+          actorAdminId: "au_admin",
+          rejectionReason: "Rechazo concurrente en versión inicial",
+        })
+      ).rejects.toThrow(DomainConflictException);
     });
   });
 });

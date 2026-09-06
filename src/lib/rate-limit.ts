@@ -4,12 +4,19 @@ export interface RateLimitDecision {
   retryAfterMs: number;
 }
 
-export interface RateLimitDecision {
-  allowed: boolean;
-  remaining: number;
-  retryAfterMs: number;
-}
-
+/**
+ * Limitador de tasa en memoria por ventana deslizante para Edge Runtime (Next.js Middleware).
+ * 
+ * CONDICIÓN DE FRONTERA ARQUITECTÓNICA (F-01 / F-02):
+ * - Ámbito: Isolate-local (instancia en memoria dentro de cada worker/isolate de Edge).
+ * - Propósito: Defensa en profundidad perimetral para mitigar ataques de denegación de servicio (DoS)
+ *   y ráfagas abusivas a nivel perimetral sin latencia de red adicional.
+ * - Capacidad: Bounded via LRU (Least Recently Used) con capacidad fija (default 10,000 buckets)
+ *   para garantizar un uso acotado y determinista de memoria sin fugas en Edge isolates.
+ * - Despliegues distribuidos multi-región: Para límites de tasa estrictamente consolidados
+ *   entre múltiples nodos Edge o réplicas sin estado, se debe utilizar almacenamiento distribuido
+ *   (ej. Upstash Redis REST fetch o Redis TCP en Node runtime).
+ */
 export class MemorySlidingWindow {
   private readonly maxBuckets: number;
   private readonly buckets = new Map<string, number[]>();

@@ -1,10 +1,12 @@
 import type { Redis } from "ioredis";
+import {
+  type RateLimitDecision,
+  MemorySlidingWindow,
+  memoryLimiter,
+} from "./rate-limit";
 
-export interface RateLimitDecision {
-  allowed: boolean;
-  remaining: number;
-  retryAfterMs: number;
-}
+export type { RateLimitDecision };
+export { MemorySlidingWindow, memoryLimiter };
 
 const SLIDING_WINDOW_LUA = `
 local key = KEYS[1]
@@ -89,28 +91,3 @@ export async function slidingWindowRateLimit(
   return memoryLimiter.record(key, limit, windowMs, Date.now());
 }
 
-export class MemorySlidingWindow {
-  private buckets = new Map<string, number[]>();
-
-  record(key: string, limit: number, windowMs: number, now: number): RateLimitDecision {
-    const windowStart = now - windowMs;
-    const previous = this.buckets.get(key) ?? [];
-    const fresh = previous.filter((timestamp) => timestamp > windowStart);
-
-    if (fresh.length < limit) {
-      fresh.push(now);
-      this.buckets.set(key, fresh);
-      return { allowed: true, remaining: limit - fresh.length, retryAfterMs: 0 };
-    }
-
-    this.buckets.set(key, fresh);
-    const oldest = fresh[0] ?? now;
-    return { allowed: false, remaining: 0, retryAfterMs: Math.max(0, oldest + windowMs - now) };
-  }
-
-  reset(): void {
-    this.buckets.clear();
-  }
-}
-
-export const memoryLimiter = new MemorySlidingWindow();

@@ -229,6 +229,48 @@ describe("OrderCalculationService — precisión decimal", () => {
       ).rejects.toThrow(Prisma.PrismaClientKnownRequestError);
       expect(fn).toHaveBeenCalledTimes(3);
     });
+
+    it("soporta recursión profunda en error.cause (3 niveles anidados)", () => {
+      const deepError = {
+        message: "Outer error",
+        cause: {
+          message: "Middle error",
+          cause: {
+            code: "40001",
+            message: "could not serialize access",
+          },
+        },
+      };
+      expect(isRetryableConcurrencyError(deepError)).toBe(true);
+    });
+
+    it("protege contra referencias circulares en error.cause sin desbordar la pila", () => {
+      const circularError: Record<string, unknown> = {
+        message: "Circular wrapper error",
+      };
+      circularError.cause = circularError;
+
+      // No debe arrojar RangeError (Maximum call stack size exceeded)
+      expect(isRetryableConcurrencyError(circularError)).toBe(false);
+    });
+
+    it("ejecuta fail-fast si un código no reintentable (P2002) aparece en cualquier nivel del árbol de causas", () => {
+      const fatalNestedError = {
+        message: "could not serialize access due to read/write dependencies",
+        cause: {
+          code: "P2002",
+          message: "Unique constraint failed on the fields: (`code`)",
+        },
+      };
+      // A pesar de tener un mensaje de serialización en la raíz, el P2002 anidado provoca fail-fast
+      expect(isRetryableConcurrencyError(fatalNestedError)).toBe(false);
+    });
+
+    it("reconoce cancelación por timeout de bloqueo nativo de PostgreSQL", () => {
+      const lockTimeoutError = new Error("canceling statement due to lock timeout");
+      expect(isRetryableConcurrencyError(lockTimeoutError)).toBe(true);
+    });
   });
 });
+
 

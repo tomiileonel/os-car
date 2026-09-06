@@ -48,8 +48,15 @@ export type BudgetApprovalServiceTx = BlockerServiceTx & {
     findFirst(args: { where: Record<string, unknown>; select?: unknown }): Promise<AdminUser | null>;
   };
   budget: {
-    findFirst: BlockerServiceTx["budget"]["findFirst"];
+    findFirst(args: {
+      where: Record<string, unknown>;
+      select?: unknown;
+    }): Promise<{ id?: string; currentVersion?: { status: string } | null } | null>;
     update(args: { where: { id: string }; data: Record<string, unknown> }): Promise<{ id: string }>;
+    updateMany(args: {
+      where: Record<string, unknown>;
+      data: Record<string, unknown>;
+    }): Promise<{ count: number }>;
   };
   budgetVersion: {
     findFirst(args: { where: { id: string }; select: unknown }): Promise<BudgetVersionRow | null>;
@@ -214,16 +221,63 @@ export async function decideBudgetVersionInTx(
       where: { budgetId: version.budgetId, status: "APROBADO", id: { not: version.id } },
       data: { status: "SUPERSEDED" },
     });
-    await tx.budget.update({
-      where: { id: version.budgetId },
+    // CAS atómico sobre budget.currentVersionId (F-06 / BUDGET-01)
+    const budgetUpdate = await tx.budget.updateMany({
+      where: {
+        id: version.budgetId,
+        currentVersionId: currentVersionId ?? null,
+      },
       data: { currentVersionId: version.id },
     });
-  } else if (command.decision === "RECHAZADO" && !version.budget.currentVersionId) {
-    // Si no existía currentVersionId y se rechaza la versión inicial, consolidar para cerrar el ciclo de la versión base
-    await tx.budget.update({
-      where: { id: version.budgetId },
-      data: { currentVersionId: version.id },
-    });
+    if (budgetUpdate.count === 0) {
+      throw new DomainConflictException(
+        "BUDGET_VERSION_SUPERSEDED",
+        "La versión del presupuesto ha sido superada concurrentemente en la base de datos.",
+        {
+          requestedVersionId: version.id,
+          expectedCurrentVersionId: currentVersionId ?? null,
+          workOrderId: command.workOrderId,
+        }
+      );
+    }
+  } else if (command.decision === "RECHAZADO") {
+    if (!version.budget.currentVersionId) {
+      // Si no existía currentVersionId y se rechaza la versión inicial, consolidar mediante CAS para cerrar el ciclo de la versión base
+      const budgetUpdate = await tx.budget.updateMany({
+        where: {
+          id: version.budgetId,
+          currentVersionId: null,
+        },
+        data: { currentVersionId: version.id },
+      });
+      if (budgetUpdate.count === 0) {
+        throw new DomainConflictException(
+          "BUDGET_VERSION_SUPERSEDED",
+          "La versión inicial del presupuesto ha sido superada concurrentemente en la base de datos.",
+          {
+            requestedVersionId: version.id,
+            expectedCurrentVersionId: null,
+            workOrderId: command.workOrderId,
+          }
+        );
+      }
+    } else {
+      // Si ya existía versión consolidada, verificar mediante guardia que currentVersionId siga coincidiendo
+      const currentBudget = await tx.budget.findFirst({
+        where: { id: version.budgetId, currentVersionId: version.id },
+      });
+      if (!currentBudget) {
+        throw new DomainConflictException(
+          "BUDGET_VERSION_SUPERSEDED",
+          "La versión del presupuesto ha sido superada concurrentemente en la base de datos.",
+          {
+            requestedVersionId: version.id,
+            expectedCurrentVersionId: version.id,
+            workOrderId: command.workOrderId,
+          }
+        );
+      }
+    }
   }
 
   const blockReason = await recalculateBlockersInTx(tx, {
