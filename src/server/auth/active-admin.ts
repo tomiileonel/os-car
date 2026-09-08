@@ -1,7 +1,7 @@
 import type { AdminRole as PrismaAdminRole, AdminUser } from "@prisma/client";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/server/db";
 import { ForbiddenException, UnauthorizedException } from "@/shared/errors";
 import { auth, type Session } from "~/lib/auth";
 
@@ -11,6 +11,42 @@ export type AdminRole =
   | "ADMIN_TALLER"
   | "MECANICO"
   | "RECEPCIONISTA";
+
+/** Roles canónicos de Prisma. Se mantiene separado de los alias históricos. */
+export const CANONICAL_ADMIN_ROLES = [
+  "OWNER",
+  "TALLER_SUPERVISOR",
+  "ADMIN",
+  "MECANICO",
+  "RECEPCIONISTA",
+] as const satisfies readonly PrismaAdminRole[];
+
+export type CanonicalAdminRole = (typeof CANONICAL_ADMIN_ROLES)[number];
+
+export function isAllowedAdminRole(role: string | null | undefined): role is CanonicalAdminRole {
+  return typeof role === "string" &&
+    (CANONICAL_ADMIN_ROLES as readonly string[]).includes(role);
+}
+
+export interface CanonicalActiveAdminContext {
+  adminId: string;
+  workshopId: string;
+  role: CanonicalAdminRole;
+  displayName: string;
+  email: string | null;
+}
+
+export class AdminAuthError extends Error {
+  readonly statusCode: 401 | 403;
+  readonly code: string;
+
+  constructor(statusCode: 401 | 403, code: string, message: string) {
+    super(message);
+    this.name = "AdminAuthError";
+    this.statusCode = statusCode;
+    this.code = code;
+  }
+}
 
 export interface RequireActiveAdminOptions {
   roles?: ReadonlyArray<AdminRole>;
@@ -161,4 +197,62 @@ export async function requireActiveAdmin(
     return requireActiveAdminApi(options);
   }
   return requireActiveAdminSsr(options);
+}
+
+/**
+ * Resolución estricta para nuevas rutas: solo admite roles presentes en el
+ * enum Prisma canónico y nunca deriva workshopId de la petición.
+ */
+export async function resolveActiveAdminByAuthUserId(
+  authUserId: string,
+): Promise<CanonicalActiveAdminContext | null> {
+  if (!authUserId.trim()) return null;
+
+  const admin = await prisma.adminUser.findFirst({
+    where: { authUserId, active: true, deletedAt: null },
+    select: {
+      id: true,
+      workshopId: true,
+      role: true,
+      displayName: true,
+      email: true,
+    },
+  });
+  if (!admin || !isAllowedAdminRole(admin.role)) return null;
+
+  return {
+    adminId: admin.id,
+    workshopId: admin.workshopId,
+    role: admin.role,
+    displayName: admin.displayName,
+    email: admin.email,
+  };
+}
+
+async function getSessionUserId(): Promise<string | null> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  return session?.user?.id ?? null;
+}
+
+export async function getActiveAdmin(): Promise<CanonicalActiveAdminContext | null> {
+  const userId = await getSessionUserId();
+  return userId ? resolveActiveAdminByAuthUserId(userId) : null;
+}
+
+/** Guardia estricta para rutas que ya migraron al contrato canónico G5. */
+export async function requireCanonicalActiveAdmin(): Promise<CanonicalActiveAdminContext> {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    throw new AdminAuthError(401, "UNAUTHENTICATED", "Se requiere sesión administrativa.");
+  }
+
+  const admin = await resolveActiveAdminByAuthUserId(userId);
+  if (!admin) {
+    throw new AdminAuthError(
+      403,
+      "FORBIDDEN_ADMIN_MEMBERSHIP",
+      "La sesión no tiene membresía activa ni rol autorizado en este taller.",
+    );
+  }
+  return admin;
 }

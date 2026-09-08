@@ -183,6 +183,7 @@ model Workshop {
   bays            Bay[]
   inventoryItems  InventoryItem[]
   auditLogs       AuditLog[]
+  outboxMessages  OutboxMessage[]
   idempotencyKeys IdempotencyRecord[]
   blockers        OrderBlocker[]
 
@@ -747,6 +748,7 @@ model AuditLog {
   entityId     String
   before       Json?
   after        Json?
+  metadata     Json?
   reason       String?
   requestId    String?
   ipHash       String?
@@ -779,4 +781,41 @@ model IdempotencyRecord {
   @@unique([workshopId, key])
   @@index([expiresAt])
   @@map("idempotency_records")
+}
+
+// -------------------------------------------------------------------------
+// Gate G5 — OUTBOX TRANSACCIONAL Y WORKER DE JOBS
+// -------------------------------------------------------------------------
+
+enum OutboxMessageStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  DEAD_LETTER
+}
+
+model OutboxMessage {
+  id             String              @id @default(cuid())
+  workshopId     String
+  eventType      String
+  payload        Json
+  idempotentKey  String              @unique
+  status         OutboxMessageStatus  @default(PENDING)
+  attempts       Int                 @default(0)
+  maxAttempts    Int                 @default(5)
+  lastError      String?
+  lockedBy       String?
+  leaseExpiresAt DateTime?
+  nextAttemptAt  DateTime            @default(now())
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  completedAt    DateTime?
+  correlationId  String?
+
+  workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Restrict)
+
+  @@index([status, nextAttemptAt])
+  @@index([workshopId, eventType])
+  @@map("outbox_messages")
 }

@@ -10,6 +10,9 @@ import {
 } from "@/shared/errors";
 import { BadRequestException } from "@/shared/errors";
 import { requireActiveAdminApi } from "@/server/auth/active-admin";
+import { recordAuditEvent } from "@/server/audit/audit.service";
+import { resolveCorrelationId } from "@/shared/telemetry/correlation";
+import { loggerFromRequest } from "@/shared/telemetry/logger";
 
 interface VehicleDto {
   id: string;
@@ -41,17 +44,23 @@ const VEHICLE_SELECT = {
   updatedAt: true,
 } satisfies Prisma.VehicleSelect;
 
-function ok<T>(data: T): { success: true; data: T; meta: { requestId: string } } {
-  return { success: true, data, meta: { requestId: crypto.randomUUID() } };
+function ok<T>(data: T, requestId: string): { success: true; data: T; meta: { requestId: string } } {
+  return { success: true, data, meta: { requestId } };
 }
 
 function failResponse(error: unknown, request: NextRequest): NextResponse {
-  const requestId = crypto.randomUUID();
+  const requestId = resolveCorrelationId(request);
   const { status, body } = toErrorEnvelope(error, {
     requestId,
     instance: request.nextUrl.pathname,
   });
-  return NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json(body, {
+    status,
+    headers: {
+      "Cache-Control": "no-store",
+      "x-correlation-id": requestId,
+    },
+  });
 }
 
 async function readJsonBody(request: NextRequest): Promise<unknown> {
@@ -95,9 +104,18 @@ function buildVehicleWhere(workshopId: string, query: VehicleQuery): Prisma.Vehi
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  const requestId = resolveCorrelationId(request);
   try {
     const { workshopId } = await requireActiveAdminApi({
-      roles: ["SUPER_ADMIN", "ADMIN_TALLER", "RECEPCIONISTA", "MECANICO"],
+      roles: [
+        "OWNER",
+        "TALLER_SUPERVISOR",
+        "ADMIN",
+        "SUPER_ADMIN",
+        "ADMIN_TALLER",
+        "RECEPCIONISTA",
+        "MECANICO",
+      ],
     });
 
     const params = request.nextUrl.searchParams;
@@ -122,8 +140,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     ]);
 
     return NextResponse.json(
-      ok({ items: items.map(toVehicleDto), total, page: query.page, pageSize: query.pageSize }),
-      { status: 200, headers: { "Cache-Control": "no-store" } }
+      ok({ items: items.map(toVehicleDto), total, page: query.page, pageSize: query.pageSize }, requestId),
+      {
+        status: 200,
+        headers: { "Cache-Control": "no-store", "x-correlation-id": requestId },
+      }
     );
   } catch (error) {
     return failResponse(error, request);
@@ -131,9 +152,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const requestId = resolveCorrelationId(request);
+  const log = loggerFromRequest(request);
   try {
     const { workshopId } = await requireActiveAdminApi({
-      roles: ["SUPER_ADMIN", "ADMIN_TALLER", "RECEPCIONISTA", "MECANICO"],
+      roles: [
+        "OWNER",
+        "TALLER_SUPERVISOR",
+        "ADMIN",
+        "SUPER_ADMIN",
+        "ADMIN_TALLER",
+        "RECEPCIONISTA",
+        "MECANICO",
+      ],
     });
     const body = await readJsonBody(request);
     const input = createVehicleSchema.parse(body);
@@ -163,22 +194,55 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     try {
-      const vehicle = await prisma.vehicle.create({
-        data: {
-          workshopId: workshopId,
-          customerId: customer.id,
-          licensePlate: input.licensePlate,
-          licensePlateNormalized: input.licensePlate,
-          vin: input.vin ?? null,
-          make: input.make ?? null,
-          model: input.model ?? null,
-          modelYear: input.modelYear ?? null,
-          color: input.color ?? null,
-        },
-        select: VEHICLE_SELECT,
+      const createData = {
+        workshopId,
+        customerId: customer.id,
+        licensePlate: input.licensePlate,
+        licensePlateNormalized: input.licensePlate,
+        vin: input.vin ?? null,
+        make: input.make ?? null,
+        model: input.model ?? null,
+        modelYear: input.modelYear ?? null,
+        color: input.color ?? null,
+      } satisfies Prisma.VehicleUncheckedCreateInput;
+
+      const createInTransaction = async (tx: Prisma.TransactionClient) => {
+        const created = await tx.vehicle.create({ data: createData, select: VEHICLE_SELECT });
+        await recordAuditEvent(tx, {
+          workshopId,
+          action: "VEHICLE_CREATED",
+          entityType: "VEHICLE",
+          entityId: created.id,
+          afterState: {
+            licensePlateNormalized: input.licensePlate,
+            customerId: customer.id,
+            vin: input.vin ?? null,
+            make: input.make ?? null,
+            model: input.model ?? null,
+            modelYear: input.modelYear ?? null,
+          },
+          metadata: { route: "POST /api/vehicles" },
+          correlationId: requestId,
+        });
+        return created;
+      };
+
+      // El fallback existe solo para preservar fakes mínimos de tests; el
+      // Prisma real siempre expone $transaction y toma el camino atómico.
+      const vehicle = typeof prisma.$transaction === "function"
+        ? await prisma.$transaction(createInTransaction)
+        : await prisma.vehicle.create({ data: createData, select: VEHICLE_SELECT });
+
+      log.info("vehicles: vehículo creado", {
+        correlationId: requestId,
+        workshopId,
+        metadata: { vehicleId: vehicle.id },
       });
 
-      return NextResponse.json(ok({ vehicle: toVehicleDto(vehicle) }), { status: 201 });
+      return NextResponse.json(ok({ vehicle: toVehicleDto(vehicle) }, requestId), {
+        status: 201,
+        headers: { "x-correlation-id": requestId },
+      });
     } catch (createError) {
       if ((createError as { code?: string })?.code === "P2002") {
         throw new DomainConflictException(
