@@ -96,7 +96,9 @@ function buildVehicleWhere(workshopId: string, query: VehicleQuery): Prisma.Vehi
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const { workshopId } = await requireActiveAdminApi();
+    const { workshopId } = await requireActiveAdminApi({
+      roles: ["SUPER_ADMIN", "ADMIN_TALLER", "RECEPCIONISTA", "MECANICO"],
+    });
 
     const params = request.nextUrl.searchParams;
     const query = vehicleQuerySchema.parse({
@@ -130,7 +132,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const { workshopId } = await requireActiveAdminApi();
+    const { workshopId } = await requireActiveAdminApi({
+      roles: ["SUPER_ADMIN", "ADMIN_TALLER", "RECEPCIONISTA", "MECANICO"],
+    });
     const body = await readJsonBody(request);
     const input = createVehicleSchema.parse(body);
 
