@@ -243,4 +243,255 @@ export const vehiclesApi = {
   },
 };
 
+// ---- WorkBoard & Order Sheet Surface (Gate G7) -----------------------
+
+export type OrderStatus =
+  | "INGRESADO"
+  | "DIAGNOSTICO"
+  | "ESPERANDO_REPARACION"
+  | "EN_REPARACION"
+  | "CONTROL"
+  | "LISTO"
+  | "ENTREGADO"
+  | "CANCELADA";
+
+export interface BayAssignmentDto {
+  id: string;
+  bayId: string;
+  workOrderId: string;
+  assignedAt: string;
+  releasedAt: string | null;
+  workOrder?: WorkOrderSummaryDto;
+}
+
+export interface BayDto {
+  id: string;
+  code: string;
+  ordinal: number;
+  status: "LIBRE" | "OCUPADA";
+  isEnabled: boolean;
+  activeAssignment?: BayAssignmentDto | null;
+}
+
+export interface WorkOrderSummaryDto {
+  id: string;
+  status: OrderStatus;
+  version: number;
+  openedAt: string;
+  trackingCodeHash: string;
+  customerName: string;
+  customerPhone?: string;
+  vehiclePlate: string;
+  vehicleLabel: string;
+  mechanicName?: string | null;
+  bayCode?: string | null;
+  totalEstimated: number;
+  activeBlockersCount: number;
+  completedTasksCount?: number;
+  totalTasksCount?: number;
+}
+
+export interface WorkItemDto {
+  id: string;
+  description: string;
+  estimatedMinutes: number;
+  actualMinutes: number;
+  hourlyRateCharged: number;
+  status: string;
+  isAdditional: boolean;
+}
+
+export interface PartItemDto {
+  id: string;
+  partNumber: string | null;
+  description: string;
+  quantity: number;
+  unitPriceCharged: number;
+  status: string;
+  isAdditional: boolean;
+}
+
+export interface OrderBlockerDto {
+  id: string;
+  type: string;
+  reason: string;
+  isActive: boolean;
+  blockedAt: string;
+}
+
+export interface BudgetVersionDto {
+  id: string;
+  versionNumber: number;
+  status: "BORRADOR" | "PENDIENTE_APROBACION" | "APROBADO" | "RECHAZADO" | "SUPERSEDED";
+  totalEstimated: number;
+}
+
+export interface WorkOrderDetailDto {
+  id: string;
+  status: OrderStatus;
+  version: number;
+  openedAt: string;
+  diagnosedAt: string | null;
+  readyAt: string | null;
+  deliveredAt: string | null;
+  trackingCodeHash: string;
+  vehicle: {
+    id: string;
+    licensePlateNormalized: string;
+    vin: string | null;
+    make: string | null;
+    model: string | null;
+    modelYear: number | null;
+    color: string | null;
+  };
+  customer: {
+    id: string;
+    fullName: string;
+    phone: string;
+  };
+  intakeRecord?: {
+    odometerAtIntake: number;
+    fuelLevel: string;
+    customerComplaint: string;
+  } | null;
+  assignedMechanic?: {
+    id: string;
+    name: string;
+    role?: string;
+  } | null;
+  currentBay?: {
+    id: string;
+    code: string;
+  } | null;
+  workItems: WorkItemDto[];
+  partItems: PartItemDto[];
+  blockers: OrderBlockerDto[];
+  budget?: {
+    id: string;
+    currentVersion?: BudgetVersionDto | null;
+  } | null;
+}
+
+export interface TransitionWorkOrderInput {
+  targetStatus: OrderStatus;
+  expectedVersion?: number;
+  reason?: string;
+}
+
+export interface AddWorkItemInput {
+  description: string;
+  estimatedMinutes: number;
+  hourlyRateCharged: number;
+}
+
+export interface AddPartItemInput {
+  description: string;
+  quantity: number;
+  unitPriceCharged: number;
+  partNumber?: string;
+}
+
+export const baysApi = {
+  list(options?: ApiRequestOptions): Promise<BayDto[]> {
+    return request<BayDto[]>("/api/bays", { method: "GET" }, options);
+  },
+};
+
+export const workOrdersApi = {
+  list(
+    params: { status?: OrderStatus; search?: string } = {},
+    options?: ApiRequestOptions,
+  ): Promise<WorkOrderSummaryDto[]> {
+    const query = new URLSearchParams();
+    if (params.status) query.set("status", params.status);
+    if (params.search) query.set("search", params.search);
+    const qs = query.toString();
+    return request<WorkOrderSummaryDto[]>(
+      `/api/work-orders${qs ? `?${qs}` : ""}`,
+      { method: "GET" },
+      options,
+    );
+  },
+
+  get(id: string, options?: ApiRequestOptions): Promise<WorkOrderDetailDto> {
+    return request<WorkOrderDetailDto>(`/api/work-orders/${id}`, { method: "GET" }, options);
+  },
+
+  transitionStatus(
+    id: string,
+    input: TransitionWorkOrderInput,
+    options?: ApiRequestOptions,
+  ): Promise<WorkOrderDetailDto> {
+    return request<WorkOrderDetailDto>(
+      `/api/work-orders/${id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ action: "transition", ...input }),
+      },
+      options,
+    );
+  },
+
+  addWorkItem(
+    id: string,
+    input: AddWorkItemInput,
+    options?: ApiRequestOptions,
+  ): Promise<WorkOrderDetailDto> {
+    return request<WorkOrderDetailDto>(
+      `/api/work-orders/${id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ action: "add-work-item", ...input }),
+      },
+      options,
+    );
+  },
+
+  addPartItem(
+    id: string,
+    input: AddPartItemInput,
+    options?: ApiRequestOptions,
+  ): Promise<WorkOrderDetailDto> {
+    return request<WorkOrderDetailDto>(
+      `/api/work-orders/${id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ action: "add-part-item", ...input }),
+      },
+      options,
+    );
+  },
+
+  resolveBlocker(
+    id: string,
+    blockerId: string,
+    notes?: string,
+    options?: ApiRequestOptions,
+  ): Promise<WorkOrderDetailDto> {
+    return request<WorkOrderDetailDto>(
+      `/api/work-orders/${id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ action: "resolve-blocker", blockerId, notes }),
+      },
+      options,
+    );
+  },
+
+  approveBudget(
+    id: string,
+    budgetVersionId: string,
+    options?: ApiRequestOptions,
+  ): Promise<WorkOrderDetailDto> {
+    return request<WorkOrderDetailDto>(
+      `/api/work-orders/${id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ action: "approve-budget", budgetVersionId }),
+      },
+      options,
+    );
+  },
+};
+
 export const __internal = { parseEnvelope, createCorrelationId };

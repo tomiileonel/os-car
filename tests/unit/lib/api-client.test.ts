@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ApiClientError, vehiclesApi, __internal } from "@/lib/api-client";
+import { ApiClientError, vehiclesApi, baysApi, workOrdersApi, __internal } from "@/lib/api-client";
 import type { VehicleDto } from "@/lib/api-client";
 
 function jsonResponse(body: unknown, init: { status?: number; headers?: Record<string, string> } = {}) {
@@ -234,6 +234,137 @@ describe("api-client", () => {
       expect(init.method).toBe("POST");
       expect(JSON.parse(init.body as string)).toEqual(input);
       expect(result).toEqual(sampleVehicle);
+    });
+  });
+
+  describe("baysApi surface (Gate G7)", () => {
+    it("list() calls /api/bays via GET", async () => {
+      const mockBays = [
+        { id: "bay-1", code: "B1", ordinal: 1, status: "LIBRE", isEnabled: true },
+      ];
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({ success: true, data: mockBays, meta: { requestId: "req_b" } }),
+      );
+
+      const result = await baysApi.list();
+      const [url, init] = nthCall(fetchMock, 0);
+      expect(url).toBe("/api/bays");
+      expect(init.method).toBe("GET");
+      expect(result).toEqual(mockBays);
+    });
+  });
+
+  describe("workOrdersApi surface (Gate G7)", () => {
+    it("list() builds query with status and search", async () => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({ success: true, data: [], meta: { requestId: "r" } }),
+      );
+
+      await workOrdersApi.list({ status: "EN_REPARACION", search: "AG405NM" });
+      const [url, init] = nthCall(fetchMock, 0);
+      expect(url).toBe("/api/work-orders?status=EN_REPARACION&search=AG405NM");
+      expect(init.method).toBe("GET");
+    });
+
+    it("get() fetches order by id", async () => {
+      const mockDetail = { id: "wo-1", status: "INGRESADO" };
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({ success: true, data: mockDetail, meta: { requestId: "r" } }),
+      );
+
+      const result = await workOrdersApi.get("wo-1");
+      const [url, init] = nthCall(fetchMock, 0);
+      expect(url).toBe("/api/work-orders/wo-1");
+      expect(init.method).toBe("GET");
+      expect(result).toEqual(mockDetail);
+    });
+
+    it("transitionStatus() PATCHes action transition", async () => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({ success: true, data: { id: "wo-1", status: "DIAGNOSTICO" }, meta: { requestId: "r" } }),
+      );
+
+      await workOrdersApi.transitionStatus("wo-1", { targetStatus: "DIAGNOSTICO" });
+      const [url, init] = nthCall(fetchMock, 0);
+      expect(url).toBe("/api/work-orders/wo-1");
+      expect(init.method).toBe("PATCH");
+      expect(JSON.parse(init.body as string)).toEqual({
+        action: "transition",
+        targetStatus: "DIAGNOSTICO",
+      });
+    });
+
+    it("addWorkItem() PATCHes action add-work-item", async () => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({ success: true, data: { id: "wo-1" }, meta: { requestId: "r" } }),
+      );
+
+      await workOrdersApi.addWorkItem("wo-1", {
+        description: "Alineación",
+        estimatedMinutes: 60,
+        hourlyRateCharged: 20000,
+      });
+      const [url, init] = nthCall(fetchMock, 0);
+      expect(url).toBe("/api/work-orders/wo-1");
+      expect(init.method).toBe("PATCH");
+      expect(JSON.parse(init.body as string)).toEqual({
+        action: "add-work-item",
+        description: "Alineación",
+        estimatedMinutes: 60,
+        hourlyRateCharged: 20000,
+      });
+    });
+
+    it("addPartItem() PATCHes action add-part-item", async () => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({ success: true, data: { id: "wo-1" }, meta: { requestId: "r" } }),
+      );
+
+      await workOrdersApi.addPartItem("wo-1", {
+        description: "Filtro Aceite",
+        quantity: 1,
+        unitPriceCharged: 12000,
+      });
+      const [url, init] = nthCall(fetchMock, 0);
+      expect(url).toBe("/api/work-orders/wo-1");
+      expect(init.method).toBe("PATCH");
+      expect(JSON.parse(init.body as string)).toEqual({
+        action: "add-part-item",
+        description: "Filtro Aceite",
+        quantity: 1,
+        unitPriceCharged: 12000,
+      });
+    });
+
+    it("resolveBlocker() PATCHes action resolve-blocker", async () => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({ success: true, data: { id: "wo-1" }, meta: { requestId: "r" } }),
+      );
+
+      await workOrdersApi.resolveBlocker("wo-1", "blocker-1", "Aprobado por cliente");
+      const [url, init] = nthCall(fetchMock, 0);
+      expect(url).toBe("/api/work-orders/wo-1");
+      expect(init.method).toBe("PATCH");
+      expect(JSON.parse(init.body as string)).toEqual({
+        action: "resolve-blocker",
+        blockerId: "blocker-1",
+        notes: "Aprobado por cliente",
+      });
+    });
+
+    it("approveBudget() PATCHes action approve-budget", async () => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({ success: true, data: { id: "wo-1" }, meta: { requestId: "r" } }),
+      );
+
+      await workOrdersApi.approveBudget("wo-1", "bv-1");
+      const [url, init] = nthCall(fetchMock, 0);
+      expect(url).toBe("/api/work-orders/wo-1");
+      expect(init.method).toBe("PATCH");
+      expect(JSON.parse(init.body as string)).toEqual({
+        action: "approve-budget",
+        budgetVersionId: "bv-1",
+      });
     });
   });
 });
