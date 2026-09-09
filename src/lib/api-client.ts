@@ -494,4 +494,186 @@ export const workOrdersApi = {
   },
 };
 
+// ---- Inventory & Tire Hotel Surface (Gate G8) ------------------------
+
+export type InventoryMovementType =
+  | "INGRESO"
+  | "RESERVA"
+  | "CONSUMO"
+  | "DEVOLUCION"
+  | "AJUSTE";
+
+export interface InventoryItemDto {
+  id: string;
+  sku: string;
+  description: string;
+  category: string | null;
+  location: string | null;
+  unitCost: number | null;
+  stockQuantity: number;
+  reorderPoint: number;
+  active: boolean;
+  status: "NORMAL" | "BAJO" | "CRITICO" | "AGOTADO";
+}
+
+export interface RecordInventoryMovementInput {
+  inventoryItemId: string;
+  movementType: InventoryMovementType | "INFLOW" | "OUTFLOW" | "OT_IMPUTATION" | "ADJUSTMENT";
+  quantity: number;
+  note?: string;
+  workOrderId?: string;
+}
+
+export interface CreateInventoryItemInput {
+  sku: string;
+  description: string;
+  category?: string;
+  location?: string;
+  stockQuantity?: number;
+  reorderPoint?: number;
+  unitCost?: number;
+}
+
+export const inventoryApi = {
+  list(
+    params: { search?: string; category?: string; critical?: boolean } = {},
+    options?: ApiRequestOptions,
+  ): Promise<InventoryItemDto[]> {
+    const query = new URLSearchParams();
+    if (params.search) query.set("search", params.search);
+    if (params.category) query.set("category", params.category);
+    if (params.critical) query.set("critical", "true");
+    const qs = query.toString();
+    return request<InventoryItemDto[]>(
+      `/api/inventory${qs ? `?${qs}` : ""}`,
+      { method: "GET" },
+      options,
+    );
+  },
+
+  recordMovement(
+    input: RecordInventoryMovementInput,
+    options?: ApiRequestOptions,
+  ): Promise<{ movement: unknown; updatedItem: InventoryItemDto }> {
+    return request<{ movement: unknown; updatedItem: InventoryItemDto }>(
+      "/api/inventory",
+      { method: "POST", body: JSON.stringify({ action: "movement", ...input }) },
+      options,
+    );
+  },
+
+  createItem(
+    input: CreateInventoryItemInput,
+    options?: ApiRequestOptions,
+  ): Promise<InventoryItemDto> {
+    return request<InventoryItemDto>(
+      "/api/inventory",
+      { method: "POST", body: JSON.stringify({ action: "create", ...input }) },
+      options,
+    );
+  },
+};
+
+export type TireSetStatus = "EN_CUSTODIA" | "ENTREGADO";
+export type TireSeason = "VERANO" | "INVIERNO" | "TODO_CLIMA";
+export type TireCondition = "OPTIMO" | "SUGERIR_REEMPLAZO" | "CRITICO" | "DANADO";
+
+export interface TireItemDto {
+  id: string;
+  wheelPosition: string;
+  treadDepthMm: number;
+  condition: TireCondition;
+  notes?: string | null;
+}
+
+export interface TireSetDto {
+  id: string;
+  vehicleId: string;
+  customerId: string;
+  vehiclePlate: string;
+  vehicleLabel: string;
+  customerName: string;
+  customerPhone: string;
+  brand: string;
+  size: string;
+  dot: string | null;
+  season: TireSeason;
+  status: TireSetStatus;
+  rack: string;
+  level: string;
+  position: string;
+  notes: string | null;
+  checkInAt: string;
+  checkOutAt: string | null;
+  deliveredTo: string | null;
+  minTreadDepthMm: number;
+  suggestReplacement: boolean;
+  tires: TireItemDto[];
+}
+
+export interface CheckInTireSetInput {
+  licensePlate: string;
+  customerName: string;
+  customerPhone?: string;
+  make?: string;
+  model?: string;
+  brand: string;
+  size: string;
+  season?: TireSeason;
+  dot?: string;
+  rack: string;
+  level?: string;
+  position?: string;
+  notes?: string;
+  avgTreadDepthMm?: number;
+  tires?: Array<{
+    wheelPosition: string;
+    treadDepthMm: number;
+    condition?: TireCondition;
+    notes?: string;
+  }>;
+}
+
+export const tireHotelApi = {
+  list(
+    params: { search?: string; status?: TireSetStatus } = {},
+    options?: ApiRequestOptions,
+  ): Promise<TireSetDto[]> {
+    const query = new URLSearchParams();
+    if (params.search) query.set("search", params.search);
+    if (params.status) query.set("status", params.status);
+    const qs = query.toString();
+    return request<TireSetDto[]>(
+      `/api/tires${qs ? `?${qs}` : ""}`,
+      { method: "GET" },
+      options,
+    );
+  },
+
+  get(id: string, options?: ApiRequestOptions): Promise<TireSetDto> {
+    return request<TireSetDto>(`/api/tires/${id}`, { method: "GET" }, options);
+  },
+
+  checkIn(input: CheckInTireSetInput, options?: ApiRequestOptions): Promise<TireSetDto> {
+    return request<TireSetDto>(
+      "/api/tires",
+      { method: "POST", body: JSON.stringify(input) },
+      options,
+    );
+  },
+
+  checkOut(
+    id: string,
+    input: { deliveredTo?: string; signatureHash?: string } = {},
+    options?: ApiRequestOptions,
+  ): Promise<TireSetDto> {
+    return request<TireSetDto>(
+      `/api/tires/${id}`,
+      { method: "PATCH", body: JSON.stringify({ action: "checkout", ...input }) },
+      options,
+    );
+  },
+};
+
 export const __internal = { parseEnvelope, createCorrelationId };
+

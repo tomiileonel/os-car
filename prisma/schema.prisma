@@ -123,6 +123,24 @@ enum InventoryMovementType {
   AJUSTE
 }
 
+enum TireSetStatus {
+  EN_CUSTODIA
+  ENTREGADO
+}
+
+enum TireSeason {
+  VERANO
+  INVIERNO
+  TODO_CLIMA
+}
+
+enum TireCondition {
+  OPTIMO
+  SUGERIR_REEMPLAZO
+  CRITICO
+  DANADO
+}
+
 enum ActorType {
   ADMIN
   CLIENTE
@@ -186,6 +204,7 @@ model Workshop {
   outboxMessages  OutboxMessage[]
   idempotencyKeys IdempotencyRecord[]
   blockers        OrderBlocker[]
+  tireSets        TireSet[]
 
   @@map("workshops")
 }
@@ -240,6 +259,7 @@ model Customer {
   workshop   Workshop    @relation(fields: [workshopId], references: [id], onDelete: Restrict)
   vehicles   Vehicle[]
   workOrders WorkOrder[]
+  tireSets   TireSet[]
 
   @@unique([workshopId, phoneNormalized])
   @@index([workshopId, fullName])
@@ -265,6 +285,7 @@ model Vehicle {
   workshop   Workshop    @relation(fields: [workshopId], references: [id], onDelete: Restrict)
   customer   Customer    @relation(fields: [customerId], references: [id], onDelete: Restrict)
   workOrders WorkOrder[]
+  tireSets   TireSet[]
 
   @@unique([workshopId, licensePlateNormalized])
   @@index([workshopId, vin])
@@ -315,8 +336,9 @@ model WorkOrder {
   budget         Budget?
   statusHistory  StatusHistory[]
   auditLogs      AuditLog[]
-  qualityControl QualityControl?
-  deliveryRecord DeliveryRecord?
+  qualityControl     QualityControl?
+  deliveryRecord     DeliveryRecord?
+  inventoryMovements InventoryMovement[] @relation("OrderInventoryMovements")
 
   @@index([workshopId, status, updatedAt])
   @@index([workshopId, vehicleId, status])
@@ -458,6 +480,9 @@ model InventoryItem {
   workshopId    String
   sku           String
   description   String
+  category      String?
+  location      String?
+  unitCost      Decimal?  @db.Decimal(12, 2)
   stockQuantity Int       @default(0)
   reorderPoint  Int       @default(0)
   active        Boolean   @default(true)
@@ -471,6 +496,7 @@ model InventoryItem {
 
   @@unique([workshopId, sku])
   @@index([workshopId, active])
+  @@index([workshopId, category])
   @@map("inventory_items")
 }
 
@@ -479,6 +505,7 @@ model InventoryMovement {
   workshopId      String
   inventoryItemId String
   partItemId      String?
+  workOrderId     String?
   actorAdminId    String?
   movementType    InventoryMovementType
   quantity        Int
@@ -487,12 +514,63 @@ model InventoryMovement {
 
   inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
   partItem      PartItem?     @relation(fields: [partItemId], references: [id], onDelete: Restrict)
+  workOrder     WorkOrder?    @relation("OrderInventoryMovements", fields: [workOrderId], references: [id], onDelete: SetNull)
   actorAdmin    AdminUser?    @relation("InventoryMovementActor", fields: [actorAdminId], references: [id], onDelete: Restrict)
 
   @@index([inventoryItemId, createdAt])
   @@index([partItemId, createdAt])
+  @@index([workOrderId])
   @@map("inventory_movements")
 }
+
+model TireSet {
+  id            String        @id @default(cuid())
+  workshopId    String
+  vehicleId     String
+  customerId    String
+  brand         String
+  size          String
+  dot           String?
+  season        TireSeason    @default(VERANO)
+  status        TireSetStatus @default(EN_CUSTODIA)
+  rack          String
+  level         String
+  position      String
+  notes         String?
+  checkInAt     DateTime      @default(now())
+  checkOutAt    DateTime?
+  deliveredTo   String?
+  signatureHash String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
+
+  workshop Workshop   @relation(fields: [workshopId], references: [id], onDelete: Restrict)
+  vehicle  Vehicle    @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  customer Customer   @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  tires    TireItem[]
+
+  @@index([workshopId, status])
+  @@index([workshopId, rack, level, position])
+  @@map("tire_sets")
+}
+
+model TireItem {
+  id            String        @id @default(cuid())
+  tireSetId     String
+  wheelPosition String
+  treadDepthMm  Decimal       @db.Decimal(4, 1)
+  condition     TireCondition @default(OPTIMO)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  tireSet TireSet @relation(fields: [tireSetId], references: [id], onDelete: Cascade)
+
+  @@index([tireSetId])
+  @@map("tire_items")
+}
+
 
 // -------------------------------------------------------------------------
 // PRESUPUESTO VERSIONADO Y APROBACIÓN (INVARIANTE C3)
