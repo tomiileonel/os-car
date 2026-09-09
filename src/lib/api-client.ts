@@ -510,6 +510,7 @@ export interface InventoryItemDto {
   category: string | null;
   location: string | null;
   unitCost: number | null;
+  unitPrice?: number;
   stockQuantity: number;
   reorderPoint: number;
   active: boolean;
@@ -612,7 +613,8 @@ export interface TireSetDto {
 }
 
 export interface CheckInTireSetInput {
-  licensePlate: string;
+  licensePlate?: string;
+  vehiclePlate?: string;
   customerName: string;
   customerPhone?: string;
   make?: string;
@@ -632,6 +634,13 @@ export interface CheckInTireSetInput {
     condition?: TireCondition;
     notes?: string;
   }>;
+}
+
+export type CheckInTireInput = CheckInTireSetInput;
+export type RecordMovementInput = RecordInventoryMovementInput;
+export interface CheckOutTireInput {
+  deliveredTo?: string;
+  signatureHash?: string;
 }
 
 export const tireHotelApi = {

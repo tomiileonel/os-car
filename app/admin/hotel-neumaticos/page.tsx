@@ -141,7 +141,8 @@ export default function HotelNeumaticosPage(): React.JSX.Element {
   // Registro de nuevo check-in
   const handleCheckInSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!checkInForm.licensePlate.trim() || !checkInForm.customerName.trim() || !checkInForm.brand.trim() || !checkInForm.size.trim()) {
+    const plate = checkInForm.licensePlate?.trim() || checkInForm.vehiclePlate?.trim() || "";
+    if (!plate || !checkInForm.customerName.trim() || !checkInForm.brand.trim() || !checkInForm.size.trim()) {
       setModalError("Patente, nombre de cliente, marca y medida son obligatorios.");
       return;
     }

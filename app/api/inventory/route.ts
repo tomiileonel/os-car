@@ -149,6 +149,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       category: item.category,
       location: item.location,
       unitCost: item.unitCost ? Number(item.unitCost) : null,
+      unitPrice: item.unitCost ? Number(item.unitCost) : 0,
       stockQuantity: item.stockQuantity,
       reorderPoint: item.reorderPoint,
       active: item.active,

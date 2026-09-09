@@ -208,7 +208,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const body = (await request.json()) as Record<string, unknown>;
 
-    const licensePlate = typeof body.licensePlate === "string" ? body.licensePlate.trim().toUpperCase().replace(/[^A-Z0-9]/g, "") : "";
+    const rawPlate = typeof body.licensePlate === "string" ? body.licensePlate : typeof body.vehiclePlate === "string" ? body.vehiclePlate : "";
+    const licensePlate = rawPlate.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
     const customerName = typeof body.customerName === "string" ? body.customerName.trim() : "";
     const customerPhone = typeof body.customerPhone === "string" ? body.customerPhone.trim() : "";
     const brand = typeof body.brand === "string" ? body.brand.trim() : "";
