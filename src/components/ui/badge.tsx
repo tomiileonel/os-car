@@ -1,37 +1,80 @@
-/**
- * OS-CAR · Gate G6 — Badge (Design System Stitch, OT-G6-FRONTEND-STITCH-001)
- * --------------------------------------------------------------------------
- * Estética industrial: dark mode de alta densidad, bordes definidos,
- * tipografía monoespaciada en mayúsculas. Variantes semánticas para
- * estados de orden (OrderStatus) y roles administrativos canónicos (F-01).
- */
-
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-export const BADGE_VARIANTS = ["warning", "success", "error", "neutral", "accent"] as const;
-export type BadgeVariant = (typeof BADGE_VARIANTS)[number];
+/**
+ * Canonical OrderStatus enum, mirrored from the Prisma schema in
+ * OS-CAR-ESPECIFICACION-MAESTRA.md §18. Kept as a literal union here
+ * (not imported from @prisma/client) so this component has no
+ * dependency on generated Prisma types — it is a pure presentation
+ * primitive that a Server Component can pass a string into.
+ */
+export type OrderStatus =
+  | "INGRESADO"
+  | "DIAGNOSTICO"
+  | "ESPERANDO_REPARACION"
+  | "EN_REPARACION"
+  | "CONTROL"
+  | "LISTO"
+  | "ENTREGADO"
+  | "CANCELADA";
 
-const VARIANT_CLASSES: Record<BadgeVariant, string> = {
-  warning: "border-amber-400/70 bg-amber-400/10 text-amber-300",
-  success: "border-emerald-400/70 bg-emerald-400/10 text-emerald-300",
-  error: "border-red-500/70 bg-red-500/10 text-red-300",
-  neutral: "border-zinc-500/70 bg-zinc-500/10 text-zinc-300",
-  accent: "border-sky-400/70 bg-sky-400/10 text-sky-300",
+/** Canonical AdminRole. MVP has a single aggregated role per spec §04/§16. */
+export type AdminRole = "ADMIN";
+
+type BadgeTone = "neutral" | "info" | "warning" | "success" | "danger" | "muted";
+
+const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
+  INGRESADO: "Ingresado",
+  DIAGNOSTICO: "Diagnóstico",
+  ESPERANDO_REPARACION: "Esperando reparación",
+  EN_REPARACION: "En reparación",
+  CONTROL: "Control",
+  LISTO: "Listo",
+  ENTREGADO: "Entregado",
+  CANCELADA: "Cancelada",
 };
 
-export interface BadgeProps {
-  variant?: BadgeVariant | undefined;
+const ORDER_STATUS_TONE: Record<OrderStatus, BadgeTone> = {
+  INGRESADO: "neutral",
+  DIAGNOSTICO: "info",
+  ESPERANDO_REPARACION: "warning",
+  EN_REPARACION: "info",
+  CONTROL: "warning",
+  LISTO: "success",
+  ENTREGADO: "muted",
+  CANCELADA: "danger",
+};
+
+const ADMIN_ROLE_LABEL: Record<AdminRole, string> = {
+  ADMIN: "Administrador",
+};
+
+// Tokens from .agents/skills/ui-system/SKILL.md — dark, high-contrast,
+// workshop-tablet palette. Reused verbatim rather than reinvented.
+const TONE_CLASSES: Record<BadgeTone, string> = {
+  neutral: "bg-[#1f2937] text-[#f9fafb] border-[#374151]",
+  info: "bg-[#1d3a5f] text-[#bfdbfe] border-[#2563eb]",
+  warning: "bg-[#4a3510] text-[#fde68a] border-[#f59e0b]",
+  success: "bg-[#0f3d2e] text-[#86efac] border-[#10b981]",
+  danger: "bg-[#4a1414] text-[#fca5a5] border-[#ef4444]",
+  muted: "bg-[#111827] text-[#9ca3af] border-[#374151]",
+};
+
+interface BaseBadgeProps {
   className?: string | undefined;
-  children: ReactNode;
+  children?: ReactNode | undefined;
 }
 
-export function Badge({ variant = "neutral", className, children }: BadgeProps) {
+function BaseBadge({
+  tone,
+  className,
+  children,
+}: BaseBadgeProps & { tone: BadgeTone }): React.JSX.Element {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-wider",
-        VARIANT_CLASSES[variant],
+        "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-sm font-medium leading-none",
+        TONE_CLASSES[tone],
         className,
       )}
     >
@@ -40,64 +83,43 @@ export function Badge({ variant = "neutral", className, children }: BadgeProps) 
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Mapas semánticos: estados de orden (OrderStatus)                           */
-/* -------------------------------------------------------------------------- */
-
-export const ORDER_STATUSES = [
-  "INGRESADO",
-  "DIAGNOSTICO",
-  "ESPERANDO_REPARACION",
-  "EN_REPARACION",
-  "CONTROL",
-  "LISTO",
-  "ENTREGADO",
-  "CANCELADA",
-] as const;
-export type OrderStatus = (typeof ORDER_STATUSES)[number];
-
-const ORDER_STATUS_VARIANT_MAP: Record<OrderStatus, BadgeVariant> = {
-  INGRESADO: "accent",
-  DIAGNOSTICO: "accent",
-  ESPERANDO_REPARACION: "warning",
-  EN_REPARACION: "accent",
-  CONTROL: "warning",
-  LISTO: "success",
-  ENTREGADO: "success",
-  CANCELADA: "error",
-};
-
-export function getOrderStatusVariant(status: string): BadgeVariant {
-  if ((ORDER_STATUSES as readonly string[]).includes(status)) {
-    return ORDER_STATUS_VARIANT_MAP[status as OrderStatus];
-  }
-  return "neutral";
+export function OrderStatusBadge({
+  status,
+  className,
+}: {
+  status: OrderStatus;
+  className?: string | undefined;
+}): React.JSX.Element {
+  return (
+    <BaseBadge tone={ORDER_STATUS_TONE[status]} className={className}>
+      {ORDER_STATUS_LABEL[status]}
+    </BaseBadge>
+  );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Mapas semánticos: roles canónicos (remediación F-01, schema.prisma)        */
-/* -------------------------------------------------------------------------- */
+export function AdminRoleBadge({
+  role,
+  className,
+}: {
+  role: AdminRole;
+  className?: string | undefined;
+}): React.JSX.Element {
+  return (
+    <BaseBadge tone="neutral" className={className}>
+      {ADMIN_ROLE_LABEL[role]}
+    </BaseBadge>
+  );
+}
 
-export const ADMIN_ROLES = [
-  "OWNER",
-  "TALLER_SUPERVISOR",
-  "ADMIN",
-  "MECANICO",
-  "RECEPCIONISTA",
-] as const;
-export type AdminRole = (typeof ADMIN_ROLES)[number];
-
-const ADMIN_ROLE_VARIANT_MAP: Record<AdminRole, BadgeVariant> = {
-  OWNER: "accent",
-  TALLER_SUPERVISOR: "accent",
-  ADMIN: "accent",
-  MECANICO: "neutral",
-  RECEPCIONISTA: "success",
-};
-
-export function getAdminRoleVariant(role: string): BadgeVariant {
-  if ((ADMIN_ROLES as readonly string[]).includes(role)) {
-    return ADMIN_ROLE_VARIANT_MAP[role as AdminRole];
-  }
-  return "neutral";
+/** Generic escape hatch for badges that aren't OrderStatus/AdminRole. */
+export function Badge({
+  tone = "neutral",
+  className,
+  children,
+}: BaseBadgeProps & { tone?: BadgeTone | undefined }): React.JSX.Element {
+  return (
+    <BaseBadge tone={tone} className={className}>
+      {children}
+    </BaseBadge>
+  );
 }

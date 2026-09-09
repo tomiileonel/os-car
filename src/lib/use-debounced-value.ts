@@ -1,20 +1,27 @@
-/**
- * OS-CAR · Gate G6 — Debounce declarativo (OT-G6-FRONTEND-STITCH-001)
- * --------------------------------------------------------------------------
- * Soporte de la búsqueda reactiva del Mostrador Rápido de Recepción.
- */
 "use client";
 
 import { useEffect, useState } from "react";
 
-export function useDebouncedValue<TValue>(value: TValue, delayMs = 300): TValue {
-  const [debounced, setDebounced] = useState<TValue>(value);
+/**
+ * useDebouncedValue — returns `value` re-emitted only after `delayMs`
+ * of quiescence. Standard leading-edge-suppressed debounce via
+ * setTimeout; cancels the pending timer on unmount or on a new value
+ * arriving before the delay elapses.
+ *
+ * Does not itself cancel in-flight network requests — pair with
+ * AbortController in the calling effect, keyed off the debounced value.
+ */
+export function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState<T>(value);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebounced(value);
     }, delayMs);
-    return () => clearTimeout(timer);
+
+    return () => {
+      clearTimeout(timer);
+    };
   }, [value, delayMs]);
 
   return debounced;

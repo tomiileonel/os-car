@@ -1,75 +1,71 @@
-/**
- * OS-CAR · Gate G6 — Input (Design System Stitch, OT-G6-FRONTEND-STITCH-001)
- * --------------------------------------------------------------------------
- * Densidad compacta industrial: alto fijo, borde definido, foco visible,
- * estados error/deshabilitado accesibles (aria-invalid + aria-describedby).
- * `mono` activa tipografía monoespaciada para patentes/VIN/teléfonos/IDs.
- */
 "use client";
 
-import { useId, type InputHTMLAttributes } from "react";
+import { forwardRef, useId } from "react";
+import type { InputHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
-export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label?: string | undefined;
+export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "id"> {
+  label: string;
+  /** Ties this field to its error via aria-describedby + aria-invalid. */
+  errorMessage?: string | undefined;
   hint?: string | undefined;
-  error?: string | undefined;
-  mono?: boolean | undefined;
+  id?: string | undefined;
   containerClassName?: string | undefined;
 }
 
-export function Input({
-  label,
-  hint,
-  error,
-  mono = false,
-  containerClassName,
-  className,
-  id,
-  ...rest
-}: InputProps) {
+/**
+ * Input — labeled text field with error/hint wiring.
+ *
+ * Accessibility contract:
+ * - `label` is always rendered as a real <label htmlFor>, never
+ *   placeholder-only (placeholder text disappears on input and fails
+ *   WCAG 1.3.1 / 3.3.2 for anyone who loses their place).
+ * - aria-invalid is set exactly when errorMessage is present.
+ * - aria-describedby points at the error node when present, else the
+ *   hint node when present, else is omitted (never an empty string,
+ *   which some screen readers mis-announce as "describes: nothing").
+ * - 48px minimum touch target height per ui-system/SKILL.md (workshop
+ *   tablet ergonomics — gloved fingers, dirty screens).
+ */
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  { label, errorMessage, hint, id, containerClassName, className, ...inputProps },
+  ref,
+) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
-  const hintId = `${inputId}-hint`;
   const errorId = `${inputId}-error`;
-  const describedBy = error ? errorId : hint ? hintId : undefined;
+  const hintId = `${inputId}-hint`;
+
+  const describedBy = errorMessage ? errorId : hint ? hintId : undefined;
 
   return (
     <div className={cn("flex flex-col gap-1.5", containerClassName)}>
-      {label ? (
-        <label
-          htmlFor={inputId}
-          className="text-xs font-semibold uppercase tracking-widest text-zinc-400"
-        >
-          {label}
-        </label>
-      ) : null}
+      <label htmlFor={inputId} className="text-sm font-medium text-[#f9fafb]">
+        {label}
+      </label>
       <input
+        {...inputProps}
+        ref={ref}
         id={inputId}
-        aria-invalid={error ? true : undefined}
+        aria-invalid={errorMessage ? true : undefined}
         aria-describedby={describedBy}
         className={cn(
-          "h-11 w-full rounded-sm border bg-zinc-900 px-3 text-sm text-zinc-100 placeholder:text-zinc-600",
-          "focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-[#090d16]",
-          mono ? "font-mono uppercase tracking-widest" : "",
-          error
-            ? "border-red-500 focus:border-red-400 focus:ring-red-500/60"
-            : "border-zinc-600 focus:border-sky-400 focus:ring-sky-400/60",
-          "disabled:cursor-not-allowed disabled:opacity-60",
+          "min-h-[48px] w-full rounded-md border bg-[#111827] px-3 py-2 text-base text-[#f9fafb]",
+          "placeholder:text-[#6b7280]",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb]",
+          errorMessage ? "border-[#ef4444]" : "border-[#374151]",
           className,
         )}
-        {...rest}
       />
-      {error ? (
-        <p id={errorId} className="text-xs font-medium text-red-400">
-          {error}
+      {errorMessage ? (
+        <p id={errorId} role="alert" className="text-sm text-[#fca5a5]">
+          {errorMessage}
         </p>
-      ) : null}
-      {!error && hint ? (
-        <p id={hintId} className="text-xs text-zinc-500">
+      ) : hint ? (
+        <p id={hintId} className="text-sm text-[#9ca3af]">
           {hint}
         </p>
       ) : null}
     </div>
   );
-}
+});

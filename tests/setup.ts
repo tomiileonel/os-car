@@ -1,3 +1,5 @@
+import "@testing-library/jest-dom/vitest";
+
 (process.env as Record<string, string | undefined>).NODE_ENV = "test";
 process.env.JWT_SECRET ??= "test-jwt-secret-0123456789abcdef0123456789abcdef";
 process.env.BETTER_AUTH_SECRET ??=

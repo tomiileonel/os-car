@@ -1,74 +1,92 @@
-/**
- * OS-CAR · Gate G6 — Button (Design System Stitch, OT-G6-FRONTEND-STITCH-001)
- * --------------------------------------------------------------------------
- * Botón industrial de alta densidad, bordes definidos, estado de carga
- * y variantes accesibles (primary, secondary, outline, ghost, danger).
- */
 "use client";
 
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { forwardRef } from "react";
+import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
-export const BUTTON_VARIANTS = ["primary", "secondary", "outline", "ghost", "danger"] as const;
-export type ButtonVariant = (typeof BUTTON_VARIANTS)[number];
-
-export const BUTTON_SIZES = ["sm", "md", "lg"] as const;
-export type ButtonSize = (typeof BUTTON_SIZES)[number];
-
-const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary:
-    "bg-sky-500 hover:bg-sky-400 text-zinc-950 font-bold border-transparent focus:ring-sky-400/60 shadow-sm",
-  secondary:
-    "bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border-zinc-700 focus:ring-zinc-400/60",
-  outline:
-    "bg-transparent hover:bg-zinc-800 text-zinc-200 border-zinc-700 focus:ring-zinc-400/60",
-  ghost:
-    "bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 border-transparent focus:ring-zinc-400/60",
-  danger:
-    "bg-red-600 hover:bg-red-500 text-white border-transparent focus:ring-red-400/60",
-};
-
-const SIZE_CLASSES: Record<ButtonSize, string> = {
-  sm: "h-8 px-2.5 text-xs",
-  md: "h-11 px-4 text-sm",
-  lg: "h-12 px-6 text-base",
-};
+export type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant | undefined;
-  size?: ButtonSize | undefined;
-  loading?: boolean | undefined;
-  children?: ReactNode;
+  variant?: ButtonVariant;
+  loading?: boolean;
+  /** Announced to screen readers while loading; visible label is preserved but hidden from AT. */
+  loadingLabel?: string;
 }
 
-export function Button({
-  variant = "primary",
-  size = "md",
-  loading = false,
-  disabled,
-  className,
-  children,
-  ...rest
-}: ButtonProps) {
+const VARIANT_CLASSES: Record<ButtonVariant, string> = {
+  primary: "bg-[#2563eb] text-white hover:bg-[#1d4ed8] border-transparent",
+  secondary: "bg-[#1f2937] text-[#f9fafb] hover:bg-[#273244] border-[#374151]",
+  outline: "bg-transparent text-[#f9fafb] hover:bg-[#1f2937] border-[#374151]",
+  ghost: "bg-transparent text-[#f9fafb] hover:bg-[#1f2937] border-transparent",
+  danger: "bg-[#ef4444] text-white hover:bg-[#dc2626] border-transparent",
+};
+
+function Spinner(): React.JSX.Element {
   return (
-    <button
-      type="button"
-      disabled={disabled || loading}
-      aria-busy={loading ? true : undefined}
-      className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-sm border font-medium transition-colors",
-        "focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-[#090d16]",
-        "disabled:cursor-not-allowed disabled:opacity-50",
-        VARIANT_CLASSES[variant],
-        SIZE_CLASSES[size],
-        className,
-      )}
-      {...rest}
+    <svg
+      className="h-4 w-4 animate-spin"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
     >
-      {loading ? (
-        <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-      ) : null}
-      {children}
-    </button>
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-90"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+      />
+    </svg>
   );
 }
+
+/**
+ * Button — industrial dark-theme button, min 48x48px touch target
+ * (ui-system/SKILL.md), 5 variants, accessible loading state.
+ *
+ * Loading contract: when `loading`, the button is disabled (prevents
+ * duplicate submits — relevant for the intake form hitting a
+ * non-idempotent POST without a client-generated Idempotency-Key),
+ * the spinner is aria-hidden, and an sr-only live region announces
+ * `loadingLabel` so screen reader users get feedback the sighted
+ * spinner already conveys visually.
+ */
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  {
+    variant = "primary",
+    loading = false,
+    loadingLabel = "Procesando",
+    disabled,
+    className,
+    children,
+    ...rest
+  },
+  ref,
+) {
+  return (
+    <button
+      {...rest}
+      ref={ref}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      className={cn(
+        "inline-flex min-h-[48px] items-center justify-center gap-2 rounded-md border px-4 py-2",
+        "text-sm font-semibold transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2 focus-visible:ring-offset-[#090d16]",
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        VARIANT_CLASSES[variant],
+        className,
+      )}
+    >
+      {loading ? <Spinner /> : null}
+      <span>{children}</span>
+      {loading ? <span className="sr-only" role="status">{loadingLabel}</span> : null}
+    </button>
+  );
+});

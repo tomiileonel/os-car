@@ -1,131 +1,146 @@
 // @vitest-environment jsdom
-/**
- * OS-CAR · Gate G6 — PlateInput: normalización, validación y eventos.
- */
-import React, { useState } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+import { useState } from "react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import {
   PlateInput,
-  getPlateValidity,
-  isLegacyArgentinePlate,
-  isMercosurPlate,
-  isValidPlate,
   normalizePlate,
+  PLATE_MAX_LENGTH,
+  PLATE_MIN_LENGTH,
 } from "@/components/ui/plate-input";
+import type { PlateNormalizationResult } from "@/components/ui/plate-input";
 
-function asInput(element: HTMLElement): HTMLInputElement {
-  return element as HTMLInputElement;
-}
-
-function StatefulPlateInput(props: { initial?: string | undefined }) {
-  const [value, setValue] = useState(props.initial ?? "");
-  return React.createElement(PlateInput, { label: "Patente", value, onChange: setValue });
-}
-
-describe("normalizePlate", () => {
-  it("convierte a mayúsculas y elimina espacios y guiones", () => {
-    expect(normalizePlate("ab-123 cd")).toBe("AB123CD");
-    expect(normalizePlate("  abc 123  ")).toBe("ABC123");
-    expect(normalizePlate("AB-123-CD")).toBe("AB123CD");
+describe("normalizePlate (pure logic, mirrors backend Zod pipeline)", () => {
+  it("uppercases lowercase input", () => {
+    expect(normalizePlate("ab123cd").value).toBe("AB123CD");
   });
 
-  it("recorta a 10 caracteres máximo (contrato Zod §21)", () => {
-    expect(normalizePlate("AB123CDE99XX")).toBe("AB123CDE99");
-    expect(normalizePlate("AB123CDE99XX").length).toBe(10);
+  it("strips internal and surrounding whitespace", () => {
+    expect(normalizePlate("  ab 123 cd  ").value).toBe("AB123CD");
   });
 
-  it("no altera valores ya normalizados", () => {
-    expect(normalizePlate("ABC123")).toBe("ABC123");
-    expect(normalizePlate("AB123CDE")).toBe("AB123CDE");
+  it("strips hyphens", () => {
+    expect(normalizePlate("ab-123-cd").value).toBe("AB123CD");
+  });
+
+  it("clamps to PLATE_MAX_LENGTH characters", () => {
+    const result = normalizePlate("ABCDEFGHIJKLMNOP");
+    expect(result.value).toHaveLength(PLATE_MAX_LENGTH);
+    expect(result.value).toBe("ABCDEFGHIJ");
+  });
+
+  it("PLATE_MAX_LENGTH is exactly 10 per backend contract", () => {
+    expect(PLATE_MAX_LENGTH).toBe(10);
+  });
+
+  it("PLATE_MIN_LENGTH is exactly 5 per backend contract", () => {
+    expect(PLATE_MIN_LENGTH).toBe(5);
+  });
+
+  it("marks a value below the minimum length as incomplete, not invalid", () => {
+    const result = normalizePlate("AB1");
+    expect(result.isComplete).toBe(false);
+    expect(result.isValid).toBe(false);
+  });
+
+  it("marks a complete alphanumeric value within bounds as valid", () => {
+    const result = normalizePlate("AB123CD");
+    expect(result.isComplete).toBe(true);
+    expect(result.isValid).toBe(true);
+  });
+
+  it("rejects non-alphanumeric characters even after stripping known separators", () => {
+    const result = normalizePlate("AB123#D");
+    expect(result.isComplete).toBe(true);
+    expect(result.isValid).toBe(false);
+  });
+
+  it("is idempotent: normalizing an already-normalized value returns the same value", () => {
+    const once = normalizePlate("AB123CD");
+    const twice = normalizePlate(once.value);
+    expect(twice.value).toBe(once.value);
+    expect(twice.isValid).toBe(once.isValid);
+  });
+
+  it("handles empty string without throwing", () => {
+    const result = normalizePlate("");
+    expect(result.value).toBe("");
+    expect(result.isComplete).toBe(false);
+    expect(result.isValid).toBe(false);
   });
 });
 
-describe("isValidPlate / detectores de formato", () => {
-  it("acepta patentes argentinas históricas y Mercosur", () => {
-    expect(isValidPlate("ABC123")).toBe(true);
-    expect(isValidPlate("AB123CDE")).toBe(true);
+describe("<PlateInput /> rendered behavior", () => {
+  it("renders with an accessible label", () => {
+    render(<PlateInput value="" onChange={vi.fn()} />);
+    expect(screen.getByLabelText("Patente")).toBeInTheDocument();
   });
 
-  it("rechaza valores cortos, largos o con caracteres fuera del alfabeto", () => {
-    expect(isValidPlate("AB1")).toBe(false);
-    expect(isValidPlate("ABCD1")).toBe(true); // 5 caracteres válidos
-    expect(isValidPlate("AB123CDE99X")).toBe(false); // 11 caracteres
-    expect(isValidPlate("ABC-12")).toBe(false); // guion sin normalizar
-    expect(isValidPlate("ABC 12")).toBe(false); // espacio sin normalizar
-    expect(isValidPlate("abc123")).toBe(false); // minúsculas sin normalizar
-  });
+  it("calls onChange with the normalized result on every keystroke", async () => {
+    // PlateInput is a controlled component: it doesn't own its own state,
+    // so the test must re-render with each onChange result (mirroring how
+    // a real parent, like the intake form, feeds `value` back in) rather
+    // than typing into a static, unbound `value=""`.
+    const user = userEvent.setup();
+    let currentResult = normalizePlate("");
+    const handleChange = vi.fn((result: PlateNormalizationResult) => {
+      currentResult = result;
+    });
 
-  it("distingue formato histórico de Mercosur", () => {
-    expect(isLegacyArgentinePlate("ABC123")).toBe(true);
-    expect(isLegacyArgentinePlate("AB123CDE")).toBe(false);
-    expect(isMercosurPlate("AB123CDE")).toBe(true);
-    expect(isMercosurPlate("ABC123")).toBe(false);
-  });
+    function ControlledHarness() {
+      const [result, setResult] = useState<PlateNormalizationResult>(normalizePlate(""));
+      return (
+        <PlateInput
+          value={result.value}
+          onChange={(r) => {
+            handleChange(r);
+            setResult(r);
+          }}
+        />
+      );
+    }
 
-  it("getPlateValidity cubre vacío, incompleto y válido", () => {
-    expect(getPlateValidity("")).toBe("empty");
-    expect(getPlateValidity("AB1")).toBe("incomplete");
-    expect(getPlateValidity("ABC123")).toBe("valid");
-  });
-});
-
-describe("<PlateInput />", () => {
-  it("renderiza el label asociado al input", () => {
-    render(React.createElement(PlateInput, { label: "Patente", value: "", onChange: () => {} }));
+    render(<ControlledHarness />);
     const input = screen.getByLabelText("Patente");
-    expect(input).toBeDefined();
-    expect(input.tagName).toBe("INPUT");
+    await user.type(input, "ab-123-cd");
+
+    expect(currentResult).toEqual({ value: "AB123CD", isValid: true, isComplete: true });
   });
 
-  it("emite onChange con el valor normalizado (mayúsculas, sin espacios/guiones)", () => {
-    const onChange = vi.fn();
-    render(React.createElement(PlateInput, { label: "Patente", value: "", onChange }));
+  it("enforces maxLength=10 at the DOM level", () => {
+    render(<PlateInput value="" onChange={vi.fn()} />);
     const input = screen.getByLabelText("Patente");
-
-    fireEvent.change(input, { target: { value: "ab-123 cd" } });
-
-    expect(onChange).toHaveBeenCalledTimes(1);
-    expect(onChange).toHaveBeenCalledWith("AB123CD");
+    expect(input).toHaveProperty("maxLength", PLATE_MAX_LENGTH);
   });
 
-  it("componente controlado: muestra el valor normalizado al tipear", () => {
-    render(React.createElement(StatefulPlateInput));
-    const input = asInput(screen.getByLabelText("Patente"));
+  it("shows an accessible error only once the value is complete and invalid", () => {
+    const { rerender } = render(
+      <PlateInput value="AB1" onChange={vi.fn()} showValidation />,
+    );
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 
-    fireEvent.change(input, { target: { value: "ab 123" } });
-    expect(input.value).toBe("AB123");
-
-    fireEvent.change(input, { target: { value: "ab-123-cde" } });
-    expect(input.value).toBe("AB123CDE");
+    rerender(<PlateInput value="AB1#5" onChange={vi.fn()} showValidation />);
+    expect(screen.getByRole("alert")).toBeInTheDocument();
   });
 
-  it("valor incompleto: muestra error visual y aria-invalid", () => {
-    render(React.createElement(PlateInput, { label: "Patente", value: "AB1", onChange: () => {} }));
+  it("wires aria-invalid and aria-describedby together when invalid", () => {
+    render(<PlateInput value="AB1#5" onChange={vi.fn()} showValidation />);
     const input = screen.getByLabelText("Patente");
-
-    expect(input.getAttribute("aria-invalid")).toBe("true");
-    expect(screen.getByText(/Patente incompleta: faltan 2 caracteres\./)).toBeDefined();
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    const describedBy = input.getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    expect(document.getElementById(describedBy as string)).toHaveTextContent(/inválida/i);
   });
 
-  it("valor válido: sin aria-invalid y con mensaje de formato", () => {
-    render(React.createElement(PlateInput, { label: "Patente", value: "ABC123", onChange: () => {} }));
+  it("does not set aria-invalid for a valid, complete plate", () => {
+    render(<PlateInput value="AB123CD" onChange={vi.fn()} showValidation />);
     const input = screen.getByLabelText("Patente");
-
-    expect(input.getAttribute("aria-invalid")).toBeNull();
-    expect(screen.getByText("Formato argentino válido.")).toBeDefined();
+    expect(input).not.toHaveAttribute("aria-invalid");
   });
 
-  it("valor Mercosur válido muestra su formato específico", () => {
-    render(React.createElement(PlateInput, { label: "Patente", value: "AB123CDE", onChange: () => {} }));
-    expect(screen.getByText("Formato Mercosur válido.")).toBeDefined();
-  });
-
-  it("respeta disabled y maxLength", () => {
-    render(React.createElement(PlateInput, { label: "Patente", value: "", onChange: () => {}, disabled: true }));
-    const input = asInput(screen.getByLabelText("Patente"));
-
-    expect(input.disabled).toBe(true);
-    expect(input.maxLength).toBe(10);
+  it("respects disabled prop", () => {
+    render(<PlateInput value="" onChange={vi.fn()} disabled />);
+    expect(screen.getByLabelText("Patente")).toBeDisabled();
   });
 });

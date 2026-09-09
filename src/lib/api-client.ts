@@ -1,294 +1,246 @@
 /**
- * OS-CAR · Gate G6 — Cliente HTTP tipado con telemetría (OT-G6-FRONTEND-STITCH-001)
- * --------------------------------------------------------------------------
- * - Inyecta SIEMPRE el header 'x-correlation-id' (generado con la Web API
- *   crypto.randomUUID() vía src/shared/telemetry/correlation.ts, Edge-Safe).
- * - Manejo estricto del envelope uniforme de la Especificación §27:
- *     éxito: { success: true,  data, meta: { requestId } }
- *     error: { success: false, error: { code, message, details }, meta: { requestId } }
- * - Cero dependencias nativas (fetch + Web Crypto), cero `any`.
- * - Este módulo se usa SOLO en cliente/edge liviano; nunca lo importa middleware.ts.
+ * api-client — typed fetch wrapper enforcing the canonical OS-CAR
+ * response envelope and unconditional x-correlation-id propagation.
+ *
+ * Design decisions:
+ * - ApiClientError carries both the HTTP status (for UI branching on
+ *   400/403/409/etc.) and the envelope's business `code`/`details`
+ *   (for message + telemetry). Collapsing to only one loses information
+ *   the caller needs — a 409 with code VEHICLE_DUPLICATE_PLATE reads
+ *   differently from a 409 idempotency-key conflict.
+ * - Every request gets a fresh x-correlation-id via crypto.randomUUID()
+ *   unless the caller explicitly supplies one (e.g. to correlate a
+ *   retry with the original attempt). This is unconditional: it is set
+ *   before any other headers merge, and callers cannot accidentally
+ *   omit it.
+ * - AbortSignal is a first-class parameter, not bolted on, so debounced
+ *   search call sites can cancel stale requests without wrapping fetch
+ *   themselves.
+ * - No `any`: unknown JSON is narrowed through a runtime shape check
+ *   before being treated as ApiSuccess<T> | ApiError.
  */
 
-import { CORRELATION_HEADER, generateCorrelationId } from "@/shared/telemetry/correlation";
-
-/* -------------------------------------------------------------------------- */
-/* Envelope y errores de contrato                                             */
-/* -------------------------------------------------------------------------- */
-
-export interface ApiResult<TData> {
-  data: TData;
-  requestId: string | null;
+export interface ApiSuccessEnvelope<T> {
+  success: true;
+  data: T;
+  meta: { requestId: string; page?: number; limit?: number; total?: number };
 }
 
-export interface ApiErrorPayload {
-  code: string;
-  message: string;
-  details?: unknown;
+export interface ApiErrorEnvelope {
+  success: false;
+  error: {
+    code: string;
+    message: string;
+    details?: unknown;
+  };
+  meta: { requestId: string };
 }
 
-export interface ApiClientErrorInit {
-  code: string;
-  message: string;
-  status: number;
-  requestId: string | null;
-  details?: unknown;
-}
+export type ApiEnvelope<T> = ApiSuccessEnvelope<T> | ApiErrorEnvelope;
 
-/** Error tipado del contrato API: transporta code, status HTTP, requestId y details. */
+/**
+ * Thrown for both transport failures (network/abort) and envelope-level
+ * business errors (success: false). `status` is 0 for transport-layer
+ * failures where no HTTP response was received.
+ */
 export class ApiClientError extends Error {
-  readonly code: string;
   readonly status: number;
-  readonly requestId: string | null;
+  readonly code: string;
   readonly details: unknown;
+  readonly requestId: string | null;
+  readonly cause?: unknown;
 
-  constructor(init: ApiClientErrorInit) {
-    super(init.message);
+  constructor(params: {
+    message: string;
+    status: number;
+    code: string;
+    details?: unknown;
+    requestId: string | null;
+    cause?: unknown;
+  }) {
+    super(params.message);
     this.name = "ApiClientError";
-    this.code = init.code;
-    this.status = init.status;
-    this.requestId = init.requestId;
-    this.details = init.details;
+    this.status = params.status;
+    this.code = params.code;
+    this.details = params.details;
+    this.requestId = params.requestId;
+    this.cause = params.cause;
+  }
+
+  get isAbort(): boolean {
+    return this.code === "REQUEST_ABORTED";
+  }
+
+  get isNetworkError(): boolean {
+    return this.code === "NETWORK_ERROR";
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export interface ApiRequestOptions {
+  signal?: AbortSignal;
+  correlationId?: string;
+  headers?: Record<string, string>;
+}
+
+function createCorrelationId(): string {
+  // crypto.randomUUID is available in browsers and Node 19+; both are
+  // in scope for this app's supported runtimes (Node 20+ LTS per STACK.md).
+  return crypto.randomUUID();
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function extractRequestId(json: unknown): string | null {
-  if (!isRecord(json)) return null;
-  const meta = json.meta;
-  if (!isRecord(meta)) return null;
-  return typeof meta.requestId === "string" ? meta.requestId : null;
-}
-
-function isSuccessEnvelope(json: unknown): json is { success: true; data: unknown } {
-  return isRecord(json) && json.success === true && "data" in json;
-}
-
-function isErrorEnvelope(json: unknown): json is { success: false; error: ApiErrorPayload } {
-  if (!isRecord(json) || json.success !== false) return false;
-  const error = json.error;
-  return (
-    isRecord(error) &&
-    typeof error.code === "string" &&
-    typeof error.message === "string"
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Fetcher universal                                                          */
-/* -------------------------------------------------------------------------- */
-
-export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-
-export interface ApiRequestOptions {
-  method?: HttpMethod | undefined;
-  body?: unknown;
-  headers?: Record<string, string> | undefined;
-  /** Correlation id explícito; si se omite, se genera uno nuevo (UUIDv4). */
-  correlationId?: string | undefined;
-  signal?: AbortSignal | undefined;
-}
-
 /**
- * Fetcher universal con envelope estricto.
- * Lanza `ApiClientError` ante cualquier desviación de contrato o de red.
+ * Narrows an unknown parsed JSON body to ApiEnvelope<T> shape without
+ * validating T's internal structure (callers own that contract via
+ * the generic; this only checks the envelope discriminant + meta).
  */
-export async function apiFetch<TData>(
+function parseEnvelope<T>(json: unknown): ApiEnvelope<T> | null {
+  if (!isPlainObject(json)) return null;
+  if (typeof json.success !== "boolean") return null;
+
+  if (json.success === true) {
+    if (!isPlainObject(json.meta) || typeof json.meta.requestId !== "string") {
+      return null;
+    }
+    if (!("data" in json)) return null;
+    return json as unknown as ApiSuccessEnvelope<T>;
+  }
+
+  if (
+    isPlainObject(json.error) &&
+    typeof json.error.code === "string" &&
+    typeof json.error.message === "string" &&
+    isPlainObject(json.meta) &&
+    typeof json.meta.requestId === "string"
+  ) {
+    return json as unknown as ApiErrorEnvelope;
+  }
+
+  return null;
+}
+
+async function request<T>(
   path: string,
+  init: RequestInit,
   options: ApiRequestOptions = {},
-): Promise<ApiResult<TData>> {
-  const method = options.method ?? "GET";
-  const correlationId = options.correlationId ?? generateCorrelationId();
+): Promise<T> {
+  const correlationId = options.correlationId ?? createCorrelationId();
 
   const headers: Record<string, string> = {
-    accept: "application/json",
-    [CORRELATION_HEADER]: correlationId,
+    "content-type": "application/json",
     ...options.headers,
+    // Set last: x-correlation-id propagation is unconditional and must
+    // not be overridable by a caller-supplied headers bag that happens
+    // to also set it to something else.
+    "x-correlation-id": correlationId,
   };
-
-  let body: string | undefined;
-  if (options.body !== undefined) {
-    headers["content-type"] = "application/json";
-    try {
-      body = JSON.stringify(options.body);
-    } catch {
-      throw new ApiClientError({
-        code: "INVALID_BODY",
-        message: "No se pudo serializar el cuerpo de la solicitud.",
-        status: 0,
-        requestId: correlationId,
-      });
-    }
-  }
 
   let response: Response;
   try {
     response = await fetch(path, {
-      method,
+      ...init,
       headers,
-      body,
-      signal: options.signal,
-      credentials: "same-origin",
+      signal: options.signal ?? null,
     });
-  } catch {
-    if (options.signal?.aborted) {
-      throw new ApiClientError({
-        code: "REQUEST_ABORTED",
-        message: "La solicitud fue cancelada.",
-        status: 0,
-        requestId: correlationId,
-      });
-    }
+  } catch (cause) {
+    const isAbort = cause instanceof DOMException && cause.name === "AbortError";
     throw new ApiClientError({
-      code: "NETWORK_ERROR",
-      message: "No se pudo contactar al servidor.",
+      message: isAbort ? "Request was aborted" : "Network request failed",
       status: 0,
+      code: isAbort ? "REQUEST_ABORTED" : "NETWORK_ERROR",
       requestId: correlationId,
+      cause,
     });
   }
 
   let json: unknown;
   try {
     json = await response.json();
-  } catch {
+  } catch (cause) {
     throw new ApiClientError({
-      code: "INVALID_RESPONSE",
-      message: "El servidor devolvió una respuesta no JSON.",
+      message: "Response body was not valid JSON",
       status: response.status,
-      requestId: correlationId,
+      code: "INVALID_RESPONSE_BODY",
+      requestId: response.headers.get("x-correlation-id") ?? correlationId,
+      cause,
     });
   }
 
-  if (isSuccessEnvelope(json)) {
-    return { data: json.data as TData, requestId: extractRequestId(json) };
-  }
-
-  if (isErrorEnvelope(json)) {
+  const envelope = parseEnvelope<T>(json);
+  if (envelope === null) {
     throw new ApiClientError({
-      code: json.error.code,
-      message: json.error.message,
+      message: "Response did not match the canonical API envelope",
       status: response.status,
-      requestId: extractRequestId(json),
-      details: json.error.details,
+      code: "MALFORMED_ENVELOPE",
+      details: json,
+      requestId: response.headers.get("x-correlation-id") ?? correlationId,
     });
   }
 
-  throw new ApiClientError({
-    code: response.ok ? "INVALID_ENVELOPE" : `HTTP_${response.status}`,
-    message: "Respuesta fuera de contrato.",
-    status: response.status,
-    requestId: extractRequestId(json),
-  });
+  if (envelope.success === false) {
+    throw new ApiClientError({
+      message: envelope.error.message,
+      status: response.status,
+      code: envelope.error.code,
+      details: envelope.error.details,
+      requestId: envelope.meta.requestId,
+    });
+  }
+
+  return envelope.data;
 }
 
-/* -------------------------------------------------------------------------- */
-/* DTOs tipados de /api/vehicles (Gate G5)                                    */
-/* -------------------------------------------------------------------------- */
+// ---- Domain-scoped surface -------------------------------------------
 
-export interface VehicleCustomerDTO {
-  fullName: string;
-}
-
-export interface VehicleDTO {
+export interface VehicleDto {
   id: string;
-  workshopId: string;
-  customerId: string;
-  licensePlate: string;
   licensePlateNormalized: string;
   vin: string | null;
   make: string | null;
   model: string | null;
   modelYear: number | null;
-  color: string | null;
-  createdAt: string;
-  updatedAt: string;
-  customer: VehicleCustomerDTO;
-}
-
-export interface VehicleListData {
-  items: VehicleDTO[];
-  page: number;
-  pageSize: number;
-  total: number;
-}
-
-export interface VehicleCreatedDTO {
-  id: string;
-  licensePlate: string;
-  licensePlateNormalized: string;
-  vin: string | null;
-  make: string | null;
-  model: string | null;
-  modelYear: number | null;
-  color: string | null;
   customerId: string;
-  createdAt: string;
-}
-
-export interface VehicleCreatedData {
-  vehicle: VehicleCreatedDTO;
-}
-
-export interface VehicleSearchParams {
-  q?: string | undefined;
-  page?: number | undefined;
-  pageSize?: number | undefined;
 }
 
 export interface CreateVehicleInput {
-  customerId: string;
+  customerName: string;
+  phone: string;
   licensePlate: string;
-  vin?: string | undefined;
-  make?: string | undefined;
-  model?: string | undefined;
-  modelYear?: number | undefined;
-  color?: string | undefined;
+  vin?: string;
+  make?: string;
+  model?: string;
+  modelYear?: number;
+  customerComplaint: string;
+  odometerAtIntake: number;
+  fuelLevel: "VACIO" | "CUARTO" | "MITAD" | "TRES_CUARTOS" | "LLENO";
 }
 
-export interface ApiCallOptions {
-  correlationId?: string | undefined;
-  signal?: AbortSignal | undefined;
+export interface ListVehiclesParams {
+  search?: string;
 }
 
-export function buildVehiclesSearchQuery(params: VehicleSearchParams): string {
-  const search = new URLSearchParams();
-  if (params.q !== undefined && params.q.trim().length > 0) {
-    search.set("q", params.q.trim());
-  }
-  if (params.page !== undefined) {
-    search.set("page", String(params.page));
-  }
-  if (params.pageSize !== undefined) {
-    search.set("pageSize", String(params.pageSize));
-  }
-  const rendered = search.toString();
-  return rendered.length > 0 ? `?${rendered}` : "";
-}
-
-/** API tipada de vehículos (GET/POST /api/vehicles). */
 export const vehiclesApi = {
-  list(
-    params: VehicleSearchParams = {},
-    callOptions: ApiCallOptions = {},
-  ): Promise<ApiResult<VehicleListData>> {
-    return apiFetch<VehicleListData>(`/api/vehicles${buildVehiclesSearchQuery(params)}`, {
-      method: "GET",
-      correlationId: callOptions.correlationId,
-      signal: callOptions.signal,
-    });
+  list(params: ListVehiclesParams = {}, options?: ApiRequestOptions): Promise<VehicleDto[]> {
+    const query = new URLSearchParams();
+    if (params.search) query.set("search", params.search);
+    const qs = query.toString();
+    return request<VehicleDto[]>(
+      `/api/vehicles${qs ? `?${qs}` : ""}`,
+      { method: "GET" },
+      options,
+    );
   },
-  create(
-    input: CreateVehicleInput,
-    callOptions: ApiCallOptions = {},
-  ): Promise<ApiResult<VehicleCreatedData>> {
-    return apiFetch<VehicleCreatedData>("/api/vehicles", {
-      method: "POST",
-      body: input,
-      correlationId: callOptions.correlationId,
-      signal: callOptions.signal,
-    });
+
+  create(input: CreateVehicleInput, options?: ApiRequestOptions): Promise<VehicleDto> {
+    return request<VehicleDto>(
+      "/api/vehicles",
+      { method: "POST", body: JSON.stringify(input) },
+      options,
+    );
   },
 };
+
+export const __internal = { parseEnvelope, createCorrelationId };
