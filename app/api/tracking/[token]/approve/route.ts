@@ -240,6 +240,7 @@ export async function POST(
                   rejectedItemIds,
                   totalApprovedAmount: totalApproved,
                   notes: body.notes ?? null,
+                  ipHash,
                 },
               },
             });

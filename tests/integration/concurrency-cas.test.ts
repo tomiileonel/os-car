@@ -93,33 +93,36 @@ describe("G11 — Concurrency CAS on PATCH /api/work-orders/[id]", () => {
     }
   });
 
-  it("exactly 1 of 20 concurrent CAS requests succeeds, 19 receive 409 CONCURRENT_MODIFICATION", async () => {
-    const CONCURRENT_REQUESTS = 20;
+  it("exactly 1 of 50 concurrent CAS requests succeeds, 49 receive 409 CONCURRENT_MODIFICATION", async () => {
+    const CONCURRENT_REQUESTS = 50;
 
-    const requests = Array.from({ length: CONCURRENT_REQUESTS }, (_, i) => {
-      const req = new NextRequest(`http://localhost:3000/api/work-orders/${orderId}`, {
-        method: "PATCH",
-        headers: {
-          "content-type": "application/json",
-          "x-correlation-id": `cas-burst-${i}`,
-        },
-        body: JSON.stringify({
-          action: "transition",
-          expectedVersion: 1,
-          targetStatus: "DIAGNOSTICO",
-        }),
-      });
-      return PATCH(req, { params: Promise.resolve({ id: orderId }) });
-    });
-
-    const responses = await Promise.all(requests);
-    const results = await Promise.all(
-      responses.map(async (res) => ({
-        status: res.status,
-        body: (await res.json()) as { success: boolean; error?: { code: string; title?: string } },
-      })),
+    const settled = await Promise.allSettled(
+      Array.from({ length: CONCURRENT_REQUESTS }, async (_, i) => {
+        const req = new NextRequest(`http://localhost:3000/api/work-orders/${orderId}`, {
+          method: "PATCH",
+          headers: {
+            "content-type": "application/json",
+            "x-correlation-id": `cas-burst-${i}`,
+          },
+          body: JSON.stringify({
+            action: "transition",
+            expectedVersion: 1,
+            targetStatus: "DIAGNOSTICO",
+          }),
+        });
+        const res = await PATCH(req, { params: Promise.resolve({ id: orderId }) });
+        const body = (await res.json()) as { success: boolean; error?: { code: string; title?: string } };
+        return { status: res.status, body };
+      }),
     );
 
+    const fulfilled = settled.filter(
+      (s): s is PromiseFulfilledResult<{ status: number; body: { success: boolean; error?: { code: string; title?: string } } }> =>
+        s.status === "fulfilled",
+    );
+    expect(fulfilled).toHaveLength(CONCURRENT_REQUESTS);
+
+    const results = fulfilled.map((f) => f.value);
     const successes = results.filter((r) => r.status === 200);
     const conflicts = results.filter((r) => r.status === 409);
     const others = results.filter((r) => r.status !== 200 && r.status !== 409);
@@ -139,5 +142,5 @@ describe("G11 — Concurrency CAS on PATCH /api/work-orders/[id]", () => {
     });
     expect(finalOrder?.version).toBe(2);
     expect(finalOrder?.status).toBe("DIAGNOSTICO");
-  }, 45_000);
+  }, 60_000);
 });

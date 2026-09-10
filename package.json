@@ -17,7 +17,8 @@
     "auth:generate": "npx @better-auth/cli generate",
     "auth:migrate": "node ./scripts/run-migrations.mjs",
     "test": "vitest run",
-    "test:g5-neon": "npx tsx scripts/run-g5-neon-benchmark.ts"
+    "test:g5-neon": "npx tsx scripts/run-g5-neon-benchmark.ts",
+    "db:seed:g11": "tsx prisma/seed-g11.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
