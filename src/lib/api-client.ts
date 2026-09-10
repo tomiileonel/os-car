@@ -684,5 +684,112 @@ export const tireHotelApi = {
   },
 };
 
+// ---- Express Reception (Gate G9) -------------------------------------
+
+export interface FastVehicleLookupDto {
+  found: boolean;
+  vehicle?: {
+    id: string;
+    licensePlate: string;
+    licensePlateNormalized: string;
+    vehicleType?: string;
+    make?: string | null;
+    model?: string | null;
+    modelYear?: number | null;
+    color?: string | null;
+    vin?: string | null;
+  } | null;
+  customer?: {
+    id: string;
+    fullName: string;
+    phoneE164: string;
+    email?: string | null;
+    document?: string | null;
+  } | null;
+  history?: {
+    previousOrdersCount: number;
+    lastServiceDate: string | null;
+    lastServiceComplaint: string | null;
+    lastOdometer: number | null;
+  } | null;
+  activeOrder?: {
+    id: string;
+    status: string;
+  } | null;
+}
+
+export type ReceptionDamageType = "RAYON" | "ABOLLADURA" | "ROTURA" | "CRISTAL" | "OTRO";
+
+export interface ReceptionDamageItemInput {
+  zone: string;
+  damageType: ReceptionDamageType;
+  xPercent?: number;
+  yPercent?: number;
+  note?: string | null;
+}
+
+export interface ReceptionCheckInInput {
+  licensePlate: string;
+  customerName: string;
+  customerPhone: string;
+  customerDocument?: string | null;
+  customerEmail?: string | null;
+  vehicleType?: "AUTO" | "CAMIONETA" | "CAMION";
+  make?: string | null;
+  model?: string | null;
+  modelYear?: number | null;
+  color?: string | null;
+  vin?: string | null;
+  odometerIn?: number;
+  mileageIn?: number;
+  fuelLevel: "VACIO" | "CUARTO" | "MITAD" | "TRES_CUARTOS" | "LLENO";
+  customerComplaint: string;
+  intakeNotes?: string | null;
+  damages?: ReceptionDamageItemInput[];
+  bayId?: string | null;
+  signature?: string | null;
+  signatureHash?: string | null;
+  declaredBelongings?: boolean;
+}
+
+export interface ReceptionSummaryDto {
+  workOrderId: string;
+  workOrderNumber: string;
+  trackingToken: string;
+  trackingUrl: string;
+  status: "INGRESADO";
+  vehicleId: string;
+  customerId: string;
+  customerName: string;
+  licensePlate: string;
+  odometerIn: number;
+  fuelLevel: string;
+  assignedBay?: { id: string; code: string } | null;
+  createdAt: string;
+}
+
+export const receptionApi = {
+  lookupPlate(plate: string, options?: ApiRequestOptions): Promise<FastVehicleLookupDto> {
+    const encoded = encodeURIComponent(plate.trim().toUpperCase());
+    return request<FastVehicleLookupDto>(
+      `/api/reception?plate=${encoded}`,
+      { method: "GET" },
+      options,
+    );
+  },
+
+  registerReception(
+    input: ReceptionCheckInInput,
+    options?: ApiRequestOptions,
+  ): Promise<ReceptionSummaryDto> {
+    return request<ReceptionSummaryDto>(
+      "/api/reception",
+      { method: "POST", body: JSON.stringify(input) },
+      options,
+    );
+  },
+};
+
 export const __internal = { parseEnvelope, createCorrelationId };
+
 
