@@ -6,10 +6,12 @@ const TTL_MS = TTL_DAYS * 24 * 60 * 60 * 1000;
 
 const secret = process.env.TRACKING_HMAC_SECRET;
 if (!secret || Buffer.byteLength(secret, "utf-8") < 32) {
-  throw new Error("TRACKING_HMAC_SECRET must be set and be at least 32 bytes");
+  if (process.env.NEXT_PHASE !== "phase-production-build") {
+    throw new Error("TRACKING_HMAC_SECRET must be set and be at least 32 bytes");
+  }
 }
 
-const TRACKING_HMAC_SECRET = secret;
+const TRACKING_HMAC_SECRET = secret || "build-time-fallback-hmac-secret-min-32-bytes-long";
 const HMAC_DIGEST_LENGTH = 32; // SHA-256 produces 32 bytes
 
 /**

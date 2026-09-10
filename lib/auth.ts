@@ -26,6 +26,9 @@ export function assertAuthEnvironment(env: NodeJS.ProcessEnv = process.env): voi
   }
 
   if (missing.length > 0) {
+    if (process.env.NEXT_PHASE === "phase-production-build") {
+      return;
+    }
     throw new Error(
       `[OS-CAR AUTH][FATAL] Variables de entorno obligatorias ausentes o vacías: ${missing.join(
         ", "
@@ -37,8 +40,8 @@ export function assertAuthEnvironment(env: NodeJS.ProcessEnv = process.env): voi
 assertAuthEnvironment();
 
 export const auth = betterAuth({
-  secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL,
+  secret: process.env.BETTER_AUTH_SECRET || "build-time-fallback-secret-minimum-32-chars-long",
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
   advanced: {
     defaultCookieAttributes: {
       httpOnly: true,
