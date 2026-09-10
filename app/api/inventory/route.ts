@@ -123,11 +123,27 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       });
     }
 
+    interface InventoryItemRecord {
+      id: string;
+      workshopId: string;
+      sku: string;
+      description: string;
+      category?: string | null;
+      location?: string | null;
+      unitCost?: unknown;
+      stockQuantity: number;
+      reorderPoint: number;
+      active: boolean;
+      createdAt: Date;
+      updatedAt: Date;
+      deletedAt: Date | null;
+    }
+
     // Filtrado en memoria de búsqueda y condiciones críticas
-    let filtered = items;
+    let filtered: InventoryItemRecord[] = items as unknown as InventoryItemRecord[];
     if (category && category !== "all") {
       filtered = filtered.filter(
-        (i) => i.category && i.category.toLowerCase().includes(category),
+        (i) => Boolean(i.category) && i.category!.toLowerCase().includes(category),
       );
     }
     if (search) {
@@ -135,7 +151,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         (i) =>
           i.sku.toLowerCase().includes(search) ||
           i.description.toLowerCase().includes(search) ||
-          (i.location && i.location.toLowerCase().includes(search)),
+          Boolean(i.location && i.location.toLowerCase().includes(search)),
       );
     }
     if (criticalOnly) {
