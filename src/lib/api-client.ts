@@ -391,6 +391,16 @@ export interface AddPartItemInput {
   partNumber?: string;
 }
 
+export interface DeliverOrderInput {
+  odometerAtDelivery: number;
+  deliveredToName: string;
+  paymentMethod?: string;
+  notes?: string;
+  expectedVersion?: number;
+  supervisorOverrideId?: string;
+  supervisorNotes?: string;
+}
+
 export const baysApi = {
   list(options?: ApiRequestOptions): Promise<BayDto[]> {
     return request<BayDto[]>("/api/bays", { method: "GET" }, options);
@@ -502,6 +512,21 @@ export const workOrdersApi = {
       {
         method: "PATCH",
         body: JSON.stringify({ action: "rotate-tracking-token" }),
+      },
+      options,
+    );
+  },
+
+  deliver(
+    id: string,
+    input: DeliverOrderInput,
+    options?: ApiRequestOptions,
+  ): Promise<WorkOrderDetailDto> {
+    return request<WorkOrderDetailDto>(
+      `/api/work-orders/${id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ action: "deliver", ...input }),
       },
       options,
     );

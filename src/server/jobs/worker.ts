@@ -54,6 +54,55 @@ export function clearOutboxHandlers(): void {
   handlers.clear();
 }
 
+/**
+ * Registra los handlers canónicos del dominio, incluyendo el gateway simulado de WhatsApp.
+ */
+export function registerDefaultOutboxHandlers(): void {
+  registerOutboxHandler("WHATSAPP_READY_FOR_PICKUP", async (message) => {
+    logger.info("whatsapp-gateway: notificación 'Vehículo Listo' emitida exitosamente", {
+      correlationId: message.correlationId ?? undefined,
+      workshopId: message.workshopId,
+      metadata: {
+        eventType: message.eventType,
+        idempotentKey: message.idempotentKey,
+      },
+    });
+  });
+
+  registerOutboxHandler("WHATSAPP_DELIVERY_RECEIPT", async (message) => {
+    logger.info("whatsapp-gateway: comprobante de entrega digital emitido exitosamente", {
+      correlationId: message.correlationId ?? undefined,
+      workshopId: message.workshopId,
+      metadata: {
+        eventType: message.eventType,
+        idempotentKey: message.idempotentKey,
+      },
+    });
+  });
+
+  registerOutboxHandler("WORK_ORDER_DELIVERED", async (message) => {
+    logger.info("outbox: evento WORK_ORDER_DELIVERED procesado", {
+      correlationId: message.correlationId ?? undefined,
+      workshopId: message.workshopId,
+      metadata: { idempotentKey: message.idempotentKey },
+    });
+  });
+
+  registerOutboxHandler("WORK_ORDER_STATUS_CHANGED", async (message) => {
+    logger.info("outbox: evento WORK_ORDER_STATUS_CHANGED procesado", {
+      correlationId: message.correlationId ?? undefined,
+      workshopId: message.workshopId,
+      metadata: { idempotentKey: message.idempotentKey },
+    });
+  });
+}
+
+export function ensureDefaultOutboxHandlers(): void {
+  if (handlers.size === 0) {
+    registerDefaultOutboxHandlers();
+  }
+}
+
 export interface BackoffOptions {
   baseDelayMs?: number;
   maxDelayMs?: number;

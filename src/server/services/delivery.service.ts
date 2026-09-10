@@ -48,13 +48,14 @@ export function validateDeliveryOdometer(args: DeliveryOdometerCheckArgs): Deliv
 export interface DeliverOrderCommand {
   workshopId: string;
   workOrderId: string;
-  expectedVersion: number;
+  expectedVersion?: number;
   actorAdminId: string;
   recipientName: string;
   recipientDocumentLast4?: string;
-  keysHandedOver: true;
-  conformityAccepted: true;
+  keysHandedOver?: boolean;
+  conformityAccepted?: boolean;
   odometerAtDelivery: number;
+  paymentMethod?: string;
   supervisorOverrideId?: string;
   supervisorNotes?: string;
   notes?: string;
@@ -87,12 +88,25 @@ export interface DeliveryServiceTx {
     create(args: { data: Record<string, unknown> }): Promise<{ id: string }>;
   };
   bayAssignment: {
+    findMany?(args: {
+      where: { workOrderId: string; releasedAt: null };
+      select: { bayId: true };
+    }): Promise<Array<{ bayId: string }>>;
     updateMany(args: {
       where: { workOrderId: string; releasedAt: null };
       data: { releasedAt: Date; releaseReason: string };
     }): Promise<{ count: number }>;
   };
+  bay?: {
+    updateMany(args: {
+      where: { id?: { in: string[] }; workshopId?: string };
+      data: { status: string };
+    }): Promise<{ count: number }>;
+  };
   statusHistory: {
+    create(args: { data: Record<string, unknown> }): Promise<{ id: string }>;
+  };
+  outboxMessage?: {
     create(args: { data: Record<string, unknown> }): Promise<{ id: string }>;
   };
 }
@@ -100,7 +114,7 @@ export interface DeliveryServiceTx {
 export interface DeliveryPrismaClient {
   $transaction<T>(
     fn: (tx: DeliveryServiceTx) => Promise<T>,
-    options?: { isolationLevel?: Prisma.TransactionIsolationLevel }
+    options?: { isolationLevel?: Prisma.TransactionIsolationLevel; maxWait?: number; timeout?: number }
   ): Promise<T>;
 }
 
@@ -131,7 +145,8 @@ export async function deliverOrderInTx(
     );
   }
 
-  if (order.version !== command.expectedVersion) {
+  const expectedVer = command.expectedVersion ?? order.version;
+  if (command.expectedVersion !== undefined && order.version !== command.expectedVersion) {
     throw new DomainConflictException(
       "VERSION_CONFLICT",
       "Invariante C1: la versión esperada de la orden no coincide.",
@@ -161,7 +176,7 @@ export async function deliverOrderInTx(
     where: {
       id: order.id,
       workshopId: command.workshopId,
-      version: command.expectedVersion,
+      version: expectedVer,
       status: "LISTO",
     },
     data: {
@@ -186,8 +201,8 @@ export async function deliverOrderInTx(
       deliveredById: command.actorAdminId,
       recipientName: command.recipientName,
       recipientDocumentLast4: command.recipientDocumentLast4 ?? null,
-      keysHandedOver: command.keysHandedOver,
-      conformityAccepted: command.conformityAccepted,
+      keysHandedOver: command.keysHandedOver ?? true,
+      conformityAccepted: command.conformityAccepted ?? true,
       odometerAtDelivery: command.odometerAtDelivery,
       supervisorOverrideId: command.supervisorOverrideId ?? null,
       supervisorNotes: command.supervisorNotes ?? null,
@@ -196,10 +211,26 @@ export async function deliverOrderInTx(
     },
   });
 
+  let bayIdsToFree: string[] = [];
+  if (tx.bayAssignment.findMany) {
+    const activeAssignments = await tx.bayAssignment.findMany({
+      where: { workOrderId: order.id, releasedAt: null },
+      select: { bayId: true },
+    });
+    bayIdsToFree = activeAssignments.map((a) => a.bayId);
+  }
+
   await tx.bayAssignment.updateMany({
     where: { workOrderId: order.id, releasedAt: null },
     data: { releasedAt: now, releaseReason: "ENTREGA" },
   });
+
+  if (tx.bay && bayIdsToFree.length > 0) {
+    await tx.bay.updateMany({
+      where: { id: { in: bayIdsToFree }, workshopId: command.workshopId },
+      data: { status: "LIBRE" },
+    });
+  }
 
   await tx.statusHistory.create({
     data: {
@@ -215,6 +246,8 @@ export async function deliverOrderInTx(
       metadata: {
         odometerAtDelivery: command.odometerAtDelivery,
         initialOdometer,
+        paymentMethod: command.paymentMethod ?? null,
+        deliveredToName: command.recipientName,
         odometerRegression: verdict.regressionDetected,
         odometerOverrideApplied: verdict.overrideApplied,
         supervisorOverrideId: verdict.overrideApplied ? command.supervisorOverrideId ?? null : null,
@@ -222,12 +255,83 @@ export async function deliverOrderInTx(
     },
   });
 
+  if (tx.outboxMessage) {
+    await tx.outboxMessage.create({
+      data: {
+        workshopId: command.workshopId,
+        eventType: "WHATSAPP_DELIVERY_RECEIPT",
+        idempotentKey: `delivery-${order.id}-${now.getTime()}`,
+        status: "PENDING",
+        payload: {
+          workOrderId: order.id,
+          workshopId: command.workshopId,
+          recipientName: command.recipientName,
+          odometerAtDelivery: command.odometerAtDelivery,
+          paymentMethod: command.paymentMethod ?? "EFECTIVO",
+          deliveredAt: now.toISOString(),
+          notes: command.notes ?? null,
+        },
+        attempts: 0,
+        maxAttempts: 5,
+        nextAttemptAt: now,
+      },
+    });
+  }
+
   return {
     workOrderId: order.id,
     status: "ENTREGADO",
-    newVersion: command.expectedVersion + 1,
+    newVersion: expectedVer + 1,
     odometerVerdict: verdict,
   };
+}
+
+export interface ProcessOrderDeliveryCommand {
+  workOrderId: string;
+  workshopId: string;
+  adminId: string;
+  odometerAtDelivery: number;
+  notes?: string;
+  paymentMethod?: string;
+  deliveredToName: string;
+  recipientDocumentLast4?: string;
+  expectedVersion?: number;
+  supervisorOverrideId?: string;
+  supervisorNotes?: string;
+}
+
+export async function processOrderDeliveryInTx(
+  tx: DeliveryServiceTx,
+  command: ProcessOrderDeliveryCommand
+): Promise<{ workOrderId: string; status: "ENTREGADO"; newVersion: number; odometerVerdict: DeliveryOdometerVerdict }> {
+  return deliverOrderInTx(tx, {
+    workOrderId: command.workOrderId,
+    workshopId: command.workshopId,
+    actorAdminId: command.adminId,
+    recipientName: command.deliveredToName,
+    recipientDocumentLast4: command.recipientDocumentLast4,
+    keysHandedOver: true,
+    conformityAccepted: true,
+    odometerAtDelivery: command.odometerAtDelivery,
+    paymentMethod: command.paymentMethod,
+    notes: command.notes,
+    expectedVersion: command.expectedVersion,
+    supervisorOverrideId: command.supervisorOverrideId,
+    supervisorNotes: command.supervisorNotes,
+  });
+}
+
+export async function processOrderDelivery(
+  prismaClient: DeliveryPrismaClient,
+  command: ProcessOrderDeliveryCommand
+): Promise<{ workOrderId: string; status: "ENTREGADO"; newVersion: number; odometerVerdict: DeliveryOdometerVerdict }> {
+  return withSerializableRetry(() =>
+    prismaClient.$transaction((tx) => processOrderDeliveryInTx(tx, command), {
+      isolationLevel: "Serializable",
+      maxWait: 10000,
+      timeout: 30000,
+    })
+  );
 }
 
 export async function deliverOrder(
@@ -237,6 +341,9 @@ export async function deliverOrder(
   return withSerializableRetry(() =>
     prismaClient.$transaction((tx) => deliverOrderInTx(tx, command), {
       isolationLevel: "Serializable",
+      maxWait: 10000,
+      timeout: 30000,
     })
   );
 }
+

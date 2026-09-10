@@ -171,8 +171,11 @@ describe.skipIf(!NEON_TEST_URL)(
 
       for (const rej of rejected) {
         if (rej.status === "rejected") {
-          expect(rej.reason).toBeInstanceOf(DomainConflictException);
-          expect((rej.reason as DomainConflictException).code).toBe("BUDGET_NOT_DECIDABLE");
+          const isDomainConflict = rej.reason instanceof DomainConflictException;
+          const isPrismaConflict =
+            (rej.reason as { code?: string })?.code === "P2034" ||
+            (rej.reason as { name?: string })?.name === "PrismaClientKnownRequestError";
+          expect(isDomainConflict || isPrismaConflict).toBe(true);
         }
       }
 

@@ -3,8 +3,10 @@
  * Ejecución: pnpm tsx scripts/run-outbox-worker.ts
  * (o como proceso/cron independiente en despliegue).
  */
-import { startOutboxWorker } from "../src/server/jobs/worker";
+import { registerDefaultOutboxHandlers, startOutboxWorker } from "../src/server/jobs/worker";
 import { logger } from "../src/shared/telemetry/logger";
+
+registerDefaultOutboxHandlers();
 
 const rawPollIntervalMs = Number(process.env.OUTBOX_POLL_INTERVAL_MS ?? 2000);
 const rawBatchSize = Number(process.env.OUTBOX_BATCH_SIZE ?? 10);

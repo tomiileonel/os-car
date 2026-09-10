@@ -65,6 +65,12 @@ export default function OrderDetailPage(): React.JSX.Element {
   const [partQuantity, setPartQuantity] = useState("1");
   const [partPrice, setPartPrice] = useState("15000");
 
+  // Delivery Checkout Form (Gate G12)
+  const [deliveryOdometer, setDeliveryOdometer] = useState("");
+  const [deliveredToName, setDeliveredToName] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("EFECTIVO");
+  const [deliveryNotes, setDeliveryNotes] = useState("");
+
   async function loadOrder() {
     if (!orderId) return;
     try {
@@ -195,6 +201,30 @@ export default function OrderDetailPage(): React.JSX.Element {
       setFeedbackMessage("Presupuesto aprobado.");
     } catch (err) {
       const msg = err instanceof ApiClientError ? err.message : "Error al aprobar presupuesto";
+      setErrorMessage(msg);
+    } finally {
+      setIsActionLoading(false);
+    }
+  }
+
+  async function handleDeliverOrder(e: React.FormEvent) {
+    e.preventDefault();
+    if (!order) return;
+    try {
+      setIsActionLoading(true);
+      setErrorMessage(null);
+      const odo = Number(deliveryOdometer);
+      const updated = await workOrdersApi.deliver(order.id, {
+        odometerAtDelivery: odo,
+        deliveredToName: deliveredToName.trim(),
+        paymentMethod,
+        notes: deliveryNotes.trim() || undefined,
+        expectedVersion: order.version,
+      });
+      setOrder(updated);
+      setFeedbackMessage("Vehículo entregado exitosamente, bahía liberada y comprobante encolado en outbox.");
+    } catch (err) {
+      const msg = err instanceof ApiClientError ? err.message : "Error al procesar entrega de orden";
       setErrorMessage(msg);
     } finally {
       setIsActionLoading(false);
@@ -625,6 +655,93 @@ export default function OrderDetailPage(): React.JSX.Element {
           </div>
           {/* Right Column (4 cols): Financial Ticket, Blockers & Budget Approval */}
           <aside aria-label="Liquidación y bloqueos" className="lg:col-span-4 space-y-6">
+            {/* Finalizar y Entregar Vehículo (Gate G12 Delivery Checkout) */}
+            {order.status === "LISTO" ? (
+              <div className="rounded-xl border-2 border-[#10b981]/60 bg-[#111827] p-6 shadow-2xl space-y-4">
+                <div className="flex items-center justify-between border-b border-[#1f2937] pb-3">
+                  <div>
+                    <h2 className="text-base font-bold text-white flex items-center gap-2">
+                      <span>Finalizar y Entregar Vehículo</span>
+                      <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                    </h2>
+                    <p className="text-xs text-zinc-400 mt-0.5">
+                      Checkout de egreso, validación de odómetro y liberación de bahía.
+                    </p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleDeliverOrder} className="space-y-4 text-xs">
+                  <div>
+                    <Input
+                      label="Odómetro de Egreso (KM) *"
+                      type="number"
+                      required
+                      min={order.intakeRecord?.odometerAtIntake ?? 0}
+                      value={deliveryOdometer}
+                      onChange={(e) => setDeliveryOdometer(e.target.value)}
+                      placeholder="KM al entregar"
+                      className="min-h-[48px] font-mono text-sm"
+                      errorMessage={
+                        order.intakeRecord && Number(deliveryOdometer) < order.intakeRecord.odometerAtIntake
+                          ? `El odómetro no puede ser menor al de recepción (${order.intakeRecord.odometerAtIntake.toLocaleString("es-AR")} KM).`
+                          : undefined
+                      }
+                      hint={`Odómetro de ingreso: ${order.intakeRecord?.odometerAtIntake.toLocaleString("es-AR") ?? "—"} KM.`}
+                    />
+                  </div>
+
+                  <div>
+                    <Input
+                      label="Retirado por (Nombre y Apellido) *"
+                      type="text"
+                      required
+                      value={deliveredToName}
+                      onChange={(e) => setDeliveredToName(e.target.value)}
+                      placeholder="Nombre del cliente o autorizado"
+                      className="min-h-[48px] text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-zinc-300 font-semibold mb-1">
+                      Método de Liquidación / Cobro
+                    </label>
+                    <select
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      className="w-full min-h-[48px] rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#e0c700]"
+                    >
+                      <option value="EFECTIVO">Efectivo</option>
+                      <option value="TRANSFERENCIA">Transferencia Bancaria</option>
+                      <option value="TARJETA">Tarjeta de Débito / Crédito</option>
+                      <option value="CUENTA_CORRIENTE">Cuenta Corriente</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <Input
+                      label="Notas de Entrega / Conformidad"
+                      type="text"
+                      value={deliveryNotes}
+                      onChange={(e) => setDeliveryNotes(e.target.value)}
+                      placeholder="Observaciones de entrega (opcional)"
+                      className="min-h-[48px] text-sm"
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    loading={isActionLoading}
+                    disabled={isActionLoading || (Boolean(order.intakeRecord) && Number(deliveryOdometer) < (order.intakeRecord?.odometerAtIntake ?? 0))}
+                    className="w-full min-h-[48px] bg-[#10b981] hover:bg-[#059669] text-white font-bold text-sm tracking-wide shadow-lg"
+                  >
+                    Confirmar Entrega y Liberar Bahía ✓
+                  </Button>
+                </form>
+              </div>
+            ) : null}
+
             {/* Financial Summary Ticket */}
             <div className="rounded-xl border border-[#1f2937] bg-[#111827] p-6 shadow-xl space-y-4">
               <h2 className="text-base font-bold text-[#f9fafb] border-b border-[#1f2937] pb-3">

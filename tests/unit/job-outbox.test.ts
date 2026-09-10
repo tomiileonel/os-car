@@ -12,6 +12,8 @@ import {
   clearOutboxHandlers,
   computeBackoffDelay,
   deterministicRatio,
+  getOutboxHandler,
+  registerDefaultOutboxHandlers,
   registerOutboxHandler,
   runWorkerOnce,
   type OutboxJobMessage,
@@ -334,5 +336,45 @@ describe("runWorkerOnce — ciclo de vida del job", () => {
     expect(summary.skipped).toBe(1);
     expect(summary.scanned).toBe(0);
     expect(summary.completed).toBe(0);
+  });
+
+  it("registerDefaultOutboxHandlers registra handlers para WHATSAPP_READY_FOR_PICKUP y WHATSAPP_DELIVERY_RECEIPT", async () => {
+    registerDefaultOutboxHandlers();
+
+    const readyHandler = getOutboxHandler("WHATSAPP_READY_FOR_PICKUP");
+    const receiptHandler = getOutboxHandler("WHATSAPP_DELIVERY_RECEIPT");
+
+    expect(readyHandler).toBeDefined();
+    expect(receiptHandler).toBeDefined();
+
+    const candidate = buildMessage({
+      eventType: "WHATSAPP_DELIVERY_RECEIPT",
+      payload: { workOrderId: "wo_1", recipientName: "Juan Pérez", odometerAtDelivery: 50100 },
+    });
+    const claimed = buildMessage({
+      ...candidate,
+      status: "PROCESSING",
+      attempts: 1,
+      lockedBy: "w-1",
+    });
+    const db = buildDb(candidate, claimed);
+    db.outboxMessage.updateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 1 });
+
+    const summary = await runWorkerOnce({
+      db: db as never,
+      batchSize: 1,
+      workerId: "w-1",
+      now: () => FIXED_NOW,
+    });
+
+    expect(summary.completed).toBe(1);
+    expect(summary.failed).toBe(0);
+    expect(summary.deadLettered).toBe(0);
+    const settleCall = db.outboxMessage.updateMany.mock.calls[1][0] as {
+      data: { status: string; completedAt: Date };
+    };
+    expect(settleCall.data.status).toBe("COMPLETED");
   });
 });

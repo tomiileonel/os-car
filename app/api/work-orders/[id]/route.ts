@@ -19,6 +19,11 @@ import {
   type BudgetApprovalPrismaClient,
 } from "@/server/services/budget-approval.service";
 import { recalculateBlockersInTx } from "@/server/services/order-blocker.service";
+import { z } from "zod";
+import {
+  processOrderDeliveryInTx,
+  type DeliveryServiceTx,
+} from "@/server/services/delivery.service";
 import { createTrackingToken, hashTrackingToken } from "@/lib/tracking-token";
 
 function failResponse(error: unknown, request: NextRequest): NextResponse {
@@ -299,6 +304,101 @@ export async function PATCH(
                 publicDescription: `Estado actualizado a ${targetStatus}`,
                 metadata: { from: currentOrder.status, to: targetStatus, reason: body.reason ?? null },
               },
+            });
+
+            if (targetStatus === "LISTO") {
+              await tx.outboxMessage.create({
+                data: {
+                  workshopId,
+                  eventType: "WHATSAPP_READY_FOR_PICKUP",
+                  idempotentKey: `ready-${id}-${now.getTime()}`,
+                  status: "PENDING",
+                  payload: {
+                    workOrderId: id,
+                    workshopId,
+                    readyAt: now.toISOString(),
+                  },
+                  attempts: 0,
+                  maxAttempts: 5,
+                  nextAttemptAt: now,
+                },
+              });
+            } else if (targetStatus === "ENTREGADO") {
+              const activeBays = await tx.bayAssignment.findMany({
+                where: { workOrderId: id, releasedAt: null },
+                select: { bayId: true },
+              });
+              await tx.bayAssignment.updateMany({
+                where: { workOrderId: id, releasedAt: null },
+                data: { releasedAt: now, releaseReason: "ENTREGA" },
+              });
+              if (activeBays.length > 0) {
+                await tx.bay.updateMany({
+                  where: { id: { in: activeBays.map((b) => b.bayId) }, workshopId },
+                  data: { status: "LIBRE" },
+                });
+              }
+              await tx.outboxMessage.create({
+                data: {
+                  workshopId,
+                  eventType: "WHATSAPP_DELIVERY_RECEIPT",
+                  idempotentKey: `delivery-transition-${id}-${now.getTime()}`,
+                  status: "PENDING",
+                  payload: {
+                    workOrderId: id,
+                    workshopId,
+                    deliveredAt: now.toISOString(),
+                  },
+                  attempts: 0,
+                  maxAttempts: 5,
+                  nextAttemptAt: now,
+                },
+              });
+            }
+
+            await recalculateBlockersInTx(tx, {
+              workshopId,
+              workOrderId: id,
+              actorAdminId: adminUser.id,
+            });
+          },
+          { isolationLevel: "Serializable", maxWait: 10000, timeout: 30000 },
+        ),
+      );
+    } else if (action === "deliver") {
+      const deliverySchema = z.object({
+        odometerAtDelivery: z.number().int().nonnegative("El odómetro debe ser un número entero no negativo."),
+        deliveredToName: z.string().min(2, "El nombre de quien retira es requerido."),
+        paymentMethod: z.string().optional(),
+        notes: z.string().optional(),
+        expectedVersion: z.number().int().positive().optional(),
+        supervisorOverrideId: z.string().optional(),
+        supervisorNotes: z.string().optional(),
+      });
+
+      const parsed = deliverySchema.safeParse(body);
+      if (!parsed.success) {
+        throw new ValidationException(
+          "VALIDATION_ERROR",
+          parsed.error.issues[0]?.message ?? "Datos de entrega inválidos.",
+          parsed.error.format(),
+        );
+      }
+
+      await withSerializableRetry(() =>
+        prisma.$transaction(
+          async (tx) => {
+            await processOrderDeliveryInTx(tx as unknown as DeliveryServiceTx, {
+              workOrderId: id,
+              workshopId,
+              adminId: adminUser.id,
+              odometerAtDelivery: parsed.data.odometerAtDelivery,
+              deliveredToName: parsed.data.deliveredToName,
+              paymentMethod: parsed.data.paymentMethod,
+              notes: parsed.data.notes,
+              expectedVersion: parsed.data.expectedVersion,
+              supervisorOverrideId: parsed.data.supervisorOverrideId,
+              supervisorNotes: parsed.data.supervisorNotes,
             });
 
             await recalculateBlockersInTx(tx, {

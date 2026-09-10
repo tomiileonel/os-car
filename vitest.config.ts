@@ -16,6 +16,7 @@ export default defineConfig({
     include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
     pool: "forks",
     isolate: true,
+    fileParallelism: false,
     testTimeout: 20000,
     coverage: {
       provider: "v8",
