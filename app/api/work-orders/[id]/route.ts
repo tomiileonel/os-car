@@ -312,11 +312,19 @@ export async function PATCH(
       );
     } else if (action === "rotate-tracking-token") {
       // N7: Generación / rotación segura de enlace de seguimiento para clientes
+      const existing = await prisma.workOrder.findFirst({
+        where: { id, workshopId, deletedAt: null },
+        select: { id: true },
+      });
+      if (!existing) {
+        throw new NotFoundException("WORK_ORDER_NOT_FOUND", "La orden no existe.");
+      }
+
       const rawTrackingToken = createTrackingToken();
       const trackingCodeHash = hashTrackingToken(rawTrackingToken);
 
       await prisma.workOrder.update({
-        where: { id, workshopId },
+        where: { id },
         data: {
           trackingCodeHash,
           trackingCodeIssuedAt: new Date(),
