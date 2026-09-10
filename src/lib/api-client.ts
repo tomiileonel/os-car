@@ -933,6 +933,91 @@ export const trackingApi = {
   },
 };
 
+export type TelemetryPeriod = "today" | "week" | "month" | "quarter";
+
+export interface WorkshopTelemetryDto {
+  workshopId: string;
+  period: TelemetryPeriod;
+  startDate: string;
+  endDate: string;
+  cycleTimes: {
+    avgLeadTimeHours: number;
+    avgLeadTimeDays: number;
+    avgRepairTimeHours: number;
+    avgDiagnosisTimeHours: number;
+    deliveredOrdersCount: number;
+  };
+  bays: {
+    totalBays: number;
+    enabledBays: number;
+    occupiedBays: number;
+    freeBays: number;
+    utilizationRate: number;
+    bays: Array<{
+      id: string;
+      code: string;
+      ordinal: number;
+      status: "LIBRE" | "OCUPADA";
+      isEnabled: boolean;
+      activeWorkOrder?: {
+        id: string;
+        licensePlate: string;
+        vehicleModel: string;
+        status: string;
+      };
+    }>;
+  };
+  budgets: {
+    totalBudgets: number;
+    approvedBudgets: number;
+    rejectedBudgets: number;
+    pendingBudgets: number;
+    approvalRate: number;
+    laborLinesCount: number;
+    laborLinesApprovedCount: number;
+    partLinesCount: number;
+    partLinesApprovedCount: number;
+    lineApprovalRate: number;
+    totalEstimatedAmount: number;
+    totalApprovedAmount: number;
+  };
+  fsmDistribution: {
+    INGRESADO: number;
+    DIAGNOSTICO: number;
+    ESPERANDO_REPARACION: number;
+    EN_REPARACION: number;
+    CONTROL: number;
+    LISTO: number;
+    ENTREGADO: number;
+    CANCELADA: number;
+    totalActive: number;
+    totalInPeriod: number;
+  };
+  financials: {
+    deliveredRevenue: number;
+    workInProgressEstimated: number;
+    totalRevenue: number;
+  };
+  bottlenecks: Array<{
+    status: string;
+    count: number;
+    oldestPendingHours: number;
+  }>;
+}
+
+export const telemetryApi = {
+  getReport(
+    period: TelemetryPeriod = "month",
+    options?: ApiRequestOptions,
+  ): Promise<WorkshopTelemetryDto> {
+    return request<WorkshopTelemetryDto>(
+      `/api/admin/telemetry?period=${encodeURIComponent(period)}`,
+      { method: "GET" },
+      options,
+    );
+  },
+};
+
 export const __internal = { parseEnvelope, createCorrelationId };
 
 

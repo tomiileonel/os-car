@@ -19,6 +19,7 @@ export default async function AdminPage() {
             <div className="admin-grid">
               <Link href="/admin/recepcion" className="admin-card"><h2>Recepción</h2><p>Ingresá vehículos y abrí órdenes de trabajo.</p></Link>
               <Link href="/admin/bahias" className="admin-card"><h2>WorkBoard Bahías</h2><p>Visualizá disponibilidad y asignaciones activas.</p></Link>
+              <Link href="/admin/telemetria" className="admin-card"><h2>Telemetría & Analytics</h2><p>Tiempos de ciclo FSM, rotación de bahías y throughput.</p></Link>
               <Link href="/admin/almacen" className="admin-card"><h2>Almacén Táctico</h2><p>Insumos, repuestos y reposición crítica.</p></Link>
               <Link href="/admin/hotel-neumaticos" className="admin-card"><h2>Hotel Neumáticos</h2><p>Custodia activa, mapa de racks y desgaste.</p></Link>
             </div>
