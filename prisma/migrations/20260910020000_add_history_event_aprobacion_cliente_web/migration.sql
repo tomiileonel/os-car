@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "HistoryEventType" ADD VALUE 'APROBACION_CLIENTE_WEB';

@@ -790,6 +790,136 @@ export const receptionApi = {
   },
 };
 
+// ---- Public Tracking & Budget Decision (Gate G10) -------------------
+
+export interface PublicTrackingVehicleDto {
+  make: string | null;
+  model: string | null;
+  modelYear: number | null;
+  licensePlateMasked: string;
+  color?: string | null;
+}
+
+export interface PublicTrackingWorkshopDto {
+  name: string;
+  address: string;
+  phone: string;
+  whatsapp: string;
+}
+
+export interface PublicTrackingDamageDto {
+  id: string;
+  zone: string;
+  damageType: string;
+  xPercent: number;
+  yPercent: number;
+  note?: string | null;
+}
+
+export interface PublicTrackingReceptionDto {
+  odometer: number;
+  fuelLevel: string;
+  customerComplaint: string;
+  declaredBelongings: boolean;
+  damages: PublicTrackingDamageDto[];
+}
+
+export interface PublicTrackingTimelineStepDto {
+  status: string;
+  title: string;
+  description: string;
+  date?: string | null;
+  completed: boolean;
+  current: boolean;
+}
+
+export interface PublicTrackingLaborLineDto {
+  id: string;
+  description: string;
+  estimatedMinutes: number;
+  hourlyRateCharged: number;
+  lineTotal: number;
+  approved: boolean;
+}
+
+export interface PublicTrackingPartLineDto {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPriceCharged: number;
+  lineTotal: number;
+  approved: boolean;
+}
+
+export interface PublicTrackingBudgetDto {
+  id: string;
+  versionNumber: number;
+  status: string;
+  totalEstimated: number;
+  laborSubtotal: number;
+  partsSubtotal: number;
+  laborLines: PublicTrackingLaborLineDto[];
+  partLines: PublicTrackingPartLineDto[];
+}
+
+export interface PublicTrackingDto {
+  workOrderId: string;
+  workOrderNumber: string;
+  status: string;
+  openedAt: string;
+  estimatedCompletionDate?: string | null;
+  vehicle: PublicTrackingVehicleDto;
+  workshop: PublicTrackingWorkshopDto;
+  reception?: PublicTrackingReceptionDto | null;
+  timeline: PublicTrackingTimelineStepDto[];
+  budget?: PublicTrackingBudgetDto | null;
+}
+
+export interface BudgetDecisionInput {
+  decision?: "APROBADO" | "RECHAZADO";
+  approvedItemIds?: string[];
+  rejectedItemIds?: string[];
+  notes?: string;
+  customerSignature?: string;
+}
+
+export interface BudgetDecisionResultDto {
+  workOrderId: string;
+  budgetVersionId: string;
+  decision: "APROBADO" | "RECHAZADO";
+  newStatus: string;
+  totalApprovedAmount: number;
+  approvedItemsCount: number;
+  rejectedItemsCount: number;
+  decidedAt: string;
+  message: string;
+}
+
+export const trackingApi = {
+  getPublicStatus(token: string, options?: ApiRequestOptions): Promise<PublicTrackingDto> {
+    const encoded = encodeURIComponent(token.trim());
+    return request<PublicTrackingDto>(
+      `/api/tracking/${encoded}`,
+      { method: "GET" },
+      options,
+    );
+  },
+
+  submitBudgetDecision(
+    token: string,
+    input: BudgetDecisionInput,
+    options?: ApiRequestOptions,
+  ): Promise<BudgetDecisionResultDto> {
+    const encoded = encodeURIComponent(token.trim());
+    return request<BudgetDecisionResultDto>(
+      `/api/tracking/${encoded}/approve`,
+      { method: "POST", body: JSON.stringify(input) },
+      options,
+    );
+  },
+};
+
 export const __internal = { parseEnvelope, createCorrelationId };
+
 
 
