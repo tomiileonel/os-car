@@ -160,7 +160,13 @@ export async function GET(
       },
     });
 
-    if (!order) {
+    const MAX_TRACKING_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 días TTL (N5)
+
+    if (
+      !order ||
+      order.status === "ENTREGADO" ||
+      Date.now() - order.trackingCodeIssuedAt.getTime() > MAX_TRACKING_AGE_MS
+    ) {
       throw new NotFoundException(
         "TRACKING_NOT_FOUND",
         "No encontramos una orden activa vinculada a este enlace de seguimiento.",
@@ -176,7 +182,7 @@ export async function GET(
     else if (currentStatus === "ESPERANDO_REPARACION") stageReachedIndex = 2;
     else if (currentStatus === "EN_REPARACION") stageReachedIndex = 3;
     else if (currentStatus === "CONTROL") stageReachedIndex = 4;
-    else if (currentStatus === "LISTO" || currentStatus === "ENTREGADO") stageReachedIndex = 5;
+    else if (currentStatus === "LISTO") stageReachedIndex = 5;
 
     const timeline: PublicTrackingTimelineStepDto[] = TIMELINE_STAGES.map((stage, idx) => {
       // Buscar evento de historial vinculado
@@ -199,14 +205,13 @@ export async function GET(
     let budgetDto: PublicTrackingBudgetDto | null = null;
 
     if (activeVersion) {
-      const laborTotal = activeVersion.laborLines.reduce(
-        (acc, l) => acc + Number(l.lineTotal),
-        0,
-      );
-      const partsTotal = activeVersion.partLines.reduce(
-        (acc, p) => acc + Number(p.lineTotal),
-        0,
-      );
+      const isApprovedBudget = activeVersion.status === "APROBADO";
+      const laborTotal = activeVersion.laborLines
+        .filter((l) => !isApprovedBudget || l.isApproved)
+        .reduce((acc, l) => acc + Number(l.lineTotal), 0);
+      const partsTotal = activeVersion.partLines
+        .filter((p) => !isApprovedBudget || p.isApproved)
+        .reduce((acc, p) => acc + Number(p.lineTotal), 0);
 
       budgetDto = {
         id: activeVersion.id,
@@ -221,7 +226,7 @@ export async function GET(
           estimatedMinutes: line.estimatedMinutes,
           hourlyRateCharged: Number(line.hourlyRateCharged),
           lineTotal: Number(line.lineTotal),
-          approved: activeVersion.status === "APROBADO",
+          approved: line.isApproved,
         })),
         partLines: activeVersion.partLines.map((part) => ({
           id: part.id,
@@ -229,7 +234,7 @@ export async function GET(
           quantity: part.quantity,
           unitPriceCharged: Number(part.unitPriceCharged),
           lineTotal: Number(part.lineTotal),
-          approved: activeVersion.status === "APROBADO",
+          approved: part.isApproved,
         })),
       };
     }

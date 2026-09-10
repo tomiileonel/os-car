@@ -10,12 +10,16 @@ import {
   ValidationException,
 } from "@/shared/errors";
 import { validateTransition } from "@/server/services/order-workflow.service";
-import { recalculateOrderTotalsInTx } from "@/server/services/order-calculation.service";
+import {
+  recalculateOrderTotalsInTx,
+  withSerializableRetry,
+} from "@/server/services/order-calculation.service";
 import {
   decideBudgetVersion,
   type BudgetApprovalPrismaClient,
 } from "@/server/services/budget-approval.service";
 import { recalculateBlockersInTx } from "@/server/services/order-blocker.service";
+import { createTrackingToken, hashTrackingToken } from "@/lib/tracking-token";
 
 function failResponse(error: unknown, request: NextRequest): NextResponse {
   const requestId = resolveCorrelationId(request);
@@ -221,72 +225,121 @@ export async function PATCH(
       const targetStatus = body.targetStatus as OrderStatus;
       const expectedVersion = typeof body.expectedVersion === "number" ? body.expectedVersion : undefined;
 
-      const currentOrder = await prisma.workOrder.findFirst({
-        where: { id, workshopId, deletedAt: null },
-        select: { id: true, status: true, version: true },
-      });
-      if (!currentOrder) {
-        throw new NotFoundException("WORK_ORDER_NOT_FOUND", "La orden no existe.");
-      }
+      await withSerializableRetry(() =>
+        prisma.$transaction(
+          async (tx) => {
+            const currentOrder = await tx.workOrder.findFirst({
+              where: { id, workshopId, deletedAt: null },
+              select: { id: true, status: true, version: true },
+            });
+            if (!currentOrder) {
+              throw new NotFoundException("WORK_ORDER_NOT_FOUND", "La orden no existe.");
+            }
 
-      if (expectedVersion !== undefined && currentOrder.version !== expectedVersion) {
-        throw new DomainConflictException(
-          "CONCURRENT_MODIFICATION",
-          "La orden ha sido modificada concurrentemente.",
-          { currentVersion: currentOrder.version, expectedVersion },
-        );
-      }
+            if (expectedVersion !== undefined && currentOrder.version !== expectedVersion) {
+              throw new DomainConflictException(
+                "CONCURRENT_MODIFICATION",
+                "La orden ha sido modificada concurrentemente.",
+                { currentVersion: currentOrder.version, expectedVersion },
+              );
+            }
 
-      const check = validateTransition(currentOrder.status, targetStatus, id);
-      if (!check.ok) {
-        throw check.error;
-      }
+            const check = validateTransition(currentOrder.status, targetStatus, id);
+            if (!check.ok) {
+              throw check.error;
+            }
 
-      const now = new Date();
-      const updateData: Record<string, unknown> = {
-        status: targetStatus,
-        version: { increment: 1 },
-      };
+            const now = new Date();
+            const updateData: Record<string, unknown> = {
+              status: targetStatus,
+              version: { increment: 1 },
+            };
 
-      if (targetStatus === "DIAGNOSTICO") {
-        updateData.diagnosedAt = now;
-      } else if (targetStatus === "EN_REPARACION") {
-        updateData.repairStartedAt = now;
-      } else if (targetStatus === "LISTO") {
-        updateData.readyAt = now;
-      } else if (targetStatus === "ENTREGADO") {
-        updateData.deliveredAt = now;
-      } else if (targetStatus === "CANCELADA") {
-        updateData.cancelledAt = now;
-        if (typeof body.reason === "string") {
-          updateData.cancellationReason = body.reason;
-        }
-      }
+            if (targetStatus === "DIAGNOSTICO") {
+              updateData.diagnosedAt = now;
+            } else if (targetStatus === "EN_REPARACION") {
+              updateData.repairStartedAt = now;
+            } else if (targetStatus === "LISTO") {
+              updateData.readyAt = now;
+            } else if (targetStatus === "ENTREGADO") {
+              updateData.deliveredAt = now;
+            } else if (targetStatus === "CANCELADA") {
+              updateData.cancelledAt = now;
+              if (typeof body.reason === "string") {
+                updateData.cancellationReason = body.reason;
+              }
+            }
 
-      await prisma.$transaction(async (tx) => {
-        await tx.workOrder.update({
-          where: { id },
-          data: updateData,
-        });
+            // N3: CAS condicionado a status y versión obligatoria
+            const updateResult = await tx.workOrder.updateMany({
+              where: {
+                id,
+                workshopId,
+                status: currentOrder.status,
+                version: expectedVersion !== undefined ? expectedVersion : currentOrder.version,
+              },
+              data: updateData,
+            });
 
-        await tx.statusHistory.create({
-          data: {
-            workOrderId: id,
-            actorType: "ADMIN",
-            actorAdminId: adminUser.id,
-            eventType: targetStatus === "CANCELADA" ? "ORDEN_CANCELADA" : "OTRO",
-            publicVisible: true,
-            publicDescription: `Estado actualizado a ${targetStatus}`,
-            metadata: { from: currentOrder.status, to: targetStatus, reason: body.reason ?? null },
+            if (updateResult.count === 0) {
+              throw new DomainConflictException(
+                "CONCURRENT_MODIFICATION",
+                "La orden ha sido modificada concurrentemente.",
+                { currentStatus: currentOrder.status, currentVersion: currentOrder.version },
+              );
+            }
+
+            await tx.statusHistory.create({
+              data: {
+                workOrderId: id,
+                actorType: "ADMIN",
+                actorAdminId: adminUser.id,
+                eventType: targetStatus === "CANCELADA" ? "ORDEN_CANCELADA" : "OTRO",
+                publicVisible: true,
+                publicDescription: `Estado actualizado a ${targetStatus}`,
+                metadata: { from: currentOrder.status, to: targetStatus, reason: body.reason ?? null },
+              },
+            });
+
+            await recalculateBlockersInTx(tx, {
+              workshopId,
+              workOrderId: id,
+              actorAdminId: adminUser.id,
+            });
           },
-        });
+          { isolationLevel: "Serializable", maxWait: 10000, timeout: 30000 },
+        ),
+      );
+    } else if (action === "rotate-tracking-token") {
+      // N7: Generación / rotación segura de enlace de seguimiento para clientes
+      const rawTrackingToken = createTrackingToken();
+      const trackingCodeHash = hashTrackingToken(rawTrackingToken);
 
-        await recalculateBlockersInTx(tx, {
-          workshopId,
-          workOrderId: id,
-          actorAdminId: adminUser.id,
-        });
+      await prisma.workOrder.update({
+        where: { id, workshopId },
+        data: {
+          trackingCodeHash,
+          trackingCodeIssuedAt: new Date(),
+          trackingCodeRevokedAt: null,
+        },
       });
+
+      return NextResponse.json(
+        {
+          success: true,
+          data: {
+            trackingToken: rawTrackingToken,
+            trackingUrl: `/tracking/${encodeURIComponent(rawTrackingToken)}`,
+          },
+          meta: { requestId },
+        },
+        {
+          headers: {
+            "Cache-Control": "no-store",
+            "x-correlation-id": requestId,
+          },
+        },
+      );
     } else if (action === "add-work-item") {
       const description = typeof body.description === "string" ? body.description.trim() : "";
       if (!description) {

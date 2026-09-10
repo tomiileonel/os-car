@@ -492,6 +492,20 @@ export const workOrdersApi = {
       options,
     );
   },
+
+  rotateTrackingToken(
+    id: string,
+    options?: ApiRequestOptions,
+  ): Promise<{ trackingToken: string; trackingUrl: string }> {
+    return request<{ trackingToken: string; trackingUrl: string }>(
+      `/api/work-orders/${id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ action: "rotate-tracking-token" }),
+      },
+      options,
+    );
+  },
 };
 
 // ---- Inventory & Tire Hotel Surface (Gate G8) ------------------------

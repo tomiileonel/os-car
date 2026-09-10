@@ -21,6 +21,7 @@ vi.mock("@/lib/api-client", async (importOriginal) => {
       addPartItem: vi.fn(),
       resolveBlocker: vi.fn(),
       approveBudget: vi.fn(),
+      rotateTrackingToken: vi.fn(),
     },
   };
 });
@@ -205,5 +206,35 @@ describe("Ficha de Orden y Presupuesto (OrderDetailPage)", () => {
       targetStatus: "CONTROL",
       expectedVersion: 2,
     });
+  });
+
+  it("rotates and copies canonical client tracking link with raw token", async () => {
+    const user = userEvent.setup();
+    const writeTextMock = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      value: {
+        writeText: writeTextMock,
+      },
+      writable: true,
+      configurable: true,
+    });
+
+    vi.mocked(workOrdersApi.rotateTrackingToken).mockResolvedValueOnce({
+      trackingToken: "fresh-raw-token",
+      trackingUrl: "/tracking/fresh-raw-token",
+    });
+
+    render(<OrderDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("AG405NM")).toBeInTheDocument();
+    });
+
+    const copyBtn = screen.getByRole("button", { name: /copiar enlace para cliente/i });
+    await user.click(copyBtn);
+
+    expect(workOrdersApi.rotateTrackingToken).toHaveBeenCalledWith("wo-1");
+    expect(writeTextMock).toHaveBeenCalledWith(expect.stringContaining("/tracking/fresh-raw-token"));
+    expect(await screen.findByText(/enlace público de seguimiento copiado/i)).toBeInTheDocument();
   });
 });

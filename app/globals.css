@@ -1,3 +1,15 @@
+@import "tailwindcss";
+
+@theme {
+  --color-industrial-bg: #090d16;
+  --color-industrial-bg-alt: #0e0e11;
+  --color-industrial-card: #111827;
+  --color-industrial-border: #374151;
+  --color-industrial-accent: #e0c700;
+  --color-industrial-success: #10b981;
+  --spacing-touch: 48px;
+}
+
 :root {
   --background: #090d16;
   --surface: #111827;

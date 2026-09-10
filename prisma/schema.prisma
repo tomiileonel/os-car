@@ -627,6 +627,7 @@ model BudgetLaborLine {
   estimatedMinutes  Int
   hourlyRateCharged Decimal @db.Decimal(12, 2)
   lineTotal         Decimal @db.Decimal(12, 2)
+  isApproved        Boolean @default(true)
 
   budgetVersion BudgetVersion @relation(fields: [budgetVersionId], references: [id], onDelete: Restrict)
   workItem      WorkItem?     @relation(fields: [workItemId], references: [id], onDelete: Restrict)
@@ -643,6 +644,7 @@ model BudgetPartLine {
   quantity         Int
   unitPriceCharged Decimal @db.Decimal(12, 2)
   lineTotal        Decimal @db.Decimal(12, 2)
+  isApproved       Boolean @default(true)
 
   budgetVersion BudgetVersion @relation(fields: [budgetVersionId], references: [id], onDelete: Restrict)
   partItem      PartItem?     @relation(fields: [partItemId], references: [id], onDelete: Restrict)

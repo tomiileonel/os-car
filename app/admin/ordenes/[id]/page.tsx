@@ -50,6 +50,7 @@ export default function OrderDetailPage(): React.JSX.Element {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [activeTrackingToken, setActiveTrackingToken] = useState<string | null>(null);
 
   // New Work Item Form
   const [showAddLabor, setShowAddLabor] = useState(false);
@@ -200,11 +201,25 @@ export default function OrderDetailPage(): React.JSX.Element {
     }
   }
 
-  function handleCopyTrackingLink() {
+  async function handleCopyTrackingLink() {
     if (!order) return;
-    const url = `${window.location.origin}/seguimiento/${order.trackingCodeHash}`;
-    void navigator.clipboard.writeText(url);
-    setFeedbackMessage("Enlace público de seguimiento copiado al portapapeles.");
+    try {
+      let token = activeTrackingToken;
+      if (!token) {
+        setIsActionLoading(true);
+        const res = await workOrdersApi.rotateTrackingToken(order.id);
+        token = res.trackingToken;
+        setActiveTrackingToken(token);
+      }
+      const url = `${window.location.origin}/tracking/${encodeURIComponent(token)}`;
+      await navigator.clipboard.writeText(url);
+      setFeedbackMessage("Enlace público de seguimiento copiado al portapapeles.");
+    } catch (err) {
+      const msg = err instanceof ApiClientError ? err.message : "Error al generar enlace de seguimiento";
+      setErrorMessage(msg);
+    } finally {
+      setIsActionLoading(false);
+    }
   }
   if (isLoading) {
     return (

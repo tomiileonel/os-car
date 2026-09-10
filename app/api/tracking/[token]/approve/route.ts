@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashTrackingToken } from "@/lib/tracking-token";
@@ -11,10 +12,17 @@ import {
   toErrorEnvelope,
 } from "@/shared/errors";
 import { resolveCorrelationId } from "@/shared/telemetry/correlation";
-import { decideBudgetVersion, type BudgetApprovalPrismaClient } from "@/server/services/budget-approval.service";
+import {
+  decideBudgetVersionInTx,
+  type BudgetApprovalServiceTx,
+} from "@/server/services/budget-approval.service";
+import { validateTransition } from "@/server/services/order-workflow.service";
+import { withSerializableRetry } from "@/server/services/order-calculation.service";
 import type { BudgetDecisionInput, BudgetDecisionResultDto } from "@/lib/api-client";
 
 export const runtime = "nodejs";
+
+const MAX_TRACKING_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 días TTL (N5)
 
 function failResponse(error: unknown, request: NextRequest): NextResponse {
   const requestId = resolveCorrelationId(request);
@@ -83,7 +91,11 @@ export async function POST(
       },
     });
 
-    if (!order) {
+    if (
+      !order ||
+      order.status === "ENTREGADO" ||
+      Date.now() - order.trackingCodeIssuedAt.getTime() > MAX_TRACKING_AGE_MS
+    ) {
       throw new NotFoundException(
         "TRACKING_NOT_FOUND",
         "No se encontró una orden de trabajo activa vinculada a este enlace.",
@@ -118,6 +130,15 @@ export async function POST(
     const approvedItemIds = body.approvedItemIds ?? [];
     const rejectedItemIds = body.rejectedItemIds ?? [];
 
+    // Validar transición FSM canónica antes de cualquier mutación (N2)
+    const newStatus = decision === "APROBADO" ? "EN_REPARACION" : order.status;
+    if (decision === "APROBADO") {
+      const transitionCheck = validateTransition(order.status, "EN_REPARACION", order.id);
+      if (!transitionCheck.ok) {
+        throw transitionCheck.error;
+      }
+    }
+
     // Calcular montos
     let totalApproved = 0;
     let approvedCount = 0;
@@ -133,7 +154,6 @@ export async function POST(
         if (rejectedItemIds.includes(line.id)) {
           rejectedCount++;
         } else {
-          // Si no está explícitamente rechazado, se aprueba
           totalApproved += line.lineTotal;
           approvedCount++;
         }
@@ -142,46 +162,92 @@ export async function POST(
       rejectedCount = allLines.length;
     }
 
-    // Ejecutar el servicio formal de aprobación de presupuestos
-    await decideBudgetVersion(prisma as unknown as BudgetApprovalPrismaClient, {
-      workshopId: order.workshopId,
-      workOrderId: order.id,
-      budgetVersionId: targetVersion.id,
-      decision,
-      actorType: "CLIENTE",
-      ipHash: ip,
-      rejectionReason: decision === "RECHAZADO" ? (body.notes || "Rechazado por cliente desde portal público") : undefined,
-    });
+    // N4: Hashear IP antes de persistir
+    const ipHash = createHash("sha256").update(ip).digest("hex");
+    const now = new Date();
 
-    // Transición de orden y registro del evento APROBACION_CLIENTE_WEB
-    const newStatus = decision === "APROBADO" ? "EN_REPARACION" : order.status;
+    // N2 & N6: Transacción atómica SERIALIZABLE con reintentos jitter
+    await withSerializableRetry(() =>
+      prisma.$transaction(
+        async (tx) => {
+          // 1. Decisión formal del presupuesto
+          await decideBudgetVersionInTx(tx as unknown as BudgetApprovalServiceTx, {
+            workshopId: order.workshopId,
+            workOrderId: order.id,
+            budgetVersionId: targetVersion.id,
+            decision,
+            actorType: "CLIENTE",
+            ipHash,
+            rejectionReason:
+              decision === "RECHAZADO"
+                ? (body.notes || "Rechazado por cliente desde portal público")
+                : undefined,
+          });
 
-    if (decision === "APROBADO") {
-      await prisma.workOrder.update({
-        where: { id: order.id },
-        data: {
-          status: newStatus,
-          repairStartedAt: new Date(),
+          // 2. N6: Persistir estado granular de cada línea de trabajo y repuesto
+          if (decision === "RECHAZADO") {
+            await tx.budgetLaborLine.updateMany({
+              where: { budgetVersionId: targetVersion.id },
+              data: { isApproved: false },
+            });
+            await tx.budgetPartLine.updateMany({
+              where: { budgetVersionId: targetVersion.id },
+              data: { isApproved: false },
+            });
+          } else {
+            if (approvedItemIds.length > 0) {
+              await tx.budgetLaborLine.updateMany({
+                where: { id: { in: approvedItemIds }, budgetVersionId: targetVersion.id },
+                data: { isApproved: true },
+              });
+              await tx.budgetPartLine.updateMany({
+                where: { id: { in: approvedItemIds }, budgetVersionId: targetVersion.id },
+                data: { isApproved: true },
+              });
+            }
+            if (rejectedItemIds.length > 0) {
+              await tx.budgetLaborLine.updateMany({
+                where: { id: { in: rejectedItemIds }, budgetVersionId: targetVersion.id },
+                data: { isApproved: false },
+              });
+              await tx.budgetPartLine.updateMany({
+                where: { id: { in: rejectedItemIds }, budgetVersionId: targetVersion.id },
+                data: { isApproved: false },
+              });
+            }
+          }
+
+          // 3. N2: Transición de estado de WorkOrder y StatusHistory dentro de la tx atómica
+          if (decision === "APROBADO") {
+            await tx.workOrder.update({
+              where: { id: order.id },
+              data: {
+                status: "EN_REPARACION",
+                repairStartedAt: now,
+              },
+            });
+
+            await tx.statusHistory.create({
+              data: {
+                workOrderId: order.id,
+                actorType: "CLIENTE",
+                eventType: "APROBACION_CLIENTE_WEB",
+                toStatus: "EN_REPARACION",
+                publicVisible: true,
+                publicDescription: `Presupuesto aprobado por el cliente vía portal público (${approvedCount} ítems aprobados).`,
+                metadata: {
+                  approvedItemIds,
+                  rejectedItemIds,
+                  totalApprovedAmount: totalApproved,
+                  notes: body.notes ?? null,
+                },
+              },
+            });
+          }
         },
-      });
-
-      await prisma.statusHistory.create({
-        data: {
-          workOrderId: order.id,
-          actorType: "CLIENTE",
-          eventType: "APROBACION_CLIENTE_WEB",
-          toStatus: newStatus,
-          publicVisible: true,
-          publicDescription: `Presupuesto aprobado por el cliente vía portal público (${approvedCount} ítems aprobados).`,
-          metadata: {
-            approvedItemIds,
-            rejectedItemIds,
-            totalApprovedAmount: totalApproved,
-            notes: body.notes ?? null,
-          },
-        },
-      });
-    }
+        { isolationLevel: "Serializable", maxWait: 10000, timeout: 30000 },
+      ),
+    );
 
     const result: BudgetDecisionResultDto = {
       workOrderId: order.id,

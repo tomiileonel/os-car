@@ -491,7 +491,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         workOrderId: workOrder.id,
         workOrderNumber: orderNumber,
         trackingToken,
-        trackingUrl: `/seguimiento?token=${encodeURIComponent(trackingToken)}`,
+        trackingUrl: `/tracking/${encodeURIComponent(trackingToken)}`,
         status: "INGRESADO",
         vehicleId: vehicle.id,
         customerId: customer.id,

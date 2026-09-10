@@ -167,7 +167,7 @@ export async function registerPublicIntake(input: PublicIntakeInput): Promise<Pu
 
   return {
     trackingToken,
-    trackingUrl: `/seguimiento?token=${encodeURIComponent(trackingToken)}`,
+    trackingUrl: `/tracking/${encodeURIComponent(trackingToken)}`,
     workOrderId: workOrder.id,
   };
 }
