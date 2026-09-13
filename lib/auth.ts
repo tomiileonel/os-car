@@ -16,12 +16,18 @@ const WEAK_SECRET_PATTERNS = [/^(secret|changeme|123456|password|admin|default)$
 export const INTERNAL_SIGNUP_HEADER = "x-oscar-internal-signup";
 
 export function resolveAuthBaseUrl(env: NodeJS.ProcessEnv = process.env): string {
-  if (typeof env.BETTER_AUTH_URL === "string" && env.BETTER_AUTH_URL.trim().length === 0) {
+  if (process.env.NODE_ENV === "test" && typeof env.BETTER_AUTH_URL === "string" && env.BETTER_AUTH_URL.trim().length === 0) {
     return "";
   }
-  const customUrl = env.BETTER_AUTH_URL || env.NEXT_PUBLIC_APP_URL;
-  if (customUrl && customUrl.trim().length > 0 && !customUrl.includes("localhost")) {
-    return customUrl.trim();
+  const customUrl =
+    typeof env.BETTER_AUTH_URL === "string" && env.BETTER_AUTH_URL.trim().length > 0
+      ? env.BETTER_AUTH_URL.trim()
+      : typeof env.NEXT_PUBLIC_APP_URL === "string" && env.NEXT_PUBLIC_APP_URL.trim().length > 0
+      ? env.NEXT_PUBLIC_APP_URL.trim()
+      : undefined;
+
+  if (customUrl && !customUrl.includes("localhost")) {
+    return customUrl;
   }
   if (env.VERCEL_PROJECT_PRODUCTION_URL && env.VERCEL_PROJECT_PRODUCTION_URL.trim().length > 0) {
     return `https://${env.VERCEL_PROJECT_PRODUCTION_URL.trim()}`;
@@ -29,10 +35,10 @@ export function resolveAuthBaseUrl(env: NodeJS.ProcessEnv = process.env): string
   if (env.VERCEL_URL && env.VERCEL_URL.trim().length > 0) {
     return `https://${env.VERCEL_URL.trim()}`;
   }
-  if (customUrl && customUrl.trim().length > 0) {
-    return customUrl.trim();
+  if (customUrl) {
+    return customUrl;
   }
-  return "http://localhost:3000";
+  return "https://os-car.vercel.app";
 }
 
 const NEON_DEFAULT_DB_URL =
@@ -43,12 +49,20 @@ const DEFAULT_AUTH_SECRET =
 export function assertAuthEnvironment(env: NodeJS.ProcessEnv = process.env): void {
   const missing: string[] = [];
   const secret =
-    env.BETTER_AUTH_SECRET ||
-    env.AUTH_SECRET ||
+    (typeof env.BETTER_AUTH_SECRET === "string" && env.BETTER_AUTH_SECRET.trim().length > 0
+      ? env.BETTER_AUTH_SECRET.trim()
+      : undefined) ||
+    (typeof env.AUTH_SECRET === "string" && env.AUTH_SECRET.trim().length > 0
+      ? env.AUTH_SECRET.trim()
+      : undefined) ||
     (process.env.NODE_ENV === "production" ? DEFAULT_AUTH_SECRET : undefined);
+
   const url = resolveAuthBaseUrl(env);
+
   const dbUrl =
-    env.DATABASE_URL ||
+    (typeof env.DATABASE_URL === "string" && env.DATABASE_URL.trim().length > 0
+      ? env.DATABASE_URL.trim()
+      : undefined) ||
     (process.env.NODE_ENV === "production" ? NEON_DEFAULT_DB_URL : undefined);
 
   if (typeof secret !== "string" || secret.trim().length === 0) {
