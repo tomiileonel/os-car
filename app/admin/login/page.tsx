@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import { getAdminBootstrapStatus } from "@/server/services/admin-bootstrap.service";
 import { LoginForm } from "./LoginForm";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLoginPage() {
   const bootstrapStatus = await getAdminBootstrapStatus();
 

@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getAdminBootstrapStatus } from "@/server/services/admin-bootstrap.service";
 import { RegisterForm } from "./RegisterForm";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminRegisterPage() {
   const bootstrapStatus = await getAdminBootstrapStatus();
 
