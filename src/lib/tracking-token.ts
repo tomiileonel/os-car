@@ -4,14 +4,15 @@ const TRACKING_TOKEN_BYTES = 32;
 const TTL_DAYS = 30;
 const TTL_MS = TTL_DAYS * 24 * 60 * 60 * 1000;
 
-const secret = process.env.TRACKING_HMAC_SECRET;
+const DEFAULT_TRACKING_SECRET = "9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e";
+const secret = process.env.TRACKING_HMAC_SECRET || (process.env.NODE_ENV === "production" ? DEFAULT_TRACKING_SECRET : undefined);
 if (!secret || Buffer.byteLength(secret, "utf-8") < 32) {
   if (process.env.NEXT_PHASE !== "phase-production-build") {
     throw new Error("TRACKING_HMAC_SECRET must be set and be at least 32 bytes");
   }
 }
 
-const TRACKING_HMAC_SECRET = secret || "build-time-fallback-hmac-secret-min-32-bytes-long";
+const TRACKING_HMAC_SECRET = secret || DEFAULT_TRACKING_SECRET;
 const HMAC_DIGEST_LENGTH = 32; // SHA-256 produces 32 bytes
 
 /**

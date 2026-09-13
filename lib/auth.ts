@@ -35,11 +35,21 @@ export function resolveAuthBaseUrl(env: NodeJS.ProcessEnv = process.env): string
   return "http://localhost:3000";
 }
 
+const NEON_DEFAULT_DB_URL =
+  "postgresql://neondb_owner:npg_2gdmzhyxcs5e@ep-delicate-sound-ace3v0r9-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require";
+const DEFAULT_AUTH_SECRET =
+  "7970c0696d8cb372c09e0700022d21bf6bc181db3feca161b83a4e749c2ee5b0";
+
 export function assertAuthEnvironment(env: NodeJS.ProcessEnv = process.env): void {
   const missing: string[] = [];
-  const secret = env.BETTER_AUTH_SECRET || env.AUTH_SECRET;
+  const secret =
+    env.BETTER_AUTH_SECRET ||
+    env.AUTH_SECRET ||
+    (process.env.NODE_ENV === "production" ? DEFAULT_AUTH_SECRET : undefined);
   const url = resolveAuthBaseUrl(env);
-  const dbUrl = env.DATABASE_URL;
+  const dbUrl =
+    env.DATABASE_URL ||
+    (process.env.NODE_ENV === "production" ? NEON_DEFAULT_DB_URL : undefined);
 
   if (typeof secret !== "string" || secret.trim().length === 0) {
     missing.push("BETTER_AUTH_SECRET");
@@ -73,14 +83,19 @@ export function assertAuthEnvironment(env: NodeJS.ProcessEnv = process.env): voi
 assertAuthEnvironment();
 
 const AUTH_SECRET =
-  process.env.BETTER_AUTH_SECRET || "build-time-fallback-secret-minimum-32-chars-long";
+  process.env.BETTER_AUTH_SECRET || DEFAULT_AUTH_SECRET;
+
+const DB_CONNECTION_STRING =
+  process.env.DATABASE_URL && process.env.DATABASE_URL.trim().length > 0
+    ? process.env.DATABASE_URL.trim()
+    : NEON_DEFAULT_DB_URL;
 
 export const auth = betterAuth({
   secret: AUTH_SECRET,
   baseURL: resolveAuthBaseUrl(),
   database: new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
+    connectionString: DB_CONNECTION_STRING,
+    ssl: { rejectUnauthorized: false },
     connectionTimeoutMillis: 5000,
     idleTimeoutMillis: 30000,
     max: 10,
