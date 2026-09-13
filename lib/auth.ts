@@ -78,7 +78,21 @@ const AUTH_SECRET =
 export const auth = betterAuth({
   secret: AUTH_SECRET,
   baseURL: resolveAuthBaseUrl(),
-  database: new Pool({ connectionString: process.env.DATABASE_URL }),
+  database: new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
+    connectionTimeoutMillis: 5000,
+    idleTimeoutMillis: 30000,
+    max: 10,
+  }),
+  trustedOrigins: [
+    "https://os-car.vercel.app",
+    "http://localhost:3000",
+    ...(process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? [`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`]
+      : []),
+    ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
+  ],
   emailAndPassword: {
     enabled: true,
     // Los admins nunca quedan logueados automáticamente al ser creados por
@@ -87,9 +101,10 @@ export const auth = betterAuth({
     autoSignIn: false,
   },
   advanced: {
+    useSecureCookies: process.env.NODE_ENV === "production",
     defaultCookieAttributes: {
       httpOnly: true,
-      sameSite: "strict",
+      sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
     },

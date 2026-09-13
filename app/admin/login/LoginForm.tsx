@@ -24,16 +24,22 @@ export function LoginForm({ canRegister }: LoginFormProps) {
     setLoading(true);
     setError(null);
 
-    const result = await authClient.signIn.email({ email, password });
-    if (result.error) {
-      // Regla de seguridad G11: error genérico fail-closed; no revelar si el correo existe
-      setError("Credenciales inválidas o cuenta no autorizada.");
-      setLoading(false);
-      return;
-    }
+    try {
+      const result = await authClient.signIn.email({ email, password });
+      if (result.error) {
+        // Regla de seguridad G11: error genérico fail-closed; no revelar si el correo existe
+        setError("Credenciales inválidas o cuenta no autorizada.");
+        setLoading(false);
+        return;
+      }
 
-    router.push("/admin");
-    router.refresh();
+      router.push("/admin");
+      router.refresh();
+    } catch (err) {
+      console.error("[LOGIN_SUBMIT_ERROR]", err);
+      setError("Error al conectar con el servicio de autenticación. Por favor, reintentá.");
+      setLoading(false);
+    }
   }
 
   return (
