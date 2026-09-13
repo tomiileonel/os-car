@@ -11,11 +11,8 @@ export const authClient = createAuthClient({
   baseURL: getClientBaseUrl(),
 });
 
-// `signUp` se excluye deliberadamente de este export. El auto-registro
-// público está deshabilitado: los admins se crean por invitación
-// server-side (ver src/server/services/admin-invite.service.ts) o por el
-// script de bootstrap (scripts/create-admin.mjs). Exponer signUp del
-// cliente permitiría a cualquier visitante crear una cuenta Better Auth
-// sin vínculo a un AdminUser, lo cual además es engañoso porque
-// requireActiveAdmin la rechazaría igual (ADMIN_INACTIVE).
+// `signUp` se excluye deliberadamente de este export. El registro
+// público libre de usuarios está deshabilitado: la inicialización se gestiona
+// por el servicio de bootstrap server-side (src/server/services/admin-register.service.ts)
+// o por script administrativo (scripts/create-admin.ts).
 export const { signIn, signOut, useSession } = authClient;

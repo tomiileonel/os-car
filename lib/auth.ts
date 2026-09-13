@@ -6,8 +6,8 @@ const WEAK_SECRET_PATTERNS = [/^(secret|changeme|123456|password|admin|default)$
 
 /**
  * Header interno que autoriza /sign-up/email. Solo lo conoce el proceso
- * server (src/server/services/admin-invite.service.ts y
- * scripts/create-admin.mjs), nunca llega al bundle de cliente ni a un
+ * server (src/server/services/admin-register.service.ts y
+ * scripts/create-admin.ts), nunca llega al bundle de cliente ni a un
  * request de un navegador externo. Better Auth no tiene un flag nativo
  * para "signup habilitado solo server-side" (ver better-auth#1142,
  * #5724), así que el corte se implementa con hooks.before comparando
