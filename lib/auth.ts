@@ -16,6 +16,9 @@ const WEAK_SECRET_PATTERNS = [/^(secret|changeme|123456|password|admin|default)$
 export const INTERNAL_SIGNUP_HEADER = "x-oscar-internal-signup";
 
 export function resolveAuthBaseUrl(env: NodeJS.ProcessEnv = process.env): string {
+  if (typeof env.BETTER_AUTH_URL === "string" && env.BETTER_AUTH_URL.trim().length === 0) {
+    return "";
+  }
   const customUrl = env.BETTER_AUTH_URL || env.NEXT_PUBLIC_APP_URL;
   if (customUrl && customUrl.trim().length > 0 && !customUrl.includes("localhost")) {
     return customUrl.trim();
