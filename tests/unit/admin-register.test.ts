@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { adminRegisterSchema } from "@/shared/schemas/admin-register";
 import { registerAdmin } from "@/server/services/admin-register.service";
+import { getAdminBootstrapStatus } from "@/server/services/admin-bootstrap.service";
 import { prisma } from "@/server/db";
-import { auth, INTERNAL_SIGNUP_HEADER } from "~/lib/auth";
+import { auth } from "~/lib/auth";
 import { ForbiddenException, DomainConflictException } from "@/shared/errors";
 
 vi.mock("@/server/db", () => ({
@@ -20,6 +21,7 @@ vi.mock("@/server/db", () => ({
     },
     $transaction: vi.fn((cb) => cb(prisma)),
     $executeRaw: vi.fn().mockResolvedValue(1),
+    $queryRaw: vi.fn().mockResolvedValue([]),
   },
 }));
 
@@ -37,17 +39,15 @@ vi.mock("@/server/audit/audit.service", () => ({
 }));
 
 describe("adminRegisterSchema (Zod validation contract)", () => {
-  it("valida correctamente un comando de registro completo", () => {
+  it("valida correctamente un comando de registro de bootstrap completo", () => {
     const valid = {
       displayName: "Juan Pérez",
       email: "juan@taller.com",
       password: "SuperSecretPassword123",
-      inviteCode: "INV-12345",
     };
     const parsed = adminRegisterSchema.parse(valid);
     expect(parsed.displayName).toBe("Juan Pérez");
     expect(parsed.email).toBe("juan@taller.com");
-    expect(parsed.inviteCode).toBe("INV-12345");
   });
 
   it("normaliza el email a minúsculas y elimina espacios", () => {
@@ -91,20 +91,43 @@ describe("adminRegisterSchema (Zod validation contract)", () => {
   });
 });
 
-describe("registerAdmin (Service logic & security governance)", () => {
+describe("getAdminBootstrapStatus (Regla canónica de bootstrap)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("permite el registro cuando hay 0 administradores activos", async () => {
+    vi.mocked(prisma.adminUser.count).mockResolvedValue(0);
+
+    const status = await getAdminBootstrapStatus();
+    expect(status.canRegister).toBe(true);
+    expect(status.adminCount).toBe(0);
+    expect(prisma.adminUser.count).toHaveBeenCalledWith({
+      where: { active: true, deletedAt: null },
+    });
+  });
+
+  it("bloquea el registro cuando ya existe 1 o más administradores activos", async () => {
+    vi.mocked(prisma.adminUser.count).mockResolvedValue(1);
+
+    const status = await getAdminBootstrapStatus();
+    expect(status.canRegister).toBe(false);
+    expect(status.adminCount).toBe(1);
+  });
+});
+
+describe("registerAdmin (Service logic & compensación de seguridad)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.BETTER_AUTH_SECRET = "super-secret-key-that-is-at-least-32-chars-long";
   });
 
-  it("permite el bootstrap del primer admin como OWNER si el taller no tiene admins (Opción A)", async () => {
+  it("permite el bootstrap del primer admin como OWNER si el taller no tiene admins", async () => {
+    vi.mocked(prisma.adminUser.count).mockResolvedValue(0);
     vi.mocked(prisma.workshop.findFirst).mockResolvedValue({
       id: "workshop_1",
       name: "Taller Central",
     } as any);
-
-    // Cero administradores existentes
-    vi.mocked(prisma.adminUser.count).mockResolvedValue(0);
     vi.mocked(prisma.adminUser.findFirst).mockResolvedValue(null);
 
     vi.mocked(auth.api.signUpEmail).mockResolvedValue({
@@ -148,19 +171,13 @@ describe("registerAdmin (Service logic & security governance)", () => {
     );
   });
 
-  it("bloquea con ForbiddenException el registro público abierto si ya existen admins y falta código (Opción B)", async () => {
-    vi.mocked(prisma.workshop.findFirst).mockResolvedValue({
-      id: "workshop_1",
-      name: "Taller Central",
-    } as any);
-
-    // Ya existe al menos 1 administrador
+  it("bloquea con ForbiddenException el registro si ya existe ≥1 admin (segunda cuenta rechazada)", async () => {
     vi.mocked(prisma.adminUser.count).mockResolvedValue(1);
 
     await expect(
       registerAdmin({
-        displayName: "Visitante Público",
-        email: "extra@taller.com",
+        displayName: "Segundo Administrador",
+        email: "segundo@taller.com",
         password: "Password12345",
       })
     ).rejects.toThrow(ForbiddenException);
@@ -168,59 +185,12 @@ describe("registerAdmin (Service logic & security governance)", () => {
     expect(auth.api.signUpEmail).not.toHaveBeenCalled();
   });
 
-  it("permite el registro cuando se suministra un código de invitación válido", async () => {
-    vi.mocked(prisma.workshop.findFirst).mockResolvedValue({
-      id: "workshop_1",
-      name: "Taller Central",
-    } as any);
-
-    vi.mocked(prisma.adminUser.count).mockResolvedValue(2);
-    vi.mocked(prisma.adminUser.findFirst).mockResolvedValue(null);
-
-    vi.mocked(auth.api.signUpEmail).mockResolvedValue({
-      user: {
-        id: "auth_user_mecanico",
-        email: "mecanico@taller.com",
-        name: "Mecánico Juan",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        emailVerified: false,
-      },
-    } as any);
-
-    vi.mocked(prisma.adminUser.create).mockResolvedValue({
-      id: "admin_user_2",
-      workshopId: "workshop_1",
-      authUserId: "auth_user_mecanico",
-      displayName: "Mecánico Juan",
-      email: "mecanico@taller.com",
-      role: "MECANICO",
-      active: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      deletedAt: null,
-      tokenVersion: 1,
-      passwordChangedAt: new Date(),
-    });
-
-    const result = await registerAdmin({
-      displayName: "Mecánico Juan",
-      email: "mecanico@taller.com",
-      password: "PasswordMecanico123",
-      inviteCode: "INV-MECANICO-789",
-    });
-
-    expect(result.role).toBe("MECANICO");
-    expect(result.email).toBe("mecanico@taller.com");
-  });
-
   it("rechaza el registro si ya existe un admin con ese email (409 Domain Conflict)", async () => {
+    vi.mocked(prisma.adminUser.count).mockResolvedValue(0);
     vi.mocked(prisma.workshop.findFirst).mockResolvedValue({
       id: "workshop_1",
       name: "Taller Central",
     } as any);
-
-    vi.mocked(prisma.adminUser.count).mockResolvedValue(0);
     vi.mocked(prisma.adminUser.findFirst).mockResolvedValue({ id: "existing_admin" } as any);
 
     await expect(
@@ -233,5 +203,37 @@ describe("registerAdmin (Service logic & security governance)", () => {
 
     expect(auth.api.signUpEmail).not.toHaveBeenCalled();
   });
+
+  it("ejecuta compensación y borra el usuario de Better Auth si la creación en Prisma falla", async () => {
+    vi.mocked(prisma.adminUser.count).mockResolvedValue(0);
+    vi.mocked(prisma.workshop.findFirst).mockResolvedValue({
+      id: "workshop_1",
+      name: "Taller Central",
+    } as any);
+    vi.mocked(prisma.adminUser.findFirst).mockResolvedValue(null);
+
+    vi.mocked(auth.api.signUpEmail).mockResolvedValue({
+      user: {
+        id: "auth_user_failed_prisma",
+        email: "fallo@taller.com",
+        name: "Fallo Prisma",
+      },
+    } as any);
+
+    // Simulamos fallo en Prisma
+    vi.mocked(prisma.adminUser.create).mockRejectedValue(new Error("Prisma connection failure"));
+
+    await expect(
+      registerAdmin({
+        displayName: "Fallo Prisma",
+        email: "fallo@taller.com",
+        password: "Password12345",
+      })
+    ).rejects.toThrow("Prisma connection failure");
+
+    // Verificamos que la compensación intentó purgar el usuario huérfano
+    expect(prisma.$executeRaw).toHaveBeenCalled();
+  });
 });
+
 

@@ -12,6 +12,7 @@ import {
   type AdminRegisterCommand,
 } from "@/shared/schemas/admin-register";
 import type { CanonicalAdminRole } from "@/server/auth/active-admin";
+import { getAdminBootstrapStatus } from "./admin-bootstrap.service";
 
 export interface AdminRegisterResult {
   adminUserId: string;
@@ -21,25 +22,51 @@ export interface AdminRegisterResult {
 }
 
 /**
- * Registra una cuenta administrativa respetando la gobernanza de seguridad:
+ * Compensación defensiva: elimina cualquier registro huérfano de Better Auth
+ * si la transacción relacional de Prisma falla.
+ */
+async function compensateOrphanBetterAuthUser(authUserId: string): Promise<void> {
+  try {
+    await prisma.$executeRaw`DELETE FROM "session" WHERE "userId" = ${authUserId}`;
+    await prisma.$executeRaw`DELETE FROM "account" WHERE "userId" = ${authUserId}`;
+    await prisma.$executeRaw`DELETE FROM "user" WHERE id = ${authUserId}`;
+  } catch {
+    // Best-effort de compensación: no enmascarar el error original de la operación
+  }
+}
+
+/**
+ * Registra la primera cuenta administrativa (bootstrap condicionado):
  *
- * 1. Opción A (Bootstrap inicial): Si el taller no tiene ningún administrador activo,
- *    se permite que el primer usuario se registre y se le asigna el rol de OWNER.
- * 2. Opción B (Invitación interna): Si ya existen administradores activos, el registro
- *    público libre se rechaza por fail-closed a menos que se presente un código
- *    o token de invitación válido emitido por un supervisor/dueño.
- *
- * Mejor práctica de Better Auth:
- * Reutiliza auth.api.signUpEmail con el header interno de seguridad INTERNAL_SIGNUP_HEADER
- * y autoSignIn: false para no emitir sesión automática; el usuario debe autenticarse
- * explícitamente en /admin/login.
+ * 1. Regla de seguridad de bootstrap:
+ *    Se consulta canónicamente getAdminBootstrapStatus().
+ *    Si canRegister === false (ya existe ≥1 administrador activo), se rechaza
+ *    incondicionalmente con 403 Forbidden.
+ * 2. Atomicidad y mitigación de estados parciales:
+ *    Better Auth y Prisma no comparten la misma conexión transaccional.
+ *    Si el alta en Better Auth prospera pero la creación del AdminUser en Prisma
+ *    falla, se ejecuta una compensación inmediata que purga el usuario creado
+ *    en las tablas de Better Auth, impidiendo cuentas huérfanas que bloqueen
+ *    reintentos o consuman el email único.
+ * 3. autoSignIn: false:
+ *    Garantiza que el registro nunca emita sesión automática. El usuario
+ *    debe iniciar sesión explícitamente en /admin/login.
  */
 export async function registerAdmin(
   rawCommand: AdminRegisterCommand
 ): Promise<AdminRegisterResult> {
   const command = adminRegisterSchema.parse(rawCommand);
 
-  // 1. Resolver el taller activo
+  // 1. Validar el estado canónico de bootstrap
+  const bootstrapStatus = await getAdminBootstrapStatus();
+  if (!bootstrapStatus.canRegister) {
+    throw new ForbiddenException(
+      "REGISTRATION_CLOSED",
+      "El registro administrativo está deshabilitado. Ya existe una cuenta de administrador configurada."
+    );
+  }
+
+  // 2. Resolver el taller activo
   const workshop = await prisma.workshop.findFirst({
     where: { deletedAt: null },
     select: { id: true, name: true },
@@ -52,41 +79,7 @@ export async function registerAdmin(
     );
   }
 
-  // 2. Comprobar administradores existentes en el taller
-  const existingAdminsCount = await prisma.adminUser.count({
-    where: { workshopId: workshop.id, active: true, deletedAt: null },
-  });
-
-  let assignedRole: CanonicalAdminRole = "MECANICO";
-
-  if (existingAdminsCount === 0) {
-    // Bootstrap inicial del taller: primer usuario toma rol de OWNER
-    assignedRole = "OWNER";
-  } else {
-    // Si ya existen administradores, el registro requiere un código de invitación
-    const validInviteCode = command.inviteCode?.trim();
-    if (!validInviteCode) {
-      throw new ForbiddenException(
-        "PUBLIC_REGISTRATION_DISABLED",
-        "El registro público está deshabilitado. Los administradores deben ser invitados por un supervisor o dueño del taller."
-      );
-    }
-
-    // Si provee código, verificamos el rol asignado según la convención del taller
-    if (validInviteCode.toUpperCase().startsWith("INV-OWNER")) {
-      assignedRole = "OWNER";
-    } else if (validInviteCode.toUpperCase().startsWith("INV-SUPERVISOR")) {
-      assignedRole = "TALLER_SUPERVISOR";
-    } else if (validInviteCode.toUpperCase().startsWith("INV-MECANICO")) {
-      assignedRole = "MECANICO";
-    } else if (validInviteCode.toUpperCase().startsWith("INV-RECEPCION")) {
-      assignedRole = "RECEPCIONISTA";
-    } else {
-      assignedRole = "ADMIN";
-    }
-  }
-
-  // 3. Comprobar que el email no esté ya registrado como administrador en este taller
+  // 3. Comprobar duplicado en la capa de administradores
   const duplicate = await prisma.adminUser.findFirst({
     where: { workshopId: workshop.id, email: command.email, deletedAt: null },
     select: { id: true },
@@ -101,7 +94,20 @@ export async function registerAdmin(
     );
   }
 
-  // 4. Registrar en Better Auth usando el header interno
+  // 4. Limpieza preventiva de cuentas huérfanas previas en Better Auth con este email
+  // (evita que un fallo previo de red en DB bloquee el bootstrap del primer dueño)
+  try {
+    const orphanUsers = await prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT id FROM "user" WHERE email = ${command.email}
+    `;
+    for (const orphan of orphanUsers) {
+      await compensateOrphanBetterAuthUser(orphan.id);
+    }
+  } catch {
+    // Si la tabla no existe o la query falla, continuar normalmente
+  }
+
+  // 5. Registrar en Better Auth usando el header interno de seguridad
   const signUpResult = await auth.api.signUpEmail({
     body: {
       name: command.displayName,
@@ -119,7 +125,7 @@ export async function registerAdmin(
 
   const authUserId = signUpResult.user.id;
 
-  // 5. Crear AdminUser en Prisma dentro de una transacción con auditoría
+  // 6. Crear AdminUser en Prisma dentro de una transacción con auditoría
   try {
     const adminUser = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const created = await tx.adminUser.create({
@@ -128,7 +134,7 @@ export async function registerAdmin(
           authUserId,
           displayName: command.displayName,
           email: command.email,
-          role: assignedRole,
+          role: "OWNER",
           active: true,
           passwordChangedAt: new Date(),
         },
@@ -138,14 +144,14 @@ export async function registerAdmin(
         workshopId: workshop.id,
         actorId: created.id,
         actorType: "ADMIN",
-        action: existingAdminsCount === 0 ? "ADMIN_BOOTSTRAPPED" : "ADMIN_REGISTERED",
+        action: "ADMIN_BOOTSTRAPPED",
         entityType: "ADMIN_USER",
         entityId: created.id,
         afterState: {
           email: command.email,
-          role: assignedRole,
+          role: "OWNER",
           displayName: command.displayName,
-          isBootstrap: existingAdminsCount === 0,
+          isBootstrap: true,
         },
       });
 
@@ -156,12 +162,13 @@ export async function registerAdmin(
       adminUserId: adminUser.id,
       email: command.email,
       displayName: command.displayName,
-      role: assignedRole,
+      role: "OWNER",
     };
   } catch (error) {
-    // Si la creación en Prisma falla, limpiar el usuario de Better Auth
-    await prisma.$executeRaw`DELETE FROM "user" WHERE id = ${authUserId}`.catch(() => {});
+    // Compensación obligatoria ante fallo relacional
+    await compensateOrphanBetterAuthUser(authUserId);
     throw error;
   }
 }
+
 

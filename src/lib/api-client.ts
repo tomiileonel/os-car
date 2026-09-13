@@ -1071,7 +1071,6 @@ export interface AdminRegisterPayload {
   displayName: string;
   email: string;
   password: string;
-  inviteCode?: string;
 }
 
 export interface AdminRegisterResultDto {
