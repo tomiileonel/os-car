@@ -2,8 +2,7 @@ import Link from "next/link";
 import { requireActiveAdmin } from "@/server/auth/active-admin";
 
 export default async function AdminPage() {
-  const { session, adminUser } = await requireActiveAdmin();
-  const canManageTeam = adminUser.role === "OWNER" || adminUser.role === "TALLER_SUPERVISOR";
+  const { session } = await requireActiveAdmin();
 
   return (
     <main className="os-page">
@@ -23,9 +22,6 @@ export default async function AdminPage() {
               <Link href="/admin/telemetria" className="admin-card"><h2>Telemetría & Analytics</h2><p>Tiempos de ciclo FSM, rotación de bahías y throughput.</p></Link>
               <Link href="/admin/almacen" className="admin-card"><h2>Almacén Táctico</h2><p>Insumos, repuestos y reposición crítica.</p></Link>
               <Link href="/admin/hotel-neumaticos" className="admin-card"><h2>Hotel Neumáticos</h2><p>Custodia activa, mapa de racks y desgaste.</p></Link>
-              {canManageTeam ? (
-                <Link href="/admin/equipo" className="admin-card"><h2>Equipo</h2><p>Invitá nuevos administradores del taller.</p></Link>
-              ) : null}
             </div>
           </div>
         </section>
