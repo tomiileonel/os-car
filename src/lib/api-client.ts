@@ -1043,6 +1043,54 @@ export const telemetryApi = {
   },
 };
 
+export interface InviteAdminPayload {
+  email: string;
+  displayName: string;
+  role: "OWNER" | "TALLER_SUPERVISOR" | "ADMIN" | "MECANICO" | "RECEPCIONISTA";
+}
+
+export interface InviteAdminResultDto {
+  adminUserId: string;
+  email: string;
+  displayName: string;
+  role: string;
+  temporaryPassword: string;
+}
+
+export const adminInviteApi = {
+  invite(payload: InviteAdminPayload, options?: ApiRequestOptions): Promise<InviteAdminResultDto> {
+    return request<InviteAdminResultDto>(
+      "/api/admin/invite",
+      { method: "POST", body: JSON.stringify(payload) },
+      options,
+    );
+  },
+};
+
+export interface AdminRegisterPayload {
+  displayName: string;
+  email: string;
+  password: string;
+  inviteCode?: string;
+}
+
+export interface AdminRegisterResultDto {
+  adminUserId: string;
+  email: string;
+  displayName: string;
+  role: string;
+}
+
+export const adminRegisterApi = {
+  register(payload: AdminRegisterPayload, options?: ApiRequestOptions): Promise<AdminRegisterResultDto> {
+    return request<AdminRegisterResultDto>(
+      "/api/admin/register",
+      { method: "POST", body: JSON.stringify(payload) },
+      options,
+    );
+  },
+};
+
 export const __internal = { parseEnvelope, createCorrelationId };
 
 
