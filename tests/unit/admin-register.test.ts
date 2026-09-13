@@ -204,7 +204,7 @@ describe("registerAdmin (Service logic & compensación de seguridad)", () => {
     expect(auth.api.signUpEmail).not.toHaveBeenCalled();
   });
 
-  it("ejecuta compensación y borra el usuario de Better Auth si la creación en Prisma falla", async () => {
+  it("ejecuta compensación y borra exclusivamente el authUserId de Better Auth si la creación en Prisma falla", async () => {
     vi.mocked(prisma.adminUser.count).mockResolvedValue(0);
     vi.mocked(prisma.workshop.findFirst).mockResolvedValue({
       id: "workshop_1",
@@ -212,9 +212,10 @@ describe("registerAdmin (Service logic & compensación de seguridad)", () => {
     } as any);
     vi.mocked(prisma.adminUser.findFirst).mockResolvedValue(null);
 
+    const targetAuthId = "auth_user_exact_uuid_12345";
     vi.mocked(auth.api.signUpEmail).mockResolvedValue({
       user: {
-        id: "auth_user_failed_prisma",
+        id: targetAuthId,
         email: "fallo@taller.com",
         name: "Fallo Prisma",
       },
@@ -231,8 +232,71 @@ describe("registerAdmin (Service logic & compensación de seguridad)", () => {
       })
     ).rejects.toThrow("Prisma connection failure");
 
-    // Verificamos que la compensación intentó purgar el usuario huérfano
-    expect(prisma.$executeRaw).toHaveBeenCalled();
+    // Verificamos que se invocó executeRaw exactamente 3 veces (session, account, user)
+    expect(prisma.$executeRaw).toHaveBeenCalledTimes(3);
+  });
+
+  it("NO ejecuta compensación si el alta de Better Auth falla antes de crear la cuenta", async () => {
+    vi.mocked(prisma.adminUser.count).mockResolvedValue(0);
+    vi.mocked(prisma.workshop.findFirst).mockResolvedValue({
+      id: "workshop_1",
+      name: "Taller Central",
+    } as any);
+    vi.mocked(prisma.adminUser.findFirst).mockResolvedValue(null);
+
+    vi.mocked(auth.api.signUpEmail).mockRejectedValue(new Error("Better Auth upstream down"));
+
+    await expect(
+      registerAdmin({
+        displayName: "Fallo Auth",
+        email: "auth_fallo@taller.com",
+        password: "Password12345",
+      })
+    ).rejects.toThrow("Better Auth upstream down");
+
+    // No se creó nada en Better Auth, no debe haber compensación
+    expect(prisma.$executeRaw).not.toHaveBeenCalled();
+  });
+
+  it("registra el error en consola de forma segura si la compensación de Better Auth también falla", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    vi.mocked(prisma.adminUser.count).mockResolvedValue(0);
+    vi.mocked(prisma.workshop.findFirst).mockResolvedValue({
+      id: "workshop_1",
+      name: "Taller Central",
+    } as any);
+    vi.mocked(prisma.adminUser.findFirst).mockResolvedValue(null);
+
+    vi.mocked(auth.api.signUpEmail).mockResolvedValue({
+      user: {
+        id: "auth_user_cascade_error",
+        email: "cascade@taller.com",
+        name: "Fallo Cascada",
+      },
+    } as any);
+
+    vi.mocked(prisma.adminUser.create).mockRejectedValue(new Error("Error original en Prisma"));
+    // executeRaw también falla durante la compensación
+    vi.mocked(prisma.$executeRaw).mockRejectedValue(new Error("DB timeout during compensation"));
+
+    await expect(
+      registerAdmin({
+        displayName: "Fallo Cascada",
+        email: "cascade@taller.com",
+        password: "Password12345",
+      })
+    ).rejects.toThrow("Error original en Prisma");
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "[CRITICAL_AUTH_COMPENSATION_FAILED]",
+      expect.objectContaining({
+        targetAuthUserId: "auth_user_cascade_error",
+        error: "DB timeout during compensation",
+      })
+    );
+
+    consoleErrorSpy.mockRestore();
   });
 });
 

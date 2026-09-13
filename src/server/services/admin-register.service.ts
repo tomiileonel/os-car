@@ -22,16 +22,34 @@ export interface AdminRegisterResult {
 }
 
 /**
- * Compensación defensiva: elimina cualquier registro huérfano de Better Auth
- * si la transacción relacional de Prisma falla.
+ * Compensación defensiva: elimina ÚNICAMENTE el registro recién creado en Better Auth
+ * si la transacción relacional posterior en Prisma falla.
+ *
+ * Garantías de seguridad:
+ * 1. Aislamiento estricto: la purga está condicionada por igualdad exacta al authUserId
+ *    generado durante esta operación específica.
+ * 2. No afecta a otros usuarios, administradores ni sesiones ajenas.
+ * 3. Se invoca única y exclusivamente si Better Auth ya creó la cuenta y Prisma falló.
+ * 4. Manejo de fallos en cascada: si la compensación falla, se emite un registro de error
+ *    estructurado con telemetría de seguridad sin enmascarar la excepción original.
  */
 async function compensateOrphanBetterAuthUser(authUserId: string): Promise<void> {
+  if (!authUserId || typeof authUserId !== "string" || authUserId.trim() === "") {
+    return;
+  }
+
   try {
     await prisma.$executeRaw`DELETE FROM "session" WHERE "userId" = ${authUserId}`;
     await prisma.$executeRaw`DELETE FROM "account" WHERE "userId" = ${authUserId}`;
     await prisma.$executeRaw`DELETE FROM "user" WHERE id = ${authUserId}`;
-  } catch {
-    // Best-effort de compensación: no enmascarar el error original de la operación
+  } catch (compensationError) {
+    // Registro forense estructurado sin filtrar contraseñas ni secretos
+    console.error("[CRITICAL_AUTH_COMPENSATION_FAILED]", {
+      message: "Fallo al ejecutar la compensación de cuenta huérfana en Better Auth tras error en Prisma.",
+      targetAuthUserId: authUserId,
+      error: compensationError instanceof Error ? compensationError.message : String(compensationError),
+      timestamp: new Date().toISOString(),
+    });
   }
 }
 
@@ -45,9 +63,8 @@ async function compensateOrphanBetterAuthUser(authUserId: string): Promise<void>
  * 2. Atomicidad y mitigación de estados parciales:
  *    Better Auth y Prisma no comparten la misma conexión transaccional.
  *    Si el alta en Better Auth prospera pero la creación del AdminUser en Prisma
- *    falla, se ejecuta una compensación inmediata que purga el usuario creado
- *    en las tablas de Better Auth, impidiendo cuentas huérfanas que bloqueen
- *    reintentos o consuman el email único.
+ *    falla, se ejecuta una compensación inmediata estrictamente acotada al
+ *    authUserId devuelto por Better Auth.
  * 3. autoSignIn: false:
  *    Garantiza que el registro nunca emita sesión automática. El usuario
  *    debe iniciar sesión explícitamente en /admin/login.
@@ -94,20 +111,7 @@ export async function registerAdmin(
     );
   }
 
-  // 4. Limpieza preventiva de cuentas huérfanas previas en Better Auth con este email
-  // (evita que un fallo previo de red en DB bloquee el bootstrap del primer dueño)
-  try {
-    const orphanUsers = await prisma.$queryRaw<Array<{ id: string }>>`
-      SELECT id FROM "user" WHERE email = ${command.email}
-    `;
-    for (const orphan of orphanUsers) {
-      await compensateOrphanBetterAuthUser(orphan.id);
-    }
-  } catch {
-    // Si la tabla no existe o la query falla, continuar normalmente
-  }
-
-  // 5. Registrar en Better Auth usando el header interno de seguridad
+  // 4. Registrar en Better Auth usando el header interno de seguridad
   const signUpResult = await auth.api.signUpEmail({
     body: {
       name: command.displayName,
@@ -125,7 +129,7 @@ export async function registerAdmin(
 
   const authUserId = signUpResult.user.id;
 
-  // 6. Crear AdminUser en Prisma dentro de una transacción con auditoría
+  // 5. Crear AdminUser en Prisma dentro de una transacción con auditoría
   try {
     const adminUser = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const created = await tx.adminUser.create({
