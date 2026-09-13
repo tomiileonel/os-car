@@ -103,7 +103,7 @@ describe("getAdminBootstrapStatus (Regla canónica de bootstrap)", () => {
     expect(status.canRegister).toBe(true);
     expect(status.adminCount).toBe(0);
     expect(prisma.adminUser.count).toHaveBeenCalledWith({
-      where: { active: true, deletedAt: null },
+      where: { active: true, deletedAt: null, email: { not: null } },
     });
   });
 

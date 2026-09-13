@@ -15,10 +15,27 @@ const WEAK_SECRET_PATTERNS = [/^(secret|changeme|123456|password|admin|default)$
  */
 export const INTERNAL_SIGNUP_HEADER = "x-oscar-internal-signup";
 
+export function resolveAuthBaseUrl(env: NodeJS.ProcessEnv = process.env): string {
+  const customUrl = env.BETTER_AUTH_URL || env.NEXT_PUBLIC_APP_URL;
+  if (customUrl && customUrl.trim().length > 0 && !customUrl.includes("localhost")) {
+    return customUrl.trim();
+  }
+  if (env.VERCEL_PROJECT_PRODUCTION_URL && env.VERCEL_PROJECT_PRODUCTION_URL.trim().length > 0) {
+    return `https://${env.VERCEL_PROJECT_PRODUCTION_URL.trim()}`;
+  }
+  if (env.VERCEL_URL && env.VERCEL_URL.trim().length > 0) {
+    return `https://${env.VERCEL_URL.trim()}`;
+  }
+  if (customUrl && customUrl.trim().length > 0) {
+    return customUrl.trim();
+  }
+  return "http://localhost:3000";
+}
+
 export function assertAuthEnvironment(env: NodeJS.ProcessEnv = process.env): void {
   const missing: string[] = [];
-  const secret = env.BETTER_AUTH_SECRET;
-  const url = env.BETTER_AUTH_URL;
+  const secret = env.BETTER_AUTH_SECRET || env.AUTH_SECRET;
+  const url = resolveAuthBaseUrl(env);
   const dbUrl = env.DATABASE_URL;
 
   if (typeof secret !== "string" || secret.trim().length === 0) {
@@ -31,7 +48,7 @@ export function assertAuthEnvironment(env: NodeJS.ProcessEnv = process.env): voi
       "[OS-CAR AUTH][FATAL] BETTER_AUTH_SECRET es débil o es un valor por defecto conocido. Debe tener al menos 32 caracteres y no usar valores triviales."
     );
   }
-  if (typeof url !== "string" || url.trim().length === 0) {
+  if (!url || url.trim().length === 0) {
     missing.push("BETTER_AUTH_URL");
   }
   if (typeof dbUrl !== "string" || dbUrl.trim().length === 0) {
@@ -57,7 +74,7 @@ const AUTH_SECRET =
 
 export const auth = betterAuth({
   secret: AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  baseURL: resolveAuthBaseUrl(),
   database: new Pool({ connectionString: process.env.DATABASE_URL }),
   emailAndPassword: {
     enabled: true,

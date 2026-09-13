@@ -161,7 +161,12 @@ async function request<T>(
     json = await response.json();
   } catch (cause) {
     throw new ApiClientError({
-      message: "Response body was not valid JSON",
+      message:
+        response.status >= 500
+          ? "El servidor encontró un error temporal al procesar la solicitud. Por favor, reintente en unos momentos."
+          : response.status === 404
+            ? "El recurso solicitado no fue encontrado en el servidor."
+            : "La respuesta del servidor no tuvo el formato esperado.",
       status: response.status,
       code: "INVALID_RESPONSE_BODY",
       requestId: response.headers.get("x-correlation-id") ?? correlationId,
