@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "~/lib/auth-client";
 
-export default function AdminLoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isRegistered = searchParams.get("registered") === "1" || searchParams.get("registered") === "true";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +21,7 @@ export default function AdminLoginPage() {
     setError(null);
     const result = await authClient.signIn.email({ email, password });
     if (result.error) {
-      setError(result.error.message || "No pudimos iniciar sesión.");
+      setError(result.error.message || "Credenciales inválidas o cuenta no activa. Verificá tus datos.");
       setLoading(false);
       return;
     }
@@ -27,6 +30,61 @@ export default function AdminLoginPage() {
   }
 
   return (
+    <div className="os-panel-content">
+      <p className="os-eyebrow">ACCESO ADMINISTRATIVO</p>
+      <h1 className="os-title">Panel del taller</h1>
+      <p className="os-lede">El acceso está protegido por Better Auth y los permisos se validan en servidor.</p>
+
+      {isRegistered ? (
+        <div className="os-message os-message-success" role="status" style={{ marginBottom: 20 }}>
+          ¡Cuenta creada con éxito! Por seguridad, ingresá con tu email y contraseña para acceder al panel.
+        </div>
+      ) : null}
+
+      <form className="os-form" onSubmit={submit}>
+        <label className="os-field">
+          <span className="os-label">Email</span>
+          <input
+            className="os-input"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+            required
+          />
+        </label>
+        <label className="os-field">
+          <span className="os-label">Contraseña</span>
+          <input
+            className="os-input"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+            required
+          />
+        </label>
+        {error ? <div className="os-message os-message-error" role="alert">{error}</div> : null}
+        <button className="os-button" type="submit" disabled={loading}>
+          {loading ? "Ingresando…" : "Ingresar al taller"}
+        </button>
+      </form>
+
+      <div style={{ marginTop: 24, textAlign: "center", fontSize: 14 }}>
+        <span style={{ color: "var(--text-muted)" }}>¿No tenés cuenta aún? </span>
+        <Link
+          href="/admin/register"
+          style={{ color: "var(--primary)", fontWeight: 600, textDecoration: "underline" }}
+        >
+          Crear cuenta
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
     <main className="os-page">
       <div className="os-page-inner" style={{ maxWidth: 520 }}>
         <nav className="os-topbar" aria-label="Navegación principal">
@@ -34,17 +92,9 @@ export default function AdminLoginPage() {
           <Link className="os-back" href="/">Volver al inicio</Link>
         </nav>
         <section className="os-panel">
-          <div className="os-panel-content">
-            <p className="os-eyebrow">ACCESO ADMINISTRATIVO</p>
-            <h1 className="os-title">Panel del taller</h1>
-            <p className="os-lede">El acceso está protegido por Better Auth y los permisos se validan en servidor.</p>
-            <form className="os-form" onSubmit={submit}>
-              <label className="os-field"><span className="os-label">Email</span><input className="os-input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required /></label>
-              <label className="os-field"><span className="os-label">Contraseña</span><input className="os-input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></label>
-              {error ? <div className="os-message os-message-error" role="alert">{error}</div> : null}
-              <button className="os-button" type="submit" disabled={loading}>{loading ? "Ingresando…" : "Ingresar al taller"}</button>
-            </form>
-          </div>
+          <Suspense fallback={<div className="os-panel-content"><p className="os-lede">Cargando…</p></div>}>
+            <LoginForm />
+          </Suspense>
         </section>
       </div>
     </main>
