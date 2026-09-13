@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { Pool } from "pg";
 
 const root = process.cwd();
 const envFile = path.join(root, ".env");
@@ -29,8 +30,13 @@ if (!dbUrl || dbUrl.includes("ep-sample-123") || dbUrl.includes("user:password")
 console.log("Conectando con la base de datos y aplicando migraciones de Better Auth...");
 try {
   execSync("npx @better-auth/cli migrate -y", { stdio: "inherit", shell: true });
+  const pool = new Pool({ connectionString: dbUrl });
+  await pool.query('ALTER TABLE "account" ADD COLUMN IF NOT EXISTS "issuer" TEXT;');
+  await pool.end();
   console.log("Migraciones aplicadas con éxito.");
 } catch (err) {
   console.error("Error al ejecutar las migraciones:", err.message);
   process.exit(1);
 }
+
+
