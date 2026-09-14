@@ -9,10 +9,26 @@
 
 BEGIN;
 
+-- 0. Reasignar cualquier referencia FK de 'admin-crit-1789331359270' al usuario real 'cmu0azvzh0001v7aktncia9f5'
+UPDATE "work_orders" SET "createdById" = 'cmu0azvzh0001v7aktncia9f5' WHERE "createdById" = 'admin-crit-1789331359270';
+UPDATE "audit_logs" SET "actorAdminId" = 'cmu0azvzh0001v7aktncia9f5' WHERE "actorAdminId" = 'admin-crit-1789331359270';
+UPDATE "order_blockers" SET "blockedByUserId" = 'cmu0azvzh0001v7aktncia9f5' WHERE "blockedByUserId" = 'admin-crit-1789331359270';
+UPDATE "order_blockers" SET "resolvedByUserId" = 'cmu0azvzh0001v7aktncia9f5' WHERE "resolvedByUserId" = 'admin-crit-1789331359270';
+UPDATE "bay_assignments" SET "assignedById" = 'cmu0azvzh0001v7aktncia9f5' WHERE "assignedById" = 'admin-crit-1789331359270';
+UPDATE "budget_versions" SET "createdById" = 'cmu0azvzh0001v7aktncia9f5' WHERE "createdById" = 'admin-crit-1789331359270';
+UPDATE "budget_approvals" SET "actorAdminId" = 'cmu0azvzh0001v7aktncia9f5' WHERE "actorAdminId" = 'admin-crit-1789331359270';
+UPDATE "delivery_records" SET "deliveredById" = 'cmu0azvzh0001v7aktncia9f5' WHERE "deliveredById" = 'admin-crit-1789331359270';
+UPDATE "delivery_records" SET "supervisorOverrideId" = 'cmu0azvzh0001v7aktncia9f5' WHERE "supervisorOverrideId" = 'admin-crit-1789331359270';
+UPDATE "status_histories" SET "actorAdminId" = 'cmu0azvzh0001v7aktncia9f5' WHERE "actorAdminId" = 'admin-crit-1789331359270';
+UPDATE "work_items" SET "assignedAdminId" = 'cmu0azvzh0001v7aktncia9f5' WHERE "assignedAdminId" = 'admin-crit-1789331359270';
+UPDATE "work_items" SET "createdById" = 'cmu0azvzh0001v7aktncia9f5' WHERE "createdById" = 'admin-crit-1789331359270';
+UPDATE "part_items" SET "createdById" = 'cmu0azvzh0001v7aktncia9f5' WHERE "createdById" = 'admin-crit-1789331359270';
+UPDATE "inventory_movements" SET "actorAdminId" = 'cmu0azvzh0001v7aktncia9f5' WHERE "actorAdminId" = 'admin-crit-1789331359270';
+
 -- 1. Eliminar el fixture admin residual del taller real
 DELETE FROM "admin_users"
 WHERE "workshopId" = 'ws-crit-1789331359270'
-  AND "email" IS NULL;
+  AND "id" != 'cmu0azvzh0001v7aktncia9f5';
 
 -- 2. Renombrar el taller real a un nombre de producción formal
 UPDATE "workshops"
@@ -55,6 +71,12 @@ WHERE "budgetVersionId" IN (
   WHERE wo."workshopId" != 'ws-crit-1789331359270'
 );
 
+UPDATE "budgets" SET "currentVersionId" = NULL
+WHERE "workOrderId" IN (
+  SELECT id FROM "work_orders"
+  WHERE "workshopId" != 'ws-crit-1789331359270'
+);
+
 DELETE FROM "budget_versions"
 WHERE "budgetId" IN (
   SELECT b.id FROM "budgets" b
@@ -82,7 +104,7 @@ WHERE "workOrderId" IN (
 DELETE FROM "order_blockers"
 WHERE "workshopId" != 'ws-crit-1789331359270';
 
-DELETE FROM "status_history"
+DELETE FROM "status_histories"
 WHERE "workOrderId" IN (
   SELECT id FROM "work_orders" WHERE "workshopId" != 'ws-crit-1789331359270'
 );
