@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     console.error("[AUTH_API_POST_ERROR]", error);
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Error interno de autenticación",
+        error: "Error interno del servicio de autenticación",
       },
       { status: 500, headers: { "Cache-Control": "no-store" } }
     );
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     console.error("[AUTH_API_GET_ERROR]", error);
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Error interno de autenticación",
+        error: "Error interno del servicio de autenticación",
       },
       { status: 500, headers: { "Cache-Control": "no-store" } }
     );

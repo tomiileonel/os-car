@@ -40,10 +40,13 @@ export default function BahiasPage(): React.JSX.Element {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMechanic, setSelectedMechanic] = useState<string>("TODOS");
   const [transitioningOrderId, setTransitioningOrderId] = useState<string | null>(null);
+  const [transitionError, setTransitionError] = useState<string | null>(null);
 
-  async function loadData() {
+  async function loadData(isSilent = false) {
     try {
-      setIsLoading(true);
+      if (!isSilent) {
+        setIsLoading(true);
+      }
       setErrorMessage(null);
       const [baysData, ordersData] = await Promise.all([
         baysApi.list(),
@@ -53,27 +56,85 @@ export default function BahiasPage(): React.JSX.Element {
       setOrders(ordersData);
     } catch (error) {
       const msg = error instanceof ApiClientError ? error.message : "Error al cargar datos del tablero";
-      setErrorMessage(msg);
+      if (!isSilent) {
+        setErrorMessage(msg);
+      }
     } finally {
-      setIsLoading(false);
+      if (!isSilent) {
+        setIsLoading(false);
+      }
     }
   }
 
   useEffect(() => {
     void loadData();
+
+    const intervalId = setInterval(() => {
+      void loadData(true);
+    }, 10000);
+
+    const handleFocus = () => {
+      void loadData(true);
+    };
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+    };
   }, []);
 
   async function handleQuickTransition(orderId: string, targetStatus: OrderStatus, version: number) {
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      try {
+        navigator.vibrate(10);
+      } catch {
+        // Ignorar si el dispositivo no soporta vibración
+      }
+    }
+
+    const prevBays = bays;
+    const prevOrders = orders;
+
+    // Actualización optimista inmediata
+    setBays((curr) =>
+      curr.map((bay) => {
+        if (bay.activeAssignment?.workOrder?.id === orderId) {
+          return {
+            ...bay,
+            activeAssignment: {
+              ...bay.activeAssignment,
+              workOrder: {
+                ...bay.activeAssignment.workOrder,
+                status: targetStatus,
+                version: version + 1,
+              },
+            },
+          };
+        }
+        return bay;
+      })
+    );
+    setOrders((curr) =>
+      curr.map((ord) =>
+        ord.id === orderId ? { ...ord, status: targetStatus, version: version + 1 } : ord
+      )
+    );
+
     try {
       setTransitioningOrderId(orderId);
+      setTransitionError(null);
       await workOrdersApi.transitionStatus(orderId, {
         targetStatus,
         expectedVersion: version,
       });
-      await loadData();
+      await loadData(true);
     } catch (error) {
+      // Revertir en caso de conflicto de concurrencia o fallo de red
+      setBays(prevBays);
+      setOrders(prevOrders);
       const msg = error instanceof ApiClientError ? error.message : "Error al cambiar estado";
-      alert(msg);
+      setTransitionError(msg);
     } finally {
       setTransitioningOrderId(null);
     }
@@ -233,6 +294,18 @@ export default function BahiasPage(): React.JSX.Element {
         {errorMessage ? (
           <div role="alert" className="mb-6 rounded-md border border-[#ef4444] bg-[#4a1414] p-4 text-sm text-[#fca5a5]">
             {errorMessage}
+          </div>
+        ) : null}
+
+        {transitionError ? (
+          <div role="alert" className="mb-6 flex items-center justify-between rounded-md border border-amber-500/50 bg-amber-950/50 p-4 text-sm text-amber-200 shadow-sm">
+            <span>{transitionError}</span>
+            <button
+              onClick={() => setTransitionError(null)}
+              className="ml-4 text-xs font-semibold text-amber-300 underline hover:text-amber-100"
+            >
+              Cerrar
+            </button>
           </div>
         ) : null}
 

@@ -31,10 +31,13 @@ function maskLicensePlate(licensePlate: string): string {
 }
 
 export async function getPublicTrackingOrder(token: string): Promise<PublicTrackingResult> {
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const order = await prisma.workOrder.findFirst({
     where: {
       trackingCodeHash: hashTrackingToken(token),
       trackingCodeRevokedAt: null,
+      trackingCodeIssuedAt: { gte: thirtyDaysAgo },
+      status: { notIn: ["ENTREGADO", "CANCELADA"] },
       deletedAt: null,
     },
     select: {

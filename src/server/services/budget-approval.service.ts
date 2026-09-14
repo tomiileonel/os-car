@@ -73,6 +73,12 @@ export type BudgetApprovalServiceTx = BlockerServiceTx & {
   statusHistory: {
     create(args: { data: Record<string, unknown> }): Promise<{ id: string }>;
   };
+  outboxMessage?: {
+    create(args: { data: Record<string, unknown> }): Promise<{ id: string }>;
+  };
+  auditLog?: {
+    create(args: { data: Record<string, unknown> }): Promise<{ id: string }>;
+  };
 };
 
 export interface BudgetApprovalPrismaClient {
@@ -298,6 +304,47 @@ export async function decideBudgetVersionInTx(
       metadata: { budgetVersionId: version.id, decision: command.decision, blockReason },
     },
   });
+
+  // Trazabilidad forense y eventos asíncronos outbox (AUD-024)
+  if (tx.outboxMessage) {
+    await tx.outboxMessage.create({
+      data: {
+        workshopId: command.workshopId,
+        eventType: "BUDGET_DECISION_RECEIVED",
+        idempotentKey: `budget-decision-${version.id}-${command.decision}-${now.getTime()}`,
+        status: "PENDING",
+        payload: {
+          workOrderId: command.workOrderId,
+          budgetVersionId: version.id,
+          decision: command.decision,
+          decidedAt: now.toISOString(),
+          actorType: command.actorType,
+        },
+        attempts: 0,
+        maxAttempts: 5,
+      },
+    });
+  }
+
+  if (tx.auditLog) {
+    await tx.auditLog.create({
+      data: {
+        workshopId: command.workshopId,
+        workOrderId: command.workOrderId,
+        actorType: command.actorType,
+        actorAdminId: command.actorAdminId ?? null,
+        action: command.decision === "APROBADO" ? "BUDGET_APPROVED" : "BUDGET_REJECTED",
+        entityType: "BUDGET_VERSION",
+        entityId: version.id,
+        after: {
+          workOrderId: command.workOrderId,
+          budgetVersionId: version.id,
+          decision: command.decision,
+          decidedAt: now.toISOString(),
+        },
+      },
+    });
+  }
 
   return { budgetVersionId: version.id, decision: command.decision, blockReason };
 }

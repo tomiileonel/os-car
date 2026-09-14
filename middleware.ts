@@ -13,6 +13,9 @@ interface RateLimitRule {
 
 const RULES: readonly RateLimitRule[] = [
   { matcher: (path) => path.startsWith("/api/auth/"), bucket: "auth", limit: 10, windowMs: FIFTEEN_MINUTES_MS },
+  { matcher: (path) => path === "/api/admin/register", bucket: "admin_register", limit: 5, windowMs: FIFTEEN_MINUTES_MS },
+  { matcher: (path) => path.startsWith("/api/tracking/") && path.endsWith("/approve"), bucket: "tracking_approve", limit: 10, windowMs: FIFTEEN_MINUTES_MS },
+  { matcher: (path) => path.startsWith("/api/tracking/"), bucket: "tracking", limit: 30, windowMs: FIFTEEN_MINUTES_MS },
   { matcher: (path) => path.startsWith("/api/public/"), bucket: "public", limit: 20, windowMs: FIFTEEN_MINUTES_MS },
   { matcher: (path) => path.startsWith("/api/v1/public/"), bucket: "public", limit: 20, windowMs: FIFTEEN_MINUTES_MS },
   { matcher: (path) => path === "/api/vehicles", bucket: "vehicles", limit: 30, windowMs: FIFTEEN_MINUTES_MS },
@@ -82,6 +85,8 @@ export default middleware;
 export const config = {
   matcher: [
     "/api/auth/:path*",
+    "/api/admin/register",
+    "/api/tracking/:path*",
     "/api/public/:path*",
     "/api/v1/public/:path*",
     "/api/vehicles",

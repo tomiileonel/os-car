@@ -6,6 +6,7 @@ import {
   toErrorEnvelope,
   NotFoundException,
   ValidationException,
+  DomainConflictException,
 } from "@/shared/errors";
 
 function failResponse(error: unknown, request: NextRequest): NextResponse {
@@ -103,14 +104,26 @@ export async function PATCH(
       const deliveredTo = typeof body.deliveredTo === "string" && body.deliveredTo.trim() ? body.deliveredTo.trim() : "Titular del vehículo";
       const signatureHash = typeof body.signatureHash === "string" ? body.signatureHash : null;
 
-      const updated = await prisma.tireSet.update({
-        where: { id },
+      // CAS atómico: solo transicionar si está en custodia activa (evita double-checkout)
+      const updateResult = await prisma.tireSet.updateMany({
+        where: { id, workshopId, status: "EN_CUSTODIA", deletedAt: null },
         data: {
           status: "ENTREGADO",
           checkOutAt: new Date(),
           deliveredTo,
           signatureHash,
         },
+      });
+
+      if (updateResult.count === 0) {
+        throw new DomainConflictException(
+          "TIRE_SET_ALREADY_DELIVERED",
+          "El juego de neumáticos no se encuentra en custodia activa o ya fue entregado previamente."
+        );
+      }
+
+      const updated = await prisma.tireSet.findUniqueOrThrow({
+        where: { id },
         include: {
           customer: true,
           vehicle: true,

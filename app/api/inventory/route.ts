@@ -6,6 +6,7 @@ import {
   toErrorEnvelope,
   NotFoundException,
   ValidationException,
+  DomainConflictException,
 } from "@/shared/errors";
 
 function failResponse(error: unknown, request: NextRequest): NextResponse {
@@ -91,7 +92,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const category = url.searchParams.get("category")?.trim().toLowerCase();
     const criticalOnly = url.searchParams.get("critical") === "true";
 
-    let items = await prisma.inventoryItem.findMany({
+    const items = await prisma.inventoryItem.findMany({
       where: {
         workshopId,
         deletedAt: null,
@@ -99,29 +100,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       },
       orderBy: { description: "asc" },
     });
-
-    // Auto-inicialización si el taller aún no tiene ítems de inventario cargados
-    if (items.length === 0) {
-      await prisma.inventoryItem.createMany({
-        data: DEFAULT_INVENTORY_ITEMS.map((item) => ({
-          workshopId,
-          sku: item.sku,
-          description: item.description,
-          category: item.category,
-          location: item.location,
-          stockQuantity: item.stockQuantity,
-          reorderPoint: item.reorderPoint,
-          unitCost: item.unitCost,
-          active: true,
-        })),
-        skipDuplicates: true,
-      });
-
-      items = await prisma.inventoryItem.findMany({
-        where: { workshopId, deletedAt: null, active: true },
-        orderBy: { description: "asc" },
-      });
-    }
 
     interface InventoryItemRecord {
       id: string;
@@ -290,31 +268,51 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       throw new ValidationException("INVALID_MOVEMENT_TYPE", `Tipo de movimiento '${rawMovementType}' no válido.`);
     }
 
-    if (item.stockQuantity + delta < 0) {
-      throw new ValidationException(
-        "INSUFFICIENT_STOCK",
-        `Stock insuficiente: stock actual (${item.stockQuantity}) no cubre el egreso solicitado (${Math.abs(delta)}).`,
-      );
-    }
-
     const workOrderId = typeof body.workOrderId === "string" && body.workOrderId.trim() ? body.workOrderId.trim() : null;
 
     const result = await prisma.$transaction(async (tx) => {
+      // 1. Si es egreso (delta < 0), verificar atómicamente que el stock cubra el monto solicitado
+      if (delta < 0) {
+        const updateCount = await tx.inventoryItem.updateMany({
+          where: {
+            id: item.id,
+            workshopId,
+            deletedAt: null,
+            stockQuantity: { gte: -delta },
+          },
+          data: {
+            stockQuantity: { increment: delta },
+          },
+        });
+
+        if (updateCount.count === 0) {
+          throw new DomainConflictException(
+            "INSUFFICIENT_STOCK",
+            `Stock insuficiente: el stock actual no cubre el egreso solicitado (${Math.abs(delta)}).`
+          );
+        }
+      } else if (delta > 0) {
+        await tx.inventoryItem.update({
+          where: { id: item.id },
+          data: { stockQuantity: { increment: delta } },
+        });
+      }
+
+      // 2. Registrar el movimiento con el delta contable
       const movement = await tx.inventoryMovement.create({
         data: {
           workshopId,
           inventoryItemId: item.id,
           movementType: prismaMovementType,
-          quantity: Math.abs(delta),
+          quantity: delta,
           note: typeof body.note === "string" ? body.note.trim() : null,
           workOrderId,
           actorAdminId: adminUser.id,
         },
       });
 
-      const updatedItem = await tx.inventoryItem.update({
+      const updatedItem = await tx.inventoryItem.findUniqueOrThrow({
         where: { id: item.id },
-        data: { stockQuantity: { increment: delta } },
       });
 
       return { movement, updatedItem };

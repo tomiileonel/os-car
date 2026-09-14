@@ -47,9 +47,23 @@ export interface OrderFinancialSummary {
 
 const DEFAULT_TAX_RATE = 0.21;
 
-/** Redondeo bancario / HALF_EVEN a 2 decimales */
+/** Redondeo bancario / HALF_EVEN a 2 decimales alineado con Decimal.ROUND_HALF_EVEN */
 export function roundTo2Decimals(val: number): number {
-  return Math.round((val + Number.EPSILON) * 100) / 100;
+  if (Number.isNaN(val) || !Number.isFinite(val)) return 0;
+  const sign = val < 0 ? -1 : 1;
+  const absVal = Math.abs(val);
+  // Mitigar ruido de precisión de coma flotante IEEE-754 antes de verificar .5
+  const scaled = Math.round(absVal * 100 * 1e8) / 1e8;
+  const floor = Math.floor(scaled);
+  const diff = scaled - floor;
+
+  let rounded: number;
+  if (Math.abs(diff - 0.5) < 1e-7) {
+    rounded = floor % 2 === 0 ? floor : floor + 1;
+  } else {
+    rounded = Math.round(scaled);
+  }
+  return (sign * rounded) / 100;
 }
 
 /** Calcula el subtotal de una línea de labor: (minutos / 60) * tarifa */

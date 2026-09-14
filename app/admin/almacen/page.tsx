@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 import {
   inventoryApi,
   ApiClientError,
@@ -52,15 +53,27 @@ export default function AlmacenPage(): React.JSX.Element {
   const [submittingItem, setSubmittingItem] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
-  // Notificación toast
+  // Notificación toast con limpieza de timer para prevenir leaks en unmount
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const showToast = useCallback((msg: string) => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
     setToastMessage(msg);
-    const timer = setTimeout(() => {
+    toastTimeoutRef.current = setTimeout(() => {
       setToastMessage(null);
+      toastTimeoutRef.current = null;
     }, 3500);
-    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
   }, []);
 
   // Carga de inventario
@@ -85,6 +98,9 @@ export default function AlmacenPage(): React.JSX.Element {
     void fetchInventory();
   }, [fetchInventory]);
 
+  // Búsqueda con debounce para evitar re-renderizados costosos
+  const debouncedSearch = useDebouncedValue(search, 250);
+
   // Telemetría Bento
   const telemetry = useMemo(() => {
     const totalSkus = items.length;
@@ -103,7 +119,7 @@ export default function AlmacenPage(): React.JSX.Element {
 
   // Filtrado de tabla
   const filteredItems = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query = debouncedSearch.trim().toLowerCase();
     return items.filter((item) => {
       // Filtro de categoría
       if (selectedCategory === "CRITICOS") {
@@ -125,16 +141,16 @@ export default function AlmacenPage(): React.JSX.Element {
 
       return true;
     });
-  }, [items, search, selectedCategory]);
+  }, [items, debouncedSearch, selectedCategory]);
 
-  // Ajuste ergonómico rápido (+ / -) con actualización optimista
+  // Ajuste ergonómico rápido (+ / -) con actualización optimista y snapshot revert
   const handleAdjustStock = async (item: InventoryItemDto, delta: number) => {
     if (delta < 0 && item.stockQuantity <= 0) return;
     setAdjustingId(item.id);
 
-    // Optimista
-    const prevStock = item.stockQuantity;
-    const newStock = Math.max(0, prevStock + delta);
+    // Snapshot completo para reversión fiel ante errores
+    const prevItem = item;
+    const newStock = Math.max(0, item.stockQuantity + delta);
     setItems((prev) =>
       prev.map((i) =>
         i.id === item.id
@@ -169,11 +185,9 @@ export default function AlmacenPage(): React.JSX.Element {
         `Stock actualizado: ${item.sku} ahora tiene ${res.updatedItem.stockQuantity} un.`,
       );
     } catch (err) {
-      // Revertir optimismo
+      // Revertir optimismo con snapshot íntegro
       setItems((prev) =>
-        prev.map((i) =>
-          i.id === item.id ? { ...i, stockQuantity: prevStock } : i,
-        ),
+        prev.map((i) => (i.id === item.id ? prevItem : i)),
       );
       const msg =
         err instanceof ApiClientError ? err.message : "Error al ajustar stock";

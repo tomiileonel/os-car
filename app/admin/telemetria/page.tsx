@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition, useCallback } from "react";
 import Link from "next/link";
 import {
   telemetryApi,
@@ -32,26 +32,41 @@ export default function TelemetriaPage(): React.JSX.Element {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
-  async function loadTelemetry(selectedPeriod: TelemetryPeriod) {
-    try {
-      setIsLoading(true);
-      setErrorMessage(null);
-      const report = await telemetryApi.getReport(selectedPeriod);
-      setData(report);
-    } catch (err) {
-      const msg =
-        err instanceof ApiClientError
-          ? err.message
-          : "Error al sincronizar telemetría de taller.";
-      setErrorMessage(msg);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  const loadTelemetry = useCallback(
+    async (selectedPeriod: TelemetryPeriod, signal?: AbortSignal) => {
+      try {
+        setIsLoading(true);
+        setErrorMessage(null);
+        const report = await telemetryApi.getReport(selectedPeriod, { signal });
+        if (!signal?.aborted) {
+          setData(report);
+        }
+      } catch (err) {
+        if (signal?.aborted) {
+          return;
+        }
+        const msg =
+          err instanceof ApiClientError
+            ? err.message
+            : "Error al sincronizar telemetría de taller.";
+        setErrorMessage(msg);
+      } finally {
+        if (!signal?.aborted) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
-    void loadTelemetry(period);
-  }, [period]);
+    const controller = new AbortController();
+    void loadTelemetry(period, controller.signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [period, loadTelemetry]);
 
   function handlePeriodChange(newPeriod: TelemetryPeriod) {
     startTransition(() => {

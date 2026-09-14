@@ -11,8 +11,11 @@ import {
   adminRegisterSchema,
   type AdminRegisterCommand,
 } from "@/shared/schemas/admin-register";
+import {
+  getAdminBootstrapStatus,
+  invalidateAdminBootstrapCache,
+} from "./admin-bootstrap.service";
 import type { CanonicalAdminRole } from "@/server/auth/active-admin";
-import { getAdminBootstrapStatus } from "./admin-bootstrap.service";
 
 export interface AdminRegisterResult {
   adminUserId: string;
@@ -132,6 +135,17 @@ export async function registerAdmin(
   // 5. Crear AdminUser en Prisma dentro de una transacción con auditoría
   try {
     const adminUser = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      // Re-verificación atómica dentro de la transacción para prevenir carreras TOCTOU
+      const existingAdmins = await tx.adminUser.count({
+        where: { active: true, deletedAt: null, email: { not: null } },
+      });
+      if (existingAdmins > 0) {
+        throw new ForbiddenException(
+          "REGISTRATION_CLOSED",
+          "El registro administrativo está deshabilitado. Ya existe una cuenta de administrador configurada."
+        );
+      }
+
       const created = await tx.adminUser.create({
         data: {
           workshopId: workshop.id,
@@ -161,6 +175,8 @@ export async function registerAdmin(
 
       return created;
     });
+
+    invalidateAdminBootstrapCache();
 
     return {
       adminUserId: adminUser.id,

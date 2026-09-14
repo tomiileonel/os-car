@@ -41,31 +41,25 @@ export function resolveAuthBaseUrl(env: NodeJS.ProcessEnv = process.env): string
   return "https://os-car.vercel.app";
 }
 
-const NEON_DEFAULT_DB_URL =
-  "postgresql://neondb_owner:npg_2gdmzhyxcs5e@ep-delicate-sound-ace3v0r9-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require";
-const DEFAULT_AUTH_SECRET =
-  "7970c0696d8cb372c09e0700022d21bf6bc181db3feca161b83a4e749c2ee5b0";
-
 export function assertAuthEnvironment(env: NodeJS.ProcessEnv = process.env): void {
   const missing: string[] = [];
+
   const secret =
     (typeof env.BETTER_AUTH_SECRET === "string" && env.BETTER_AUTH_SECRET.trim().length > 0
       ? env.BETTER_AUTH_SECRET.trim()
       : undefined) ||
     (typeof env.AUTH_SECRET === "string" && env.AUTH_SECRET.trim().length > 0
       ? env.AUTH_SECRET.trim()
-      : undefined) ||
-    (process.env.NODE_ENV === "production" ? DEFAULT_AUTH_SECRET : undefined);
+      : undefined);
 
   const url = resolveAuthBaseUrl(env);
 
   const dbUrl =
-    (typeof env.DATABASE_URL === "string" && env.DATABASE_URL.trim().length > 0
+    typeof env.DATABASE_URL === "string" && env.DATABASE_URL.trim().length > 0
       ? env.DATABASE_URL.trim()
-      : undefined) ||
-    (process.env.NODE_ENV === "production" ? NEON_DEFAULT_DB_URL : undefined);
+      : undefined;
 
-  if (typeof secret !== "string" || secret.trim().length === 0) {
+  if (!secret) {
     missing.push("BETTER_AUTH_SECRET");
   } else if (
     secret.length < 32 ||
@@ -75,41 +69,33 @@ export function assertAuthEnvironment(env: NodeJS.ProcessEnv = process.env): voi
       "[OS-CAR AUTH][FATAL] BETTER_AUTH_SECRET es débil o es un valor por defecto conocido. Debe tener al menos 32 caracteres y no usar valores triviales."
     );
   }
+
   if (!url || url.trim().length === 0) {
     missing.push("BETTER_AUTH_URL");
   }
-  if (typeof dbUrl !== "string" || dbUrl.trim().length === 0) {
+
+  if (!dbUrl) {
     missing.push("DATABASE_URL");
   }
 
   if (missing.length > 0) {
-    if (process.env.NEXT_PHASE === "phase-production-build") {
-      return;
-    }
     throw new Error(
-      `[OS-CAR AUTH][FATAL] Variables de entorno obligatorias ausentes o vacías: ${missing.join(
-        ", "
-      )}. El proceso no puede iniciar sin secretos de autenticación.`
+      `[OS-CAR AUTH][FATAL] Faltan variables requeridas en el entorno: ${missing.join(", ")}.`
     );
   }
 }
 
 assertAuthEnvironment();
 
-const AUTH_SECRET =
-  process.env.BETTER_AUTH_SECRET || DEFAULT_AUTH_SECRET;
-
-const DB_CONNECTION_STRING =
-  process.env.DATABASE_URL && process.env.DATABASE_URL.trim().length > 0
-    ? process.env.DATABASE_URL.trim()
-    : NEON_DEFAULT_DB_URL;
+const AUTH_SECRET = (process.env.BETTER_AUTH_SECRET || process.env.AUTH_SECRET || "").trim();
+const DB_CONNECTION_STRING = (process.env.DATABASE_URL || "").trim();
 
 export const auth = betterAuth({
   secret: AUTH_SECRET,
   baseURL: resolveAuthBaseUrl(),
   database: new Pool({
     connectionString: DB_CONNECTION_STRING,
-    ssl: { rejectUnauthorized: false },
+    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: true } : false,
     connectionTimeoutMillis: 5000,
     idleTimeoutMillis: 30000,
     max: 10,

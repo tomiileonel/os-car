@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, memo } from "react";
 import type { FormEvent, MouseEvent, TouchEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +68,54 @@ const SCHEMATIC_ZONES = [
 interface DamagePoint extends ReceptionDamageItemInput {
   id: string;
 }
+
+interface CarDamageSilhouetteProps {
+  onDamageClick: (xPct: number, yPct: number) => void;
+}
+
+const CarDamageSilhouette = memo(function CarDamageSilhouette({
+  onDamageClick,
+}: CarDamageSilhouetteProps) {
+  return (
+    <svg
+      className="w-full max-w-[420px] h-auto select-none cursor-crosshair"
+      viewBox="0 0 340 180"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      onClick={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const xPct = ((e.clientX - rect.left) / rect.width) * 100;
+        const yPct = ((e.clientY - rect.top) / rect.height) * 100;
+        onDamageClick(xPct, yPct);
+      }}
+    >
+      {/* Chasis */}
+      <path
+        d="M 40 50 C 40 35, 70 30, 110 30 L 230 30 C 270 30, 300 35, 300 50 L 305 65 C 310 75, 310 105, 305 115 L 300 130 C 300 145, 270 150, 230 150 L 110 150 C 70 150, 40 145, 40 130 L 35 115 C 30 105, 30 75, 35 65 Z"
+        className="fill-[#1f2937] stroke-[#4b5563]"
+        strokeWidth="2.5"
+      />
+      {/* Parabrisas */}
+      <path d="M 95 42 L 130 50 L 130 130 L 95 138 Z" className="fill-[#111827] stroke-[#4b5563]" strokeWidth="1.5" />
+      <path d="M 235 50 L 210 50 L 210 130 L 235 130 Z" className="fill-[#111827] stroke-[#4b5563]" strokeWidth="1.5" />
+      {/* Techo */}
+      <rect x="135" y="46" width="70" height="88" rx="6" className="fill-[#374151]/50 stroke-[#4b5563]" strokeWidth="1" />
+      {/* Ruedas */}
+      <rect x="65" y="16" width="34" height="12" rx="3" className="fill-[#090d16] stroke-[#6b7280]" strokeWidth="1.5" />
+      <rect x="240" y="16" width="34" height="12" rx="3" className="fill-[#090d16] stroke-[#6b7280]" strokeWidth="1.5" />
+      <rect x="65" y="152" width="34" height="12" rx="3" className="fill-[#090d16] stroke-[#6b7280]" strokeWidth="1.5" />
+      <rect x="240" y="152" width="34" height="12" rx="3" className="fill-[#090d16] stroke-[#6b7280]" strokeWidth="1.5" />
+      {/* Ópticas */}
+      <path d="M 40 38 L 52 42 L 48 52 Z" className="fill-[#ffe317]/80" />
+      <path d="M 40 142 L 52 138 L 48 128 Z" className="fill-[#ffe317]/80" />
+      <path d="M 298 38 L 290 44 L 296 52 Z" className="fill-[#ef4444]" />
+      <path d="M 298 142 L 290 136 L 296 128 Z" className="fill-[#ef4444]" />
+      {/* Orientación */}
+      <text x="50" y="94" className="font-mono text-[9px] fill-[#9ca3af] font-bold tracking-widest uppercase">FRENTE</text>
+      <text x="245" y="94" className="font-mono text-[9px] fill-[#9ca3af] font-bold tracking-widest uppercase">ATRÁS</text>
+    </svg>
+  );
+});
 
 export default function RecepcionPage(): React.JSX.Element {
   // Client type selector
@@ -183,7 +231,7 @@ export default function RecepcionPage(): React.JSX.Element {
   };
 
   // Add damage point
-  const handleAddDamagePoint = (zone: string, xPercent: number, yPercent: number) => {
+  const handleAddDamagePoint = useCallback((zone: string, xPercent: number, yPercent: number) => {
     const newPoint: DamagePoint = {
       id: `dmg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       zone,
@@ -193,25 +241,68 @@ export default function RecepcionPage(): React.JSX.Element {
       note: `${activeDamageType} en ${zone}`,
     };
     setDamages((prev) => [...prev, newPoint]);
-  };
+  }, [activeDamageType]);
+
+  const handleSilhouetteDamageClick = useCallback((xPct: number, yPct: number) => {
+    let zone = "TECHO";
+    if (xPct < 30) zone = "FRENTE";
+    else if (xPct > 70) zone = "TRASERA";
+    else if (yPct < 35) zone = "LATERAL_IZQ";
+    else if (yPct > 65) zone = "LATERAL_DER";
+
+    handleAddDamagePoint(zone, xPct, yPct);
+  }, [handleAddDamagePoint]);
 
   const handleRemoveDamagePoint = (id: string) => {
     setDamages((prev) => prev.filter((d) => d.id !== id));
   };
 
-  // Signature canvas drawing
+  // Signature canvas drawing con escalado Retina DPR
+  const setupCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+    const displayWidth = rect.width || 460;
+    const displayHeight = 130;
+    canvas.width = Math.round(displayWidth * dpr);
+    canvas.height = Math.round(displayHeight * dpr);
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.scale(dpr, dpr);
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "#ffe317";
+    }
+  }, []);
+
+  useEffect(() => {
+    setupCanvas();
+    const handleResize = () => setupCanvas();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [setupCanvas]);
+
+  const getCanvasCoords = (e: MouseEvent<HTMLCanvasElement> | TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const clientX = "touches" in e ? (e.touches[0]?.clientX ?? 0) : e.clientX;
+    const clientY = "touches" in e ? (e.touches[0]?.clientY ?? 0) : e.clientY;
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+    };
+  };
+
   const startDrawing = (e: MouseEvent<HTMLCanvasElement> | TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const clientX = "touches" in e ? (e.touches[0]?.clientX ?? 0) : e.clientX;
-    const clientY = "touches" in e ? (e.touches[0]?.clientY ?? 0) : e.clientY;
-
+    const { x, y } = getCanvasCoords(e);
     ctx.beginPath();
-    ctx.moveTo(clientX - rect.left, clientY - rect.top);
+    ctx.moveTo(x, y);
     setIsDrawing(true);
   };
 
@@ -221,15 +312,8 @@ export default function RecepcionPage(): React.JSX.Element {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const clientX = "touches" in e ? (e.touches[0]?.clientX ?? 0) : e.clientX;
-    const clientY = "touches" in e ? (e.touches[0]?.clientY ?? 0) : e.clientY;
-
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "#ffe317";
-    ctx.lineTo(clientX - rect.left, clientY - rect.top);
+    const { x, y } = getCanvasCoords(e);
+    ctx.lineTo(x, y);
     ctx.stroke();
     setHasSignature(true);
   };
@@ -243,7 +327,10 @@ export default function RecepcionPage(): React.JSX.Element {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
     setHasSignature(false);
   };
 
@@ -379,9 +466,9 @@ export default function RecepcionPage(): React.JSX.Element {
             <button
               type="button"
               onClick={() => setClientType("particular")}
-              className={`px-3 py-1.5 rounded text-xs font-semibold transition-all min-h-[36px] ${
+              className={`px-3.5 py-2 rounded text-xs font-semibold transition-all min-h-[44px] min-w-[48px] ${
                 clientType === "particular"
-                  ? "bg-[#374151] text-white shadow-sm"
+                  ? "bg-[#374151] text-white shadow-sm font-bold"
                   : "text-[#9ca3af] hover:text-white"
               }`}
             >
@@ -390,9 +477,9 @@ export default function RecepcionPage(): React.JSX.Element {
             <button
               type="button"
               onClick={() => setClientType("flota")}
-              className={`px-3 py-1.5 rounded text-xs font-semibold transition-all min-h-[36px] ${
+              className={`px-3.5 py-2 rounded text-xs font-semibold transition-all min-h-[44px] min-w-[48px] ${
                 clientType === "flota"
-                  ? "bg-[#374151] text-white shadow-sm"
+                  ? "bg-[#374151] text-white shadow-sm font-bold"
                   : "text-[#9ca3af] hover:text-white"
               }`}
             >
@@ -401,9 +488,9 @@ export default function RecepcionPage(): React.JSX.Element {
             <button
               type="button"
               onClick={() => setClientType("garantia")}
-              className={`px-3 py-1.5 rounded text-xs font-semibold transition-all min-h-[36px] ${
+              className={`px-3.5 py-2 rounded text-xs font-semibold transition-all min-h-[44px] min-w-[48px] ${
                 clientType === "garantia"
-                  ? "bg-[#374151] text-white shadow-sm"
+                  ? "bg-[#374151] text-white shadow-sm font-bold"
                   : "text-[#9ca3af] hover:text-white"
               }`}
             >
@@ -774,13 +861,13 @@ export default function RecepcionPage(): React.JSX.Element {
                       key={sev.type}
                       type="button"
                       onClick={() => setActiveDamageType(sev.type)}
-                      className={`px-2.5 py-1 rounded text-xs font-mono font-bold flex items-center gap-1 transition-all border ${
+                      className={`min-h-[44px] min-w-[48px] px-3 py-1.5 rounded text-xs font-mono font-bold flex items-center gap-1.5 transition-all border ${
                         isActive
                           ? `${sev.colorClass} ring-2 ring-white border-transparent`
                           : "bg-[#1f2937] text-[#9ca3af] border-[#374151] hover:text-white"
                       }`}
                     >
-                      <span className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[10px] bg-black/40">
+                      <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] bg-black/40">
                         {sev.icon}
                       </span>
                       <span>{sev.label}</span>
@@ -801,7 +888,7 @@ export default function RecepcionPage(): React.JSX.Element {
                     setSelectedZone(zone.id);
                     handleAddDamagePoint(zone.id, zone.xPercent, zone.yPercent);
                   }}
-                  className={`px-3 py-1.5 rounded text-xs font-semibold border min-h-[40px] transition-colors ${
+                  className={`px-3.5 py-2 rounded text-xs font-semibold border min-h-[44px] min-w-[48px] transition-colors ${
                     selectedZone === zone.id
                       ? "bg-[#2563eb] text-white border-transparent"
                       : "bg-[#1f2937] text-[#9ca3af] border-[#374151] hover:bg-[#374151] hover:text-white"
@@ -814,51 +901,8 @@ export default function RecepcionPage(): React.JSX.Element {
 
             {/* Canvas / SVG Esquemático Interactivo */}
             <div className="relative w-full bg-[#090d16] rounded-xl border border-[#374151] p-4 flex flex-col items-center justify-center overflow-hidden min-h-[240px]">
-              {/* SVG Silueta Cenital Automotriz */}
-              <svg
-                className="w-full max-w-[420px] h-auto select-none cursor-crosshair"
-                viewBox="0 0 340 180"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                onClick={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const xPct = ((e.clientX - rect.left) / rect.width) * 100;
-                  const yPct = ((e.clientY - rect.top) / rect.height) * 100;
-
-                  let zone = "TECHO";
-                  if (xPct < 30) zone = "FRENTE";
-                  else if (xPct > 70) zone = "TRASERA";
-                  else if (yPct < 35) zone = "LATERAL_IZQ";
-                  else if (yPct > 65) zone = "LATERAL_DER";
-
-                  handleAddDamagePoint(zone, xPct, yPct);
-                }}
-              >
-                {/* Chasis */}
-                <path
-                  d="M 40 50 C 40 35, 70 30, 110 30 L 230 30 C 270 30, 300 35, 300 50 L 305 65 C 310 75, 310 105, 305 115 L 300 130 C 300 145, 270 150, 230 150 L 110 150 C 70 150, 40 145, 40 130 L 35 115 C 30 105, 30 75, 35 65 Z"
-                  className="fill-[#1f2937] stroke-[#4b5563]"
-                  strokeWidth="2.5"
-                />
-                {/* Parabrisas */}
-                <path d="M 95 42 L 130 50 L 130 130 L 95 138 Z" className="fill-[#111827] stroke-[#4b5563]" strokeWidth="1.5" />
-                <path d="M 235 50 L 210 50 L 210 130 L 235 130 Z" className="fill-[#111827] stroke-[#4b5563]" strokeWidth="1.5" />
-                {/* Techo */}
-                <rect x="135" y="46" width="70" height="88" rx="6" className="fill-[#374151]/50 stroke-[#4b5563]" strokeWidth="1" />
-                {/* Ruedas */}
-                <rect x="65" y="16" width="34" height="12" rx="3" className="fill-[#090d16] stroke-[#6b7280]" strokeWidth="1.5" />
-                <rect x="240" y="16" width="34" height="12" rx="3" className="fill-[#090d16] stroke-[#6b7280]" strokeWidth="1.5" />
-                <rect x="65" y="152" width="34" height="12" rx="3" className="fill-[#090d16] stroke-[#6b7280]" strokeWidth="1.5" />
-                <rect x="240" y="152" width="34" height="12" rx="3" className="fill-[#090d16] stroke-[#6b7280]" strokeWidth="1.5" />
-                {/* Ópticas */}
-                <path d="M 40 38 L 52 42 L 48 52 Z" className="fill-[#ffe317]/80" />
-                <path d="M 40 142 L 52 138 L 48 128 Z" className="fill-[#ffe317]/80" />
-                <path d="M 298 38 L 290 44 L 296 52 Z" className="fill-[#ef4444]" />
-                <path d="M 298 142 L 290 136 L 296 128 Z" className="fill-[#ef4444]" />
-                {/* Orientación */}
-                <text x="50" y="94" className="font-mono text-[9px] fill-[#9ca3af] font-bold tracking-widest uppercase">FRENTE</text>
-                <text x="245" y="94" className="font-mono text-[9px] fill-[#9ca3af] font-bold tracking-widest uppercase">ATRÁS</text>
-              </svg>
+              {/* SVG Silueta Cenital Automotriz Memoizada */}
+              <CarDamageSilhouette onDamageClick={handleSilhouetteDamageClick} />
 
               {/* Hotspots interactivos */}
               {damages.map((d) => {
@@ -946,7 +990,7 @@ export default function RecepcionPage(): React.JSX.Element {
                 type="button"
                 variant="outline"
                 onClick={clearSignature}
-                className="min-h-[40px] px-3 text-xs"
+                className="min-h-[44px] min-w-[48px] px-4 text-xs"
               >
                 Limpiar Firma
               </Button>

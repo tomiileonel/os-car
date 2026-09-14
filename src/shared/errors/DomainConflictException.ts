@@ -14,7 +14,9 @@ export type DomainConflictErrorCode =
   | "UNAUTHENTICATED"
   | "ORDER_TERMINAL_STATE"
   | "OPTIMISTIC_LOCK_CONFLICT"
-  | "CONCURRENT_MODIFICATION";
+  | "CONCURRENT_MODIFICATION"
+  | "INSUFFICIENT_STOCK"
+  | "TIRE_SET_ALREADY_DELIVERED";
 
 export interface DomainConflictOptions {
   type: ProblemType;

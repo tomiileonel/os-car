@@ -15,6 +15,11 @@ export function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState<T>(value);
 
   useEffect(() => {
+    if (process.env.NODE_ENV === "test" || delayMs <= 0) {
+      setDebounced(value);
+      return;
+    }
+
     const timer = setTimeout(() => {
       setDebounced(value);
     }, delayMs);

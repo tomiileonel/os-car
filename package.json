@@ -20,7 +20,8 @@
     "test": "vitest run",
     "test:g5-neon": "npx tsx scripts/run-g5-neon-benchmark.ts",
     "db:seed:g11": "tsx prisma/seed-g11.ts",
-    "admin:create": "tsx --env-file=.env scripts/create-admin.ts"
+    "admin:create": "tsx --env-file=.env scripts/create-admin.ts",
+    "worker:outbox": "tsx scripts/run-outbox-worker.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
