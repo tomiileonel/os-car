@@ -73,23 +73,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       ],
     });
 
-    let bays = await getBaysWithAssignments(workshopId);
-
-    // Auto-inicialización si el taller aún no tiene bahías configuradas
-    if (bays.length === 0) {
-      await prisma.bay.createMany({
-        data: DEFAULT_BAYS.map((b) => ({
-          workshopId,
-          code: b.code,
-          ordinal: b.ordinal,
-          status: "LIBRE",
-          isEnabled: true,
-        })),
-        skipDuplicates: true,
-      });
-
-      bays = await getBaysWithAssignments(workshopId);
-    }
+    const bays = await getBaysWithAssignments(workshopId);
 
     const data = bays.map((bay) => {
       const active = bay.assignments[0];

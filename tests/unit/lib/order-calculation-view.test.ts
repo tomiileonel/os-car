@@ -8,6 +8,20 @@ import {
 } from "@/lib/order-calculation-view";
 
 describe("order-calculation-view (Pure Financial Calculation)", () => {
+  describe("roundTo2Decimals (Banker's Half-Even Rounding)", () => {
+    it("rounds half to nearest even integer (round-half-to-even)", () => {
+      expect(roundTo2Decimals(2.225)).toBe(2.22);
+      expect(roundTo2Decimals(2.235)).toBe(2.24);
+      expect(roundTo2Decimals(2.245)).toBe(2.24);
+      expect(roundTo2Decimals(2.255)).toBe(2.26);
+    });
+
+    it("handles negative numbers properly", () => {
+      expect(roundTo2Decimals(-2.225)).toBe(-2.22);
+      expect(roundTo2Decimals(-2.235)).toBe(-2.24);
+    });
+  });
+
   describe("calculateLaborLineTotal", () => {
     it("calculates labor correctly for exact hours (60 min)", () => {
       expect(calculateLaborLineTotal(60, 20000)).toBe(20000);

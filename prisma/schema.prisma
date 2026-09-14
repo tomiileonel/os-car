@@ -269,7 +269,7 @@ model Customer {
 }
 
 model Vehicle {
-  id                     String    @id @default(cuid())
+  id                     String      @id @default(cuid())
   workshopId             String
   customerId             String
   vehicleType            VehicleType @default(AUTO)
@@ -280,8 +280,8 @@ model Vehicle {
   model                  String?
   modelYear              Int?
   color                  String?
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
   deletedAt              DateTime?
 
   workshop   Workshop    @relation(fields: [workshopId], references: [id], onDelete: Restrict)
@@ -326,18 +326,18 @@ model WorkOrder {
   updatedAt             DateTime    @updatedAt
   deletedAt             DateTime?
 
-  workshop       Workshop        @relation(fields: [workshopId], references: [id], onDelete: Restrict)
-  customer       Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  vehicle        Vehicle         @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
-  createdBy      AdminUser?      @relation("OrderCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  intakeRecord   IntakeRecord?
-  workItems      WorkItem[]
-  partItems      PartItem[]
-  blockers       OrderBlocker[]
-  bayAssignments BayAssignment[]
-  budget         Budget?
-  statusHistory  StatusHistory[]
-  auditLogs      AuditLog[]
+  workshop           Workshop            @relation(fields: [workshopId], references: [id], onDelete: Restrict)
+  customer           Customer            @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  vehicle            Vehicle             @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  createdBy          AdminUser?          @relation("OrderCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  intakeRecord       IntakeRecord?
+  workItems          WorkItem[]
+  partItems          PartItem[]
+  blockers           OrderBlocker[]
+  bayAssignments     BayAssignment[]
+  budget             Budget?
+  statusHistory      StatusHistory[]
+  auditLogs          AuditLog[]
   qualityControl     QualityControl?
   deliveryRecord     DeliveryRecord?
   inventoryMovements InventoryMovement[] @relation("OrderInventoryMovements")
@@ -345,6 +345,7 @@ model WorkOrder {
   @@index([workshopId, status, updatedAt])
   @@index([workshopId, vehicleId, status])
   @@index([customerId, createdAt])
+  @@index([createdById])
   @@map("work_orders")
 }
 
@@ -410,6 +411,7 @@ model BayAssignment {
 
   @@index([bayId, releasedAt])
   @@index([workOrderId, releasedAt])
+  @@index([assignedById])
   @@map("bay_assignments")
 }
 
@@ -522,6 +524,7 @@ model InventoryMovement {
   @@index([inventoryItemId, createdAt])
   @@index([partItemId, createdAt])
   @@index([workOrderId])
+  @@index([actorAdminId])
   @@map("inventory_movements")
 }
 
@@ -543,6 +546,7 @@ model TireSet {
   checkOutAt    DateTime?
   deliveredTo   String?
   signatureHash String?
+  version       Int           @default(0)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   deletedAt     DateTime?
@@ -554,6 +558,8 @@ model TireSet {
 
   @@index([workshopId, status])
   @@index([workshopId, rack, level, position])
+  @@index([customerId])
+  @@index([vehicleId])
   @@map("tire_sets")
 }
 
@@ -572,7 +578,6 @@ model TireItem {
   @@index([tireSetId])
   @@map("tire_items")
 }
-
 
 // -------------------------------------------------------------------------
 // PRESUPUESTO VERSIONADO Y APROBACIÓN (INVARIANTE C3)
@@ -632,6 +637,7 @@ model BudgetLaborLine {
   budgetVersion BudgetVersion @relation(fields: [budgetVersionId], references: [id], onDelete: Restrict)
   workItem      WorkItem?     @relation(fields: [workItemId], references: [id], onDelete: Restrict)
 
+  @@index([budgetVersionId])
   @@map("budget_labor_lines")
 }
 
@@ -649,6 +655,7 @@ model BudgetPartLine {
   budgetVersion BudgetVersion @relation(fields: [budgetVersionId], references: [id], onDelete: Restrict)
   partItem      PartItem?     @relation(fields: [partItemId], references: [id], onDelete: Restrict)
 
+  @@index([budgetVersionId])
   @@map("budget_part_lines")
 }
 
@@ -845,6 +852,7 @@ model AuditLog {
   @@index([workshopId, createdAt])
   @@index([entityType, entityId, createdAt])
   @@index([workOrderId, createdAt])
+  @@index([actorAdminId])
   @@map("audit_logs")
 }
 
@@ -885,7 +893,7 @@ model OutboxMessage {
   eventType      String
   payload        Json
   idempotentKey  String              @unique
-  status         OutboxMessageStatus  @default(PENDING)
+  status         OutboxMessageStatus @default(PENDING)
   attempts       Int                 @default(0)
   maxAttempts    Int                 @default(5)
   lastError      String?

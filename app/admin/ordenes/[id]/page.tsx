@@ -49,7 +49,8 @@ export default function OrderDetailPage(): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
-  const [isActionLoading, setIsActionLoading] = useState(false);
+  const [actionKey, setActionKey] = useState<string | null>(null);
+  const isActionLoading = Boolean(actionKey);
   const [activeTrackingToken, setActiveTrackingToken] = useState<string | null>(null);
 
   // New Work Item Form
@@ -111,7 +112,7 @@ export default function OrderDetailPage(): React.JSX.Element {
   async function handleTransition(targetStatus: OrderStatus) {
     if (!order) return;
     try {
-      setIsActionLoading(true);
+      setActionKey(`transition-${targetStatus}`);
       setFeedbackMessage(null);
       const updated = await workOrdersApi.transitionStatus(order.id, {
         targetStatus,
@@ -123,7 +124,7 @@ export default function OrderDetailPage(): React.JSX.Element {
       const msg = err instanceof ApiClientError ? err.message : "Error al cambiar estado";
       setErrorMessage(msg);
     } finally {
-      setIsActionLoading(false);
+      setActionKey(null);
     }
   }
 
@@ -131,7 +132,7 @@ export default function OrderDetailPage(): React.JSX.Element {
     e.preventDefault();
     if (!order) return;
     try {
-      setIsActionLoading(true);
+      setActionKey("add-labor");
       setErrorMessage(null);
       const updated = await workOrdersApi.addWorkItem(order.id, {
         description: laborDescription.trim(),
@@ -146,7 +147,7 @@ export default function OrderDetailPage(): React.JSX.Element {
       const msg = err instanceof ApiClientError ? err.message : "Error al agregar ítem de labor";
       setErrorMessage(msg);
     } finally {
-      setIsActionLoading(false);
+      setActionKey(null);
     }
   }
 
@@ -154,7 +155,7 @@ export default function OrderDetailPage(): React.JSX.Element {
     e.preventDefault();
     if (!order) return;
     try {
-      setIsActionLoading(true);
+      setActionKey("add-part");
       setErrorMessage(null);
       const updated = await workOrdersApi.addPartItem(order.id, {
         partNumber: partNumber.trim() || undefined,
@@ -171,14 +172,14 @@ export default function OrderDetailPage(): React.JSX.Element {
       const msg = err instanceof ApiClientError ? err.message : "Error al agregar repuesto";
       setErrorMessage(msg);
     } finally {
-      setIsActionLoading(false);
+      setActionKey(null);
     }
   }
 
   async function handleResolveBlocker(blockerId: string) {
     if (!order) return;
     try {
-      setIsActionLoading(true);
+      setActionKey(`resolve-blocker-${blockerId}`);
       setErrorMessage(null);
       const updated = await workOrdersApi.resolveBlocker(order.id, blockerId, "Resuelto por el operador");
       setOrder(updated);
@@ -187,14 +188,14 @@ export default function OrderDetailPage(): React.JSX.Element {
       const msg = err instanceof ApiClientError ? err.message : "Error al resolver bloqueo";
       setErrorMessage(msg);
     } finally {
-      setIsActionLoading(false);
+      setActionKey(null);
     }
   }
 
   async function handleApproveBudget(budgetVersionId: string) {
     if (!order) return;
     try {
-      setIsActionLoading(true);
+      setActionKey(`approve-budget-${budgetVersionId}`);
       setErrorMessage(null);
       const updated = await workOrdersApi.approveBudget(order.id, budgetVersionId);
       setOrder(updated);
@@ -203,7 +204,7 @@ export default function OrderDetailPage(): React.JSX.Element {
       const msg = err instanceof ApiClientError ? err.message : "Error al aprobar presupuesto";
       setErrorMessage(msg);
     } finally {
-      setIsActionLoading(false);
+      setActionKey(null);
     }
   }
 
@@ -211,7 +212,7 @@ export default function OrderDetailPage(): React.JSX.Element {
     e.preventDefault();
     if (!order) return;
     try {
-      setIsActionLoading(true);
+      setActionKey("deliver-order");
       setErrorMessage(null);
       const odo = Number(deliveryOdometer);
       const updated = await workOrdersApi.deliver(order.id, {
@@ -227,7 +228,7 @@ export default function OrderDetailPage(): React.JSX.Element {
       const msg = err instanceof ApiClientError ? err.message : "Error al procesar entrega de orden";
       setErrorMessage(msg);
     } finally {
-      setIsActionLoading(false);
+      setActionKey(null);
     }
   }
 
@@ -236,7 +237,7 @@ export default function OrderDetailPage(): React.JSX.Element {
     try {
       let token = activeTrackingToken;
       if (!token) {
-        setIsActionLoading(true);
+        setActionKey("copy-tracking");
         const res = await workOrdersApi.rotateTrackingToken(order.id);
         token = res.trackingToken;
         setActiveTrackingToken(token);
@@ -248,7 +249,7 @@ export default function OrderDetailPage(): React.JSX.Element {
       const msg = err instanceof ApiClientError ? err.message : "Error al generar enlace de seguimiento";
       setErrorMessage(msg);
     } finally {
-      setIsActionLoading(false);
+      setActionKey(null);
     }
   }
   if (isLoading) {
@@ -312,7 +313,8 @@ export default function OrderDetailPage(): React.JSX.Element {
                 key={target}
                 type="button"
                 variant={target === "CANCELADA" ? "danger" : "primary"}
-                loading={isActionLoading}
+                loading={actionKey === `transition-${target}`}
+                disabled={isActionLoading && actionKey !== `transition-${target}`}
                 onClick={() => void handleTransition(target)}
               >
                 {STATUS_TRANSITION_LABELS[target]} &rarr;
@@ -463,7 +465,7 @@ export default function OrderDetailPage(): React.JSX.Element {
                       />
                     </div>
                     <div className="flex items-end">
-                      <Button type="submit" variant="primary" loading={isActionLoading} className="w-full">
+                      <Button type="submit" variant="primary" loading={actionKey === "add-labor"} className="w-full">
                         Guardar Labor
                       </Button>
                     </div>
@@ -594,7 +596,7 @@ export default function OrderDetailPage(): React.JSX.Element {
                       />
                     </div>
                     <div className="sm:col-span-2 flex items-end">
-                      <Button type="submit" variant="primary" loading={isActionLoading} className="w-full">
+                      <Button type="submit" variant="primary" loading={actionKey === "add-part"} className="w-full">
                         Guardar Repuesto
                       </Button>
                     </div>
@@ -732,7 +734,7 @@ export default function OrderDetailPage(): React.JSX.Element {
                   <Button
                     type="submit"
                     variant="primary"
-                    loading={isActionLoading}
+                    loading={actionKey === "deliver-order"}
                     disabled={isActionLoading || (Boolean(order.intakeRecord) && Number(deliveryOdometer) < (order.intakeRecord?.odometerAtIntake ?? 0))}
                     className="w-full min-h-[48px] bg-[#10b981] hover:bg-[#059669] text-white font-bold text-sm tracking-wide shadow-lg"
                   >
@@ -814,7 +816,7 @@ export default function OrderDetailPage(): React.JSX.Element {
                       <Button
                         type="button"
                         variant="secondary"
-                        loading={isActionLoading}
+                        loading={actionKey === `resolve-blocker-${blocker.id}`}
                         onClick={() => void handleResolveBlocker(blocker.id)}
                         className="min-h-[48px] text-xs"
                       >
@@ -846,7 +848,7 @@ export default function OrderDetailPage(): React.JSX.Element {
                     <Button
                       type="button"
                       variant="primary"
-                      loading={isActionLoading}
+                      loading={actionKey === `approve-budget-${order.budget!.currentVersion!.id}`}
                       onClick={() => void handleApproveBudget(order.budget!.currentVersion!.id)}
                       className="w-full"
                     >
@@ -865,6 +867,7 @@ export default function OrderDetailPage(): React.JSX.Element {
                 <Button
                   type="button"
                   variant="outline"
+                  loading={actionKey === "copy-tracking"}
                   onClick={handleCopyTrackingLink}
                   className="w-full"
                 >

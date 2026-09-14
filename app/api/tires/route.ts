@@ -58,72 +58,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       orderBy: { checkInAt: "desc" },
     });
 
-    // Auto-inicialización si el taller aún no tiene custodias cargadas
-    if (sets.length === 0) {
-      // Intentamos vincular con vehículos y clientes existentes o crearlos
-      let customer = await prisma.customer.findFirst({ where: { workshopId } });
-      if (!customer) {
-        customer = await prisma.customer.create({
-          data: {
-            workshopId,
-            fullName: "Mauricio Benítez",
-            phoneE164: "+543764490129",
-            phoneNormalized: "543764490129",
-          },
-        });
-      }
-
-      let vehicle = await prisma.vehicle.findFirst({ where: { workshopId } });
-      if (!vehicle) {
-        vehicle = await prisma.vehicle.create({
-          data: {
-            workshopId,
-            customerId: customer.id,
-            licensePlate: "AF 419 LK",
-            licensePlateNormalized: "AF419LK",
-            make: "Volkswagen",
-            model: "Amarok V6",
-            modelYear: 2023,
-          },
-        });
-      }
-
-      await prisma.tireSet.create({
-        data: {
-          workshopId,
-          vehicleId: vehicle.id,
-          customerId: customer.id,
-          brand: "Bridgestone Dueler A/T",
-          size: "255/60 R18",
-          season: "VERANO",
-          status: "EN_CUSTODIA",
-          rack: "Rack Aéreo N-14",
-          level: "Nivel 2",
-          position: "Posición 14",
-          notes: "Funda termocontraíble colocada. Póliza TR-9941",
-          tires: {
-            create: [
-              { wheelPosition: "DELANTERO_IZQUIERDO", treadDepthMm: 5.8, condition: "OPTIMO" },
-              { wheelPosition: "DELANTERO_DERECHO", treadDepthMm: 5.7, condition: "OPTIMO" },
-              { wheelPosition: "TRASERO_IZQUIERDO", treadDepthMm: 6.0, condition: "OPTIMO" },
-              { wheelPosition: "TRASERO_DERECHO", treadDepthMm: 5.9, condition: "OPTIMO" },
-            ],
-          },
-        },
-      });
-
-      sets = await prisma.tireSet.findMany({
-        where: { workshopId, deletedAt: null },
-        include: {
-          customer: true,
-          vehicle: true,
-          tires: true,
-        },
-        orderBy: { checkInAt: "desc" },
-      });
-    }
-
-    // Filtrado en memoria si hay término de búsqueda
     let filtered = sets;
     if (search) {
       filtered = filtered.filter((s) => {
@@ -228,38 +162,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Resolución o creación de cliente
-    let customer = await prisma.customer.findFirst({
-      where: { workshopId, fullName: { equals: customerName, mode: "insensitive" } },
-    });
-    if (!customer) {
-      customer = await prisma.customer.create({
-        data: {
-          workshopId,
-          fullName: customerName,
-          phoneE164: customerPhone || "+5491100000000",
-          phoneNormalized: (customerPhone || "5491100000000").replace(/\D/g, ""),
-        },
-      });
-    }
-
-    // Resolución o creación de vehículo
-    let vehicle = await prisma.vehicle.findFirst({
-      where: { workshopId, licensePlateNormalized: licensePlate },
-    });
-    if (!vehicle) {
-      vehicle = await prisma.vehicle.create({
-        data: {
-          workshopId,
-          customerId: customer.id,
-          licensePlate,
-          licensePlateNormalized: licensePlate,
-          make: typeof body.make === "string" ? body.make.trim() : null,
-          model: typeof body.model === "string" ? body.model.trim() : null,
-        },
-      });
-    }
-
     const rawTires = Array.isArray(body.tires) ? body.tires : [];
     const defaultPositions = [
       "DELANTERO_IZQUIERDO",
@@ -283,29 +185,63 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             notes: null,
           }));
 
-    const newSet = await prisma.tireSet.create({
-      data: {
-        workshopId,
-        vehicleId: vehicle.id,
-        customerId: customer.id,
-        brand,
-        size,
-        season,
-        dot,
-        status: "EN_CUSTODIA",
-        rack,
-        level,
-        position,
-        notes,
-        tires: {
-          create: tireItemsData,
+    const newSet = await prisma.$transaction(async (tx) => {
+      // Resolución o creación de cliente dentro de la tx
+      let customer = await tx.customer.findFirst({
+        where: { workshopId, fullName: { equals: customerName, mode: "insensitive" } },
+      });
+      if (!customer) {
+        customer = await tx.customer.create({
+          data: {
+            workshopId,
+            fullName: customerName,
+            phoneE164: customerPhone || "+5491100000000",
+            phoneNormalized: (customerPhone || "5491100000000").replace(/\D/g, ""),
+          },
+        });
+      }
+
+      // Resolución o creación de vehículo dentro de la tx
+      let vehicle = await tx.vehicle.findFirst({
+        where: { workshopId, licensePlateNormalized: licensePlate },
+      });
+      if (!vehicle) {
+        vehicle = await tx.vehicle.create({
+          data: {
+            workshopId,
+            customerId: customer.id,
+            licensePlate,
+            licensePlateNormalized: licensePlate,
+            make: typeof body.make === "string" ? body.make.trim() : null,
+            model: typeof body.model === "string" ? body.model.trim() : null,
+          },
+        });
+      }
+
+      return await tx.tireSet.create({
+        data: {
+          workshopId,
+          vehicleId: vehicle.id,
+          customerId: customer.id,
+          brand,
+          size,
+          season,
+          dot,
+          status: "EN_CUSTODIA",
+          rack,
+          level,
+          position,
+          notes,
+          tires: {
+            create: tireItemsData,
+          },
         },
-      },
-      include: {
-        customer: true,
-        vehicle: true,
-        tires: true,
-      },
+        include: {
+          customer: true,
+          vehicle: true,
+          tires: true,
+        },
+      });
     });
 
     return NextResponse.json(

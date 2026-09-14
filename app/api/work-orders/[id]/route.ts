@@ -412,25 +412,33 @@ export async function PATCH(
       );
     } else if (action === "rotate-tracking-token") {
       // N7: Generación / rotación segura de enlace de seguimiento para clientes
-      const existing = await prisma.workOrder.findFirst({
-        where: { id, workshopId, deletedAt: null },
-        select: { id: true },
-      });
-      if (!existing) {
-        throw new NotFoundException("WORK_ORDER_NOT_FOUND", "La orden no existe.");
-      }
-
       const rawTrackingToken = createTrackingToken();
       const trackingCodeHash = hashTrackingToken(rawTrackingToken);
 
-      await prisma.workOrder.update({
-        where: { id },
-        data: {
-          trackingCodeHash,
-          trackingCodeIssuedAt: new Date(),
-          trackingCodeRevokedAt: null,
-        },
-      });
+      await withSerializableRetry(() =>
+        prisma.$transaction(
+          async (tx) => {
+            const existing = await tx.workOrder.findFirst({
+              where: { id, workshopId, deletedAt: null },
+              select: { id: true, version: true },
+            });
+            if (!existing) {
+              throw new NotFoundException("WORK_ORDER_NOT_FOUND", "La orden no existe.");
+            }
+
+            await tx.workOrder.update({
+              where: { id },
+              data: {
+                trackingCodeHash,
+                trackingCodeIssuedAt: new Date(),
+                trackingCodeRevokedAt: null,
+                version: { increment: 1 },
+              },
+            });
+          },
+          { isolationLevel: "Serializable", maxWait: 10000, timeout: 30000 },
+        ),
+      );
 
       return NextResponse.json(
         {
@@ -462,21 +470,39 @@ export async function PATCH(
         throw new ValidationException("INVALID_RATE", "La tarifa horaria debe ser un número no negativo.");
       }
 
-      await prisma.$transaction(async (tx) => {
-        await tx.workItem.create({
-          data: {
-            workshopId,
-            workOrderId: id,
-            description,
-            estimatedMinutes: minutes,
-            hourlyRateCharged: rate.toFixed(2),
-            createdById: adminUser.id,
-          },
-        });
+      await withSerializableRetry(() =>
+        prisma.$transaction(
+          async (tx) => {
+            const current = await tx.workOrder.findFirst({
+              where: { id, workshopId, deletedAt: null },
+              select: { id: true, version: true },
+            });
+            if (!current) {
+              throw new NotFoundException("WORK_ORDER_NOT_FOUND", "La orden no existe.");
+            }
 
-        await recalculateOrderTotalsInTx(tx, { workshopId, workOrderId: id });
-        await recalculateBlockersInTx(tx, { workshopId, workOrderId: id, actorAdminId: adminUser.id });
-      });
+            await tx.workItem.create({
+              data: {
+                workshopId,
+                workOrderId: id,
+                description,
+                estimatedMinutes: minutes,
+                hourlyRateCharged: rate.toFixed(2),
+                createdById: adminUser.id,
+              },
+            });
+
+            await recalculateOrderTotalsInTx(tx, { workshopId, workOrderId: id });
+            await recalculateBlockersInTx(tx, { workshopId, workOrderId: id, actorAdminId: adminUser.id });
+
+            await tx.workOrder.update({
+              where: { id },
+              data: { version: { increment: 1 } },
+            });
+          },
+          { isolationLevel: "Serializable", maxWait: 10000, timeout: 30000 },
+        ),
+      );
     } else if (action === "add-part-item") {
       const description = typeof body.description === "string" ? body.description.trim() : "";
       if (!description) {
@@ -492,48 +518,76 @@ export async function PATCH(
       }
       const partNumber = typeof body.partNumber === "string" && body.partNumber.trim() ? body.partNumber.trim() : null;
 
-      await prisma.$transaction(async (tx) => {
-        await tx.partItem.create({
-          data: {
-            workshopId,
-            workOrderId: id,
-            description,
-            quantity: qty,
-            unitPriceCharged: unitPrice.toFixed(2),
-            partNumber,
-            createdById: adminUser.id,
-          },
-        });
+      await withSerializableRetry(() =>
+        prisma.$transaction(
+          async (tx) => {
+            const current = await tx.workOrder.findFirst({
+              where: { id, workshopId, deletedAt: null },
+              select: { id: true, version: true },
+            });
+            if (!current) {
+              throw new NotFoundException("WORK_ORDER_NOT_FOUND", "La orden no existe.");
+            }
 
-        await recalculateOrderTotalsInTx(tx, { workshopId, workOrderId: id });
-        await recalculateBlockersInTx(tx, { workshopId, workOrderId: id, actorAdminId: adminUser.id });
-      });
+            await tx.partItem.create({
+              data: {
+                workshopId,
+                workOrderId: id,
+                description,
+                quantity: qty,
+                unitPriceCharged: unitPrice.toFixed(2),
+                partNumber,
+                createdById: adminUser.id,
+              },
+            });
+
+            await recalculateOrderTotalsInTx(tx, { workshopId, workOrderId: id });
+            await recalculateBlockersInTx(tx, { workshopId, workOrderId: id, actorAdminId: adminUser.id });
+
+            await tx.workOrder.update({
+              where: { id },
+              data: { version: { increment: 1 } },
+            });
+          },
+          { isolationLevel: "Serializable", maxWait: 10000, timeout: 30000 },
+        ),
+      );
     } else if (action === "resolve-blocker") {
       const blockerId = typeof body.blockerId === "string" ? body.blockerId : "";
       if (!blockerId) {
         throw new ValidationException("BLOCKER_ID_REQUIRED", "El ID del bloqueo es requerido.");
       }
 
-      const blocker = await prisma.orderBlocker.findFirst({
-        where: { id: blockerId, workOrderId: id, workshopId, isActive: true },
-      });
-      if (!blocker) {
-        throw new NotFoundException("BLOCKER_NOT_FOUND", "El bloqueo no existe o ya fue resuelto.");
-      }
+      await withSerializableRetry(() =>
+        prisma.$transaction(
+          async (tx) => {
+            const blocker = await tx.orderBlocker.findFirst({
+              where: { id: blockerId, workOrderId: id, workshopId, isActive: true },
+            });
+            if (!blocker) {
+              throw new NotFoundException("BLOCKER_NOT_FOUND", "El bloqueo no existe o ya fue resuelto.");
+            }
 
-      await prisma.$transaction(async (tx) => {
-        await tx.orderBlocker.update({
-          where: { id: blockerId },
-          data: {
-            isActive: false,
-            resolvedAt: new Date(),
-            resolvedByUserId: adminUser.id,
-            resolutionNotes: typeof body.notes === "string" ? body.notes : "Resuelto por operador",
+            await tx.orderBlocker.update({
+              where: { id: blockerId },
+              data: {
+                isActive: false,
+                resolvedAt: new Date(),
+                resolvedByUserId: adminUser.id,
+                resolutionNotes: typeof body.notes === "string" ? body.notes : "Resuelto por operador",
+              },
+            });
+
+            await recalculateBlockersInTx(tx, { workshopId, workOrderId: id, actorAdminId: adminUser.id });
+
+            await tx.workOrder.update({
+              where: { id },
+              data: { version: { increment: 1 } },
+            });
           },
-        });
-
-        await recalculateBlockersInTx(tx, { workshopId, workOrderId: id, actorAdminId: adminUser.id });
-      });
+          { isolationLevel: "Serializable", maxWait: 10000, timeout: 30000 },
+        ),
+      );
     } else if (action === "approve-budget") {
       const budgetVersionId = typeof body.budgetVersionId === "string" ? body.budgetVersionId : "";
       if (!budgetVersionId) {

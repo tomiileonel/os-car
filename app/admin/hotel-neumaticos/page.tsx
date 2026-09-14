@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 import {
   tireHotelApi,
   ApiClientError,
@@ -62,15 +63,27 @@ export default function HotelNeumaticosPage(): React.JSX.Element {
   const [submittingCheckIn, setSubmittingCheckIn] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
-  // Toast
+  // Toast con limpieza de timer para prevenir leaks en unmount
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const showToast = useCallback((msg: string) => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
     setToastMessage(msg);
-    const timer = setTimeout(() => {
+    toastTimeoutRef.current = setTimeout(() => {
       setToastMessage(null);
+      toastTimeoutRef.current = null;
     }, 3500);
-    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
   }, []);
 
   // Carga de sets en custodia
@@ -95,22 +108,30 @@ export default function HotelNeumaticosPage(): React.JSX.Element {
     void fetchTireSets();
   }, [fetchTireSets]);
 
+  // Búsqueda con debounce para evitar cálculos innecesarios
+  const debouncedSearch = useDebouncedValue(search, 250);
+
   // Métricas de ocupación
   const metrics = useMemo(() => {
     const activeSets = tireSets.filter((s) => s.status === "EN_CUSTODIA");
     const warningSets = activeSets.filter((s) => s.suggestReplacement || s.minTreadDepthMm <= 2.0);
-    const occupancyPercentage = Math.round((activeSets.length / TOTAL_SLOTS) * 100);
+    const totalOccupied = activeSets.length;
+    const occupancyPercentage = Math.round((totalOccupied / TOTAL_SLOTS) * 100);
+    const criticalTreadCount = warningSets.length;
     return {
-      activeCount: activeSets.length,
-      warningCount: warningSets.length,
+      activeCount: totalOccupied,
+      warningCount: criticalTreadCount,
       occupancyPercentage,
       totalSlots: TOTAL_SLOTS,
+      totalOccupied,
+      occupancyPct: occupancyPercentage,
+      criticalTreadCount,
     };
   }, [tireSets]);
 
   // Filtrado de la lista
   const filteredSets = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query = debouncedSearch.trim().toLowerCase();
     return tireSets.filter((set) => {
       // Filtro de estado
       if (filterMode === "DELIVERED") {
@@ -136,7 +157,7 @@ export default function HotelNeumaticosPage(): React.JSX.Element {
 
       return true;
     });
-  }, [tireSets, search, filterMode]);
+  }, [tireSets, debouncedSearch, filterMode]);
 
   // Registro de nuevo check-in
   const handleCheckInSubmit = async (e: React.FormEvent) => {

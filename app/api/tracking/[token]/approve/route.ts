@@ -18,11 +18,21 @@ import {
 } from "@/server/services/budget-approval.service";
 import { validateTransition } from "@/server/services/order-workflow.service";
 import { withSerializableRetry } from "@/server/services/order-calculation.service";
-import type { BudgetDecisionInput, BudgetDecisionResultDto } from "@/lib/api-client";
+import type { BudgetDecisionResultDto } from "@/lib/api-client";
+import { z } from "zod";
 
 export const runtime = "nodejs";
 
 const MAX_TRACKING_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 días TTL (N5)
+
+const BudgetDecisionSchema = z
+  .object({
+    decision: z.enum(["APROBADO", "RECHAZADO"]),
+    notes: z.string().max(500).optional(),
+    approvedItemIds: z.array(z.string()).optional(),
+    rejectedItemIds: z.array(z.string()).optional(),
+  })
+  .strict();
 
 function failResponse(error: unknown, request: NextRequest): NextResponse {
   const requestId = resolveCorrelationId(request);
@@ -102,7 +112,16 @@ export async function POST(
       );
     }
 
-    const body = (await request.json().catch(() => ({}))) as BudgetDecisionInput;
+    const rawBody = await request.json().catch(() => null);
+    const parsed = BudgetDecisionSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      const detail = parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join(", ");
+      throw new ValidationException(
+        "INVALID_DECISION_PAYLOAD",
+        detail || "El cuerpo de la solicitud no cumple con la estructura requerida.",
+      );
+    }
+    const body = parsed.data;
 
     const targetVersion =
       order.budget?.versions[0] ??
@@ -123,10 +142,7 @@ export async function POST(
       );
     }
 
-    // Determinar decisión: si explícita, usarla; si hay items aprobados -> APROBADO; si solo rechazados -> RECHAZADO
-    const isExplicitReject = body.decision === "RECHAZADO";
-    const decision = isExplicitReject ? "RECHAZADO" : "APROBADO";
-
+    const decision = body.decision;
     const approvedItemIds = body.approvedItemIds ?? [];
     const rejectedItemIds = body.rejectedItemIds ?? [];
 
