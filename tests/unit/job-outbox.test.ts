@@ -7,7 +7,7 @@ vi.mock("@/server/db", () => ({
   prisma: { $transaction: transactionMock },
 }));
 
-import { enqueueOutboxMessage } from "@/server/jobs/outbox.service";
+import { enqueueOutboxMessage, OUTBOX_EVENT_TYPES } from "@/server/jobs/outbox.service";
 import {
   clearOutboxHandlers,
   computeBackoffDelay,
@@ -386,5 +386,13 @@ describe("runWorkerOnce — ciclo de vida del job", () => {
     expect(getOutboxHandler("BUDGET_DECISION_RECEIVED")).toBeUndefined();
     ensureDefaultOutboxHandlers();
     expect(getOutboxHandler("BUDGET_DECISION_RECEIVED")).toBeDefined();
+  });
+
+  it("contrato outbox: todos los eventos canónicos de OUTBOX_EVENT_TYPES tienen un handler registrado", () => {
+    clearOutboxHandlers();
+    ensureDefaultOutboxHandlers();
+    for (const eventType of OUTBOX_EVENT_TYPES) {
+      expect(getOutboxHandler(eventType)).toBeDefined();
+    }
   });
 });

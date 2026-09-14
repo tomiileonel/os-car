@@ -103,6 +103,38 @@ export function registerDefaultOutboxHandlers(): void {
       metadata: { idempotentKey: message.idempotentKey },
     });
   });
+
+  registerOutboxHandler("BUDGET_PUBLISHED", async (message) => {
+    logger.info("outbox: evento BUDGET_PUBLISHED procesado", {
+      correlationId: message.correlationId ?? undefined,
+      workshopId: message.workshopId,
+      metadata: { idempotentKey: message.idempotentKey },
+    });
+  });
+
+  registerOutboxHandler("TRACKING_CODE_REGENERATED", async (message) => {
+    logger.info("outbox: evento TRACKING_CODE_REGENERATED procesado", {
+      correlationId: message.correlationId ?? undefined,
+      workshopId: message.workshopId,
+      metadata: { idempotentKey: message.idempotentKey },
+    });
+  });
+
+  registerOutboxHandler("BAY_CAPACITY_CHANGED", async (message) => {
+    logger.info("outbox: evento BAY_CAPACITY_CHANGED procesado", {
+      correlationId: message.correlationId ?? undefined,
+      workshopId: message.workshopId,
+      metadata: { idempotentKey: message.idempotentKey },
+    });
+  });
+
+  registerOutboxHandler("PART_LOGISTIC_STATUS_CHANGED", async (message) => {
+    logger.info("outbox: evento PART_LOGISTIC_STATUS_CHANGED procesado", {
+      correlationId: message.correlationId ?? undefined,
+      workshopId: message.workshopId,
+      metadata: { idempotentKey: message.idempotentKey },
+    });
+  });
 }
 
 export function ensureDefaultOutboxHandlers(): void {
