@@ -311,7 +311,7 @@ export async function decideBudgetVersionInTx(
       data: {
         workshopId: command.workshopId,
         eventType: "BUDGET_DECISION_RECEIVED",
-        idempotentKey: `budget-decision-${version.id}-${command.decision}-${now.getTime()}`,
+        idempotentKey: `budget-decision-${version.id}-${command.decision}`,
         status: "PENDING",
         payload: {
           workOrderId: command.workOrderId,

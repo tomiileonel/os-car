@@ -95,6 +95,14 @@ export function registerDefaultOutboxHandlers(): void {
       metadata: { idempotentKey: message.idempotentKey },
     });
   });
+
+  registerOutboxHandler("BUDGET_DECISION_RECEIVED", async (message) => {
+    logger.info("outbox: evento BUDGET_DECISION_RECEIVED procesado", {
+      correlationId: message.correlationId ?? undefined,
+      workshopId: message.workshopId,
+      metadata: { idempotentKey: message.idempotentKey },
+    });
+  });
 }
 
 export function ensureDefaultOutboxHandlers(): void {

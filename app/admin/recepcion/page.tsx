@@ -674,7 +674,7 @@ export default function RecepcionPage(): React.JSX.Element {
                     key={t}
                     type="button"
                     onClick={() => setVehicleType(t)}
-                    className={`px-2.5 py-1 text-[11px] font-mono font-bold rounded transition-colors ${
+                    className={`px-3 py-2 min-h-[44px] min-w-[48px] text-xs font-mono font-bold rounded transition-colors ${
                       vehicleType === t ? "bg-[#2563eb] text-white" : "text-[#9ca3af] hover:text-white"
                     }`}
                   >
@@ -944,7 +944,7 @@ export default function RecepcionPage(): React.JSX.Element {
                         <button
                           type="button"
                           onClick={() => handleRemoveDamagePoint(d.id)}
-                          className="text-[#9ca3af] hover:text-[#ef4444] text-sm ml-1"
+                          className="text-[#9ca3af] hover:text-[#ef4444] text-sm ml-1 inline-flex items-center justify-center min-h-[44px] min-w-[44px] p-2 focus:outline-none focus:ring-2 focus:ring-[#f59e0b] rounded"
                           aria-label={`Eliminar daño en ${d.zone}`}
                         >
                           ✕

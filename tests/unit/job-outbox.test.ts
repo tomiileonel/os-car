@@ -12,6 +12,7 @@ import {
   clearOutboxHandlers,
   computeBackoffDelay,
   deterministicRatio,
+  ensureDefaultOutboxHandlers,
   getOutboxHandler,
   registerDefaultOutboxHandlers,
   registerOutboxHandler,
@@ -338,14 +339,16 @@ describe("runWorkerOnce — ciclo de vida del job", () => {
     expect(summary.completed).toBe(0);
   });
 
-  it("registerDefaultOutboxHandlers registra handlers para WHATSAPP_READY_FOR_PICKUP y WHATSAPP_DELIVERY_RECEIPT", async () => {
+  it("registerDefaultOutboxHandlers registra handlers para WHATSAPP_READY_FOR_PICKUP, WHATSAPP_DELIVERY_RECEIPT y BUDGET_DECISION_RECEIVED", async () => {
     registerDefaultOutboxHandlers();
 
     const readyHandler = getOutboxHandler("WHATSAPP_READY_FOR_PICKUP");
     const receiptHandler = getOutboxHandler("WHATSAPP_DELIVERY_RECEIPT");
+    const budgetHandler = getOutboxHandler("BUDGET_DECISION_RECEIVED");
 
     expect(readyHandler).toBeDefined();
     expect(receiptHandler).toBeDefined();
+    expect(budgetHandler).toBeDefined();
 
     const candidate = buildMessage({
       eventType: "WHATSAPP_DELIVERY_RECEIPT",
@@ -376,5 +379,12 @@ describe("runWorkerOnce — ciclo de vida del job", () => {
       data: { status: string; completedAt: Date };
     };
     expect(settleCall.data.status).toBe("COMPLETED");
+  });
+
+  it("ensureDefaultOutboxHandlers inicializa los handlers predeterminados si el registro está vacío", () => {
+    clearOutboxHandlers();
+    expect(getOutboxHandler("BUDGET_DECISION_RECEIVED")).toBeUndefined();
+    ensureDefaultOutboxHandlers();
+    expect(getOutboxHandler("BUDGET_DECISION_RECEIVED")).toBeDefined();
   });
 });

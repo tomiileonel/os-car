@@ -15,6 +15,7 @@ import {
   getAdminBootstrapStatus,
   invalidateAdminBootstrapCache,
 } from "./admin-bootstrap.service";
+import { withSerializableRetry } from "./order-calculation.service";
 import type { CanonicalAdminRole } from "@/server/auth/active-admin";
 
 export interface AdminRegisterResult {
@@ -134,47 +135,52 @@ export async function registerAdmin(
 
   // 5. Crear AdminUser en Prisma dentro de una transacción con auditoría
   try {
-    const adminUser = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      // Re-verificación atómica dentro de la transacción para prevenir carreras TOCTOU
-      const existingAdmins = await tx.adminUser.count({
-        where: { active: true, deletedAt: null, email: { not: null } },
-      });
-      if (existingAdmins > 0) {
-        throw new ForbiddenException(
-          "REGISTRATION_CLOSED",
-          "El registro administrativo está deshabilitado. Ya existe una cuenta de administrador configurada."
-        );
-      }
+    const adminUser = await withSerializableRetry(() =>
+      prisma.$transaction(
+        async (tx: Prisma.TransactionClient) => {
+          // Re-verificación atómica bajo aislamiento SERIALIZABLE para prevenir carreras TOCTOU
+          const existingAdmins = await tx.adminUser.count({
+            where: { active: true, deletedAt: null, email: { not: null } },
+          });
+          if (existingAdmins > 0) {
+            throw new ForbiddenException(
+              "REGISTRATION_CLOSED",
+              "El registro administrativo está deshabilitado. Ya existe una cuenta de administrador configurada."
+            );
+          }
 
-      const created = await tx.adminUser.create({
-        data: {
-          workshopId: workshop.id,
-          authUserId,
-          displayName: command.displayName,
-          email: command.email,
-          role: "OWNER",
-          active: true,
-          passwordChangedAt: new Date(),
+          const created = await tx.adminUser.create({
+            data: {
+              workshopId: workshop.id,
+              authUserId,
+              displayName: command.displayName,
+              email: command.email,
+              role: "OWNER",
+              active: true,
+              passwordChangedAt: new Date(),
+            },
+          });
+
+          await recordAuditEvent(tx, {
+            workshopId: workshop.id,
+            actorId: created.id,
+            actorType: "ADMIN",
+            action: "ADMIN_BOOTSTRAPPED",
+            entityType: "ADMIN_USER",
+            entityId: created.id,
+            afterState: {
+              email: command.email,
+              role: "OWNER",
+              displayName: command.displayName,
+              isBootstrap: true,
+            },
+          });
+
+          return created;
         },
-      });
-
-      await recordAuditEvent(tx, {
-        workshopId: workshop.id,
-        actorId: created.id,
-        actorType: "ADMIN",
-        action: "ADMIN_BOOTSTRAPPED",
-        entityType: "ADMIN_USER",
-        entityId: created.id,
-        afterState: {
-          email: command.email,
-          role: "OWNER",
-          displayName: command.displayName,
-          isBootstrap: true,
-        },
-      });
-
-      return created;
-    });
+        { isolationLevel: "Serializable" }
+      )
+    );
 
     invalidateAdminBootstrapCache();
 

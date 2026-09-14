@@ -62,6 +62,9 @@ function buildBudgetApprovalTxMock(): BudgetApprovalServiceTx {
     statusHistory: {
       create: vi.fn().mockResolvedValue({ id: "sh_1" }),
     },
+    outboxMessage: {
+      create: vi.fn().mockResolvedValue({ id: "ob_1" }),
+    },
   };
 }
 
@@ -362,6 +365,27 @@ describe("BudgetApprovalService — B1, S2 e Invariantes de Aprobación", () => 
           rejectionReason: "Rechazo concurrente en versión inicial",
         })
       ).rejects.toThrow(DomainConflictException);
+    });
+
+    it("AUD-024 / NEO-006: emite evento Outbox con idempotentKey determinístico (sin timestamps)", async () => {
+      const tx = buildBudgetApprovalTxMock();
+
+      await decideBudgetVersionInTx(tx, {
+        workshopId: "ws_1",
+        workOrderId: "wo_1",
+        budgetVersionId: "bv_1",
+        decision: "APROBADO",
+        actorType: "ADMIN",
+        actorAdminId: "au_admin",
+      });
+
+      expect(tx.outboxMessage?.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          eventType: "BUDGET_DECISION_RECEIVED",
+          idempotentKey: "budget-decision-bv_1-APROBADO",
+          status: "PENDING",
+        }),
+      });
     });
   });
 });
