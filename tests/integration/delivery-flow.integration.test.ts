@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { PATCH, GET } from "@/../app/api/work-orders/[id]/route";
+import { teardownTestWorkshop } from "../helpers/teardown";
 
 const WORKSHOP_ID = `ws-deliv-${Date.now()}`;
 const ADMIN_ID = `admin-deliv-${Date.now()}`;
@@ -420,5 +421,9 @@ describe("G12 — Flujo de Entrega Definitiva, Liberación de Bahías y Transact
     });
     expect(outboxReady).not.toBeNull();
     expect(outboxReady?.status).toBe("PENDING");
+  });
+
+  afterAll(async () => {
+    await teardownTestWorkshop(prisma, WORKSHOP_ID);
   });
 });

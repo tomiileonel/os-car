@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { POST as receptionPost } from "@/../app/api/reception/route";
 import { PATCH as workOrderPatch } from "@/../app/api/work-orders/[id]/route";
 import { POST as approvePost } from "@/../app/api/tracking/[token]/approve/route";
+import { teardownTestWorkshop } from "../helpers/teardown";
 
 const TEST_WORKSHOP_ID = `ws-crit-${Date.now()}`;
 const TEST_ADMIN_ID = `admin-crit-${Date.now()}`;
@@ -278,5 +279,9 @@ describe("G11 — Critical Flows E2E (Real DB)", () => {
       expect(approvals.length).toBeGreaterThan(0);
       expect(approvals[0].ipHash).toBe(expectedIpHash);
     });
+  });
+
+  afterAll(async () => {
+    await teardownTestWorkshop(prisma, TEST_WORKSHOP_ID);
   });
 });

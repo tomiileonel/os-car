@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { PATCH } from "@/../app/api/work-orders/[id]/route";
+import { teardownTestWorkshop } from "../helpers/teardown";
 
 const TEST_WORKSHOP_ID = `ws-cas-${Date.now()}`;
 const TEST_ADMIN_ID = `admin-cas-${Date.now()}`;
@@ -81,16 +82,7 @@ describe("G11 — Concurrency CAS on PATCH /api/work-orders/[id]", () => {
   }, 30_000);
 
   afterAll(async () => {
-    try {
-      await prisma.statusHistory.deleteMany({ where: { workOrder: { workshopId: TEST_WORKSHOP_ID } } });
-      await prisma.workOrder.deleteMany({ where: { workshopId: TEST_WORKSHOP_ID } });
-      await prisma.adminUser.deleteMany({ where: { workshopId: TEST_WORKSHOP_ID } });
-      await prisma.vehicle.deleteMany({ where: { id: vehicleId } });
-      await prisma.customer.deleteMany({ where: { id: customerId } });
-      await prisma.workshop.delete({ where: { id: TEST_WORKSHOP_ID } });
-    } catch {
-      // Ignorar errores de cleanup en teardown
-    }
+    await teardownTestWorkshop(prisma, TEST_WORKSHOP_ID);
   });
 
   it("exactly 1 of 50 concurrent CAS requests succeeds, 49 receive 409 CONCURRENT_MODIFICATION", async () => {
