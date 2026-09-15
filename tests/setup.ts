@@ -11,17 +11,14 @@ process.env.TRACKING_HMAC_SECRET ??=
   "test-tracking-hmac-secret-at-least-32-chars-long";
 // AUD-029: Guard Anti-Producción estricto en entorno de pruebas.
 // Los tests nunca deben escribir en bases remotas a menos que se configure explícitamente ALLOW_REMOTE_TEST_DB=true.
-if (process.env.DATABASE_URL && !/localhost|127\.0\.0\.1|\.test/i.test(process.env.DATABASE_URL)) {
-  if (process.env.ALLOW_REMOTE_TEST_DB !== "true") {
-    process.env.DATABASE_URL =
-      process.env.TEST_DATABASE_URL ?? "postgresql://oscar:oscar@localhost:5432/oscar_test";
-    delete process.env.DIRECT_URL;
-    delete process.env.G5_NEON_DATABASE_URL;
-  }
+if (process.env.ALLOW_REMOTE_TEST_DB !== "true") {
+  process.env.DATABASE_URL = "postgresql://oscar:oscar@localhost:5432/oscar_test";
+  delete process.env.DIRECT_URL;
+  delete process.env.G5_NEON_DATABASE_URL;
+  delete process.env.TEST_DATABASE_URL;
 }
 process.env.DATABASE_URL ??= "postgresql://oscar:oscar@localhost:5432/oscar_test";
-delete process.env.DIRECT_URL;
-delete process.env.G5_NEON_DATABASE_URL;
+
 
 delete process.env.REDIS_URL;
 
