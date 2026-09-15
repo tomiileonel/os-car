@@ -61,3 +61,5 @@ Thumbs.db
 scratch/
 .system_generated/
 
+.vercel
+.env*
