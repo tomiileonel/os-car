@@ -1,52 +1,23 @@
-import { NextRequest, NextResponse } from "next/server";
-import { clientIp } from "@/lib/client-ip";
-import { memoryLimiter } from "@/lib/rate-limit";
-import { RateLimitException, toErrorEnvelope } from "@/shared/errors";
-import { publicTrackingSchema } from "@/shared/schemas";
-import { getPublicTrackingOrder } from "@/server/services/public-tracking.service";
+/**
+ * OS-CAR — POST /api/public/tracking
+ * Snapshot de seguimiento por código (mismo shape que GET /api/public/tracking/[code]).
+ */
+import { z } from "zod";
+import { ok, handleApiError, parseBody } from "@/lib/server/http";
+import { buildTrackingSnapshot } from "@/lib/server/tracking";
 
 export const runtime = "nodejs";
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  const requestId = crypto.randomUUID();
-  const rateLimit = memoryLimiter.record(
-    `public-tracking:${clientIp(request)}`,
-    10,
-    10 * 60 * 1000,
-    Date.now()
-  );
+const trackingSchema = z.object({
+  code: z.string().trim().min(8, "Código de seguimiento inválido").max(64),
+});
 
-  if (!rateLimit.allowed) {
-    const error = new RateLimitException(Math.max(1, Math.ceil(rateLimit.retryAfterMs / 1000)));
-    const result = toErrorEnvelope(error, {
-      requestId,
-      instance: request.nextUrl.pathname,
-    });
-    return NextResponse.json(result.body, {
-      status: result.status,
-      headers: {
-        "Cache-Control": "no-store",
-        "Retry-After": String(Math.max(1, Math.ceil(rateLimit.retryAfterMs / 1000))),
-      },
-    });
-  }
-
+export async function POST(request: Request) {
   try {
-    const input = publicTrackingSchema.parse(await request.json());
-    const data = await getPublicTrackingOrder(input.trackingToken);
-
-    return NextResponse.json(
-      { success: true, data, meta: { requestId } },
-      { status: 200, headers: { "Cache-Control": "no-store" } }
-    );
+    const body = await parseBody(request, trackingSchema);
+    const snapshot = await buildTrackingSnapshot(body.code);
+    return ok(snapshot);
   } catch (error) {
-    const result = toErrorEnvelope(error, {
-      requestId,
-      instance: request.nextUrl.pathname,
-    });
-    return NextResponse.json(result.body, {
-      status: result.status,
-      headers: { "Cache-Control": "no-store" },
-    });
+    return handleApiError(error);
   }
 }

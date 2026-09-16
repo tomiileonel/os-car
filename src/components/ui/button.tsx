@@ -1,92 +1,97 @@
-"use client";
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
 
-import { forwardRef } from "react";
-import type { ButtonHTMLAttributes } from "react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils"
 
-export type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger";
+/**
+ * Botón OS-CAR — Tablero del taller.
+ * cta: amarillo competición (acción principal). alert: rojo paro.
+ * Los nombres de variantes shadcn se mantienen (default→cta, destructive→alert)
+ * para no romper los componentes Radix existentes.
+ */
+const buttonVariants = cva(
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-semibold tracking-wide transition-all duration-150 disabled:pointer-events-none disabled:opacity-45 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 select-none active:translate-y-px",
+  {
+    variants: {
+      variant: {
+        default:
+          "bg-oscar-yellow text-carbon-950 border border-oscar-yellow/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-2px_0_rgba(0,0,0,0.25)] hover:bg-oscar-yellow-hover hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-2px_0_rgba(0,0,0,0.25),0_0_20px_rgba(255,230,0,0.25)] font-display font-bold uppercase",
+        primary:
+          "bg-oscar-yellow text-carbon-950 border border-oscar-yellow/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-2px_0_rgba(0,0,0,0.25)] hover:bg-oscar-yellow-hover hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-2px_0_rgba(0,0,0,0.25),0_0_20px_rgba(255,230,0,0.25)] font-display font-bold uppercase",
+        destructive:
+          "bg-oscar-red text-white border border-oscar-red/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),inset_0_-2px_0_rgba(0,0,0,0.3)] hover:bg-oscar-red-hover font-display font-bold uppercase",
+        danger:
+          "bg-oscar-red text-white border border-oscar-red/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),inset_0_-2px_0_rgba(0,0,0,0.3)] hover:bg-oscar-red-hover font-display font-bold uppercase",
+        carbon:
+          "bg-carbon-800 text-titanium border border-carbon-700 shadow-[inset_0_1px_0_rgba(248,250,252,0.05),0_2px_8px_rgba(0,0,0,0.4)] hover:bg-carbon-700 hover:border-steel/30",
+        outline:
+          "border border-carbon-700 bg-transparent text-steel hover:text-oscar-yellow hover:border-oscar-yellow/60 hover:bg-oscar-yellow/5",
+        secondary:
+          "bg-carbon-800 text-titanium border border-carbon-700 hover:bg-carbon-700",
+        ghost:
+          "text-steel hover:bg-carbon-800 hover:text-oscar-yellow",
+        link: "text-oscar-yellow underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-10 px-4 py-2 text-sm",
+        sm: "h-9 rounded-sm gap-1.5 px-3 text-xs",
+        lg: "h-12 px-6 text-base",
+        xl: "h-14 px-8 text-lg",
+        touch: "min-h-11 px-5 text-sm",
+        icon: "size-10",
+        "icon-sm": "size-9",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
 
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
+export interface ButtonProps
+  extends React.ComponentProps<"button">,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean;
   loading?: boolean;
-  /** Announced to screen readers while loading; visible label is preserved but hidden from AT. */
   loadingLabel?: string;
 }
 
-const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary: "bg-[#2563eb] text-white hover:bg-[#1d4ed8] border-transparent",
-  secondary: "bg-[#1f2937] text-[#f9fafb] hover:bg-[#273244] border-[#374151]",
-  outline: "bg-transparent text-[#f9fafb] hover:bg-[#1f2937] border-[#374151]",
-  ghost: "bg-transparent text-[#f9fafb] hover:bg-[#1f2937] border-transparent",
-  danger: "bg-[#ef4444] text-white hover:bg-[#dc2626] border-transparent",
-};
-
-function Spinner(): React.JSX.Element {
-  return (
-    <svg
-      className="h-4 w-4 animate-spin"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-90"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-      />
-    </svg>
-  );
-}
-
-/**
- * Button — industrial dark-theme button, min 48x48px touch target
- * (ui-system/SKILL.md), 5 variants, accessible loading state.
- *
- * Loading contract: when `loading`, the button is disabled (prevents
- * duplicate submits — relevant for the intake form hitting a
- * non-idempotent POST without a client-generated Idempotency-Key),
- * the spinner is aria-hidden, and an sr-only live region announces
- * `loadingLabel` so screen reader users get feedback the sighted
- * spinner already conveys visually.
- */
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   {
-    variant = "primary",
-    loading = false,
-    loadingLabel = "Procesando",
-    disabled,
     className,
+    variant,
+    size,
+    asChild = false,
+    loading = false,
+    loadingLabel,
+    disabled,
     children,
-    ...rest
+    ...props
   },
-  ref,
+  ref
 ) {
+  const Comp = asChild ? Slot : "button"
+
   return (
-    <button
-      {...rest}
+    <Comp
       ref={ref}
+      data-slot="button"
       disabled={disabled || loading}
-      aria-busy={loading || undefined}
-      className={cn(
-        "inline-flex min-h-[48px] items-center justify-center gap-2 rounded-md border px-4 py-2",
-        "text-sm font-semibold transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2 focus-visible:ring-offset-[#090d16]",
-        "disabled:cursor-not-allowed disabled:opacity-50",
-        VARIANT_CLASSES[variant],
-        className,
-      )}
+      className={cn(buttonVariants({ variant, size }), className)}
+      {...props}
     >
-      {loading ? <Spinner /> : null}
-      <span>{children}</span>
-      {loading ? <span className="sr-only" role="status">{loadingLabel}</span> : null}
-    </button>
-  );
-});
+      {loading ? (
+        <>
+          <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          {loadingLabel ?? children}
+        </>
+      ) : (
+        children
+      )}
+    </Comp>
+  )
+})
+
+export { Button, buttonVariants }

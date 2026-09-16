@@ -1,145 +1,79 @@
-import Link from "next/link";
-import type { CSSProperties } from "react";
+"use client";
 
-const entryPoints = [
-  {
-    href: "/cliente/alta",
-    label: "Soy cliente",
-    description: "Registrar mi vehículo y acceder al seguimiento.",
-    icon: <IntakeIcon />,
-    accentVar: "--primary" as const,
-  },
-  {
-    href: "/seguimiento",
-    label: "Seguir mi vehículo",
-    description: "Consultar el estado, trabajos y costos de mi orden.",
-    icon: <TrackingIcon />,
-    accentVar: "--success" as const,
-  },
-  {
-    href: "/admin/login",
-    label: "Soy admin",
-    description: "Registrarme o ingresar al panel operativo.",
-    icon: <AdminIcon />,
-    accentVar: "--accent" as const,
-  },
-] as const;
+import { useEffect, useState } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useHashRoute, useScrollTopOnRouteChange, navigate } from "@/lib/router";
+import { useSession } from "@/lib/store";
+import { PublicNavbar } from "@/components/site/navbar";
+import { SiteFooter } from "@/components/site/footer";
+import { HomeView } from "@/components/views/home-view";
+import { IntakeView } from "@/components/views/intake-view";
+import { SeguimientoView } from "@/components/views/seguimiento-view";
+import { TrackingView } from "@/components/views/tracking-view";
+import { AdminLoginView } from "@/components/admin/admin-login";
+import { WorkshopCockpit } from "@/components/admin/cockpit/cockpit";
 
-export default function HomePage() {
-  return (
-    <main className="os-shell" style={styles.main}>
-      <div className="os-container" style={styles.container}>
-        <header style={styles.header}>
-          <p className="os-eyebrow" style={styles.eyebrow}>OS-CAR / TALLER OPERATIVO</p>
-          <h1 style={styles.heading}>¿Qué necesitás hacer?</h1>
-          <p style={styles.subheading}>
-            Una entrada clara para cada momento del taller. Sin cuentas innecesarias para clientes.
-          </p>
-        </header>
+/**
+ * Núcleo administrativo: CENTRO DE MANDO UNIFICADO. Las 5 rutas operativas
+ * históricas convergen aquí — la sesión se resuelve antes de montar el
+ * cockpit para que nunca haya parpadeo de datos sin autenticar.
+ */
+function AdminArea({ view }: { view: string }) {
+  const { admin, loaded, refresh } = useSession();
 
-        <div className="entry-grid" style={styles.grid}>
-          {entryPoints.map((entry) => (
-            <Link
-              key={entry.href}
-              href={entry.href}
-              style={{
-                ...styles.card,
-                ["--card-accent" as string]: `var(${entry.accentVar})`,
-              }}
-              className="entry-card"
-            >
-              <span style={styles.iconWrap}>{entry.icon}</span>
-              <span style={styles.cardLabel}>{entry.label}</span>
-              <span style={styles.cardDescription}>{entry.description}</span>
-              <span className="entry-card-arrow" aria-hidden="true">→</span>
-            </Link>
-          ))}
-        </div>
+  useEffect(() => {
+    if (!loaded) refresh();
+  }, [loaded, refresh]);
 
-        <p style={styles.footer}>
-          OS-CAR mantiene separados el diagnóstico técnico, el trabajo realizado y los costos de tu vehículo.
-        </p>
+  // Si ya hay sesión, "admin/login" redirige al cockpit.
+  useEffect(() => {
+    if (admin && view === "admin-login") navigate({ view: "admin-cockpit" }, { replace: true });
+  }, [admin, view]);
+
+  if (!loaded) {
+    return (
+      <div className="flex min-h-[60vh] flex-1 items-center justify-center">
+        <div
+          className="tech-grid-fine h-16 w-16 animate-spin rounded-full border-2 border-carbon-700 border-t-oscar-yellow"
+          aria-label="Cargando centro de mando"
+        />
       </div>
-    </main>
-  );
+    );
+  }
+
+  if (!admin) return <AdminLoginView />;
+
+  return <WorkshopCockpit />;
 }
 
-function IntakeIcon() {
+export default function Page() {
+  const route = useHashRoute();
+  useScrollTopOnRouteChange(route);
+
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: { staleTime: 15_000, retry: 1, refetchOnWindowFocus: false },
+        },
+      }),
+  );
+
+  const isAdmin = route.view.startsWith("admin");
+
   return (
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <rect x="6" y="5" width="16" height="20" rx="2" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M11 5V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M10 15l2.5 2.5L18 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <QueryClientProvider client={queryClient}>
+      <div className="flex min-h-screen flex-col bg-background">
+        {!isAdmin && <PublicNavbar />}
+        <main className="flex flex-1 flex-col">
+          {route.view === "home" && <HomeView />}
+          {route.view === "intake" && <IntakeView />}
+          {route.view === "seguimiento" && <SeguimientoView />}
+          {route.view === "tracking" && route.code && <TrackingView code={route.code} />}
+          {isAdmin && <AdminArea view={route.view} />}
+        </main>
+        {!isAdmin && <SiteFooter />}
+      </div>
+    </QueryClientProvider>
   );
 }
-
-function TrackingIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <circle cx="14" cy="14" r="3.2" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M14 3v3.2M14 21.8V25M3 14h3.2M21.8 14H25" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <circle cx="14" cy="14" r="9" stroke="currentColor" strokeWidth="1.2" opacity="0.4" />
-    </svg>
-  );
-}
-
-function AdminIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <rect x="4" y="4" width="20" height="20" rx="2" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M9 17v-4M14 17V9M19 17v-7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-const styles: Record<string, CSSProperties> = {
-  main: {
-    minHeight: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "32px 20px",
-  },
-  container: { width: "100%", maxWidth: 1040 },
-  header: { marginBottom: 36, maxWidth: 600 },
-  eyebrow: { marginBottom: 12 },
-  heading: {
-    fontFamily: "'Inter Tight', 'Inter', system-ui, sans-serif",
-    fontSize: "clamp(32px, 5vw, 52px)",
-    fontWeight: 750,
-    letterSpacing: "-0.04em",
-    lineHeight: 1.05,
-    color: "var(--text-main)",
-    marginBottom: 16,
-  },
-  subheading: { fontSize: 17, lineHeight: 1.6, color: "var(--text-muted)", maxWidth: 520 },
-  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 },
-  card: {
-    position: "relative",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "flex-start",
-    gap: 12,
-    padding: "28px 24px",
-    minHeight: 220,
-    backgroundColor: "var(--surface)",
-    border: "1px solid var(--border)",
-    borderRadius: "var(--radius-lg)",
-    textDecoration: "none",
-    color: "var(--text-main)",
-  },
-  iconWrap: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: 52,
-    height: 52,
-    borderRadius: "var(--radius-md)",
-    backgroundColor: "var(--surface-raised)",
-    color: "var(--card-accent, var(--primary))",
-  },
-  cardLabel: { fontSize: 20, fontWeight: 650, letterSpacing: "-0.02em", color: "var(--text-main)" },
-  cardDescription: { fontSize: 14, lineHeight: 1.6, color: "var(--text-muted)", maxWidth: 280 },
-  footer: { marginTop: 36, fontSize: 13, lineHeight: 1.5, color: "var(--text-muted)" },
-};

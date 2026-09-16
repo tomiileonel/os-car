@@ -692,7 +692,7 @@ export default function PublicTrackingPage({ params }: PageProps): React.JSX.Ele
 
             <Button
               type="button"
-              variant="primary"
+              variant="default"
               loading={isSubmitting}
               loadingLabel="Registrando..."
               onClick={handleSubmitDecision}

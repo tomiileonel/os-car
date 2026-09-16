@@ -1,71 +1,85 @@
-"use client";
+import * as React from "react"
+import { cn } from "@/lib/utils"
 
-import { forwardRef, useId } from "react";
-import type { InputHTMLAttributes } from "react";
-import { cn } from "@/lib/cn";
-
-export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "id"> {
-  label: string;
-  /** Ties this field to its error via aria-describedby + aria-invalid. */
-  errorMessage?: string | undefined;
-  hint?: string | undefined;
-  id?: string | undefined;
-  containerClassName?: string | undefined;
+export interface InputProps extends React.ComponentProps<"input"> {
+  label?: string
+  errorMessage?: string
+  error?: string
+  hint?: string
+  mono?: boolean
+  containerClassName?: string
 }
 
 /**
- * Input — labeled text field with error/hint wiring.
- *
- * Accessibility contract:
- * - `label` is always rendered as a real <label htmlFor>, never
- *   placeholder-only (placeholder text disappears on input and fails
- *   WCAG 1.3.1 / 3.3.2 for anyone who loses their place).
- * - aria-invalid is set exactly when errorMessage is present.
- * - aria-describedby points at the error node when present, else the
- *   hint node when present, else is omitted (never an empty string,
- *   which some screen readers mis-announce as "describes: nothing").
- * - 48px minimum touch target height per ui-system/SKILL.md (workshop
- *   tablet ergonomics — gloved fingers, dirty screens).
+ * Input OS-CAR — Terminal industrial.
+ * Soporta uso directo como <input> (para shadcn/Radix forms)
+ * y con label/error accesibles integrados (WCAG 1.3.1).
  */
-export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { label, errorMessage, hint, id, containerClassName, className, ...inputProps },
-  ref,
+const Input = React.forwardRef<HTMLInputElement, InputProps>(function Input(
+  {
+    className,
+    type,
+    label,
+    errorMessage,
+    error,
+    hint,
+    mono,
+    containerClassName,
+    id,
+    ...props
+  },
+  ref
 ) {
-  const generatedId = useId();
-  const inputId = id ?? generatedId;
-  const errorId = `${inputId}-error`;
-  const hintId = `${inputId}-hint`;
+  const generatedId = React.useId()
+  const inputId = id ?? generatedId
+  const err = errorMessage ?? error
+  const errorId = `${inputId}-error`
+  const hintId = `${inputId}-hint`
+  const describedBy = err ? errorId : hint ? hintId : undefined
 
-  const describedBy = errorMessage ? errorId : hint ? hintId : undefined;
+  const inputElement = (
+    <input
+      type={type}
+      ref={ref}
+      id={inputId}
+      data-slot="input"
+      aria-invalid={err ? true : props["aria-invalid"]}
+      aria-describedby={describedBy ?? props["aria-describedby"]}
+      className={cn(
+        "file:text-foreground placeholder:text-lead selection:bg-oscar-yellow selection:text-carbon-950 bg-carbon-950/70 border-carbon-800 flex h-11 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-[inset_0_2px_4px_rgba(0,0,0,0.45)] transition-[color,box-shadow,border-color] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+        "hover:border-carbon-700 focus-visible:border-oscar-yellow/70 focus-visible:shadow-[inset_0_2px_4px_rgba(0,0,0,0.45),0_0_0_3px_rgba(255,230,0,0.15)]",
+        mono && "font-mono uppercase tracking-wider",
+        err && "border-oscar-red/70 focus-visible:border-oscar-red/70",
+        className
+      )}
+      {...props}
+    />
+  )
+
+  if (!label && !err && !hint) {
+    return inputElement
+  }
 
   return (
     <div className={cn("flex flex-col gap-1.5", containerClassName)}>
-      <label htmlFor={inputId} className="text-sm font-medium text-[#f9fafb]">
-        {label}
-      </label>
-      <input
-        {...inputProps}
-        ref={ref}
-        id={inputId}
-        aria-invalid={errorMessage ? true : undefined}
-        aria-describedby={describedBy}
-        className={cn(
-          "min-h-[48px] w-full rounded-md border bg-[#111827] px-3 py-2 text-base text-[#f9fafb]",
-          "placeholder:text-[#6b7280]",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb]",
-          errorMessage ? "border-[#ef4444]" : "border-[#374151]",
-          className,
-        )}
-      />
-      {errorMessage ? (
-        <p id={errorId} role="alert" className="text-sm text-[#fca5a5]">
-          {errorMessage}
+      {label && (
+        <label htmlFor={inputId} className="text-sm font-medium text-titanium">
+          {label}
+        </label>
+      )}
+      {inputElement}
+      {err ? (
+        <p id={errorId} role="alert" className="text-sm text-oscar-red">
+          {err}
         </p>
       ) : hint ? (
-        <p id={hintId} className="text-sm text-[#9ca3af]">
+        <p id={hintId} className="text-sm text-steel">
           {hint}
         </p>
       ) : null}
     </div>
-  );
-});
+  )
+})
+
+export { Input }
+

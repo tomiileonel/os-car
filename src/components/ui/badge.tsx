@@ -1,13 +1,55 @@
-import type { ReactNode } from "react";
-import { cn } from "@/lib/cn";
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
+
+import { cn } from "@/lib/utils"
 
 /**
- * Canonical OrderStatus enum, mirrored from the Prisma schema in
- * OS-CAR-ESPECIFICACION-MAESTRA.md §18. Kept as a literal union here
- * (not imported from @prisma/client) so this component has no
- * dependency on generated Prisma types — it is a pure presentation
- * primitive that a Server Component can pass a string into.
+ * Badge OS-CAR — indicadores estilo tablero automotriz.
+ * Se agregan variantes técnicas: led (luz + texto), yellow, alert.
  */
+const badgeVariants = cva(
+  "inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1.5 [&>svg]:pointer-events-none transition-[color,box-shadow] overflow-hidden",
+  {
+    variants: {
+      variant: {
+        default:
+          "border-transparent bg-oscar-yellow text-carbon-950 font-display font-bold uppercase tracking-wider [a&]:hover:bg-oscar-yellow-hover",
+        secondary:
+          "border-carbon-700 bg-carbon-800 text-steel font-mono uppercase tracking-wider",
+        destructive:
+          "border-oscar-red/50 bg-oscar-red/15 text-oscar-red font-display font-bold uppercase tracking-wider",
+        outline:
+          "border-carbon-700 text-steel [a&]:hover:bg-carbon-800",
+        yellow:
+          "border-oscar-yellow/45 bg-oscar-yellow/10 text-oscar-yellow",
+        red:
+          "border-oscar-red/45 bg-oscar-red/10 text-oscar-red",
+        green:
+          "border-bay-free/40 bg-bay-free/10 text-bay-free",
+        cyan:
+          "border-bay-test/40 bg-bay-test/10 text-bay-test",
+        tech:
+          "border-carbon-800 bg-carbon-900 font-mono text-[0.65rem] uppercase tracking-[0.18em] text-steel",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
+
+type BadgeTone = "neutral" | "info" | "warning" | "success" | "danger" | "muted";
+
+const TONE_TO_VARIANT: Record<BadgeTone, "secondary" | "cyan" | "yellow" | "green" | "destructive" | "outline"> = {
+  neutral: "secondary",
+  info: "cyan",
+  warning: "yellow",
+  success: "green",
+  danger: "destructive",
+  muted: "outline",
+};
+
 export type OrderStatus =
   | "INGRESADO"
   | "DIAGNOSTICO"
@@ -17,11 +59,6 @@ export type OrderStatus =
   | "LISTO"
   | "ENTREGADO"
   | "CANCELADA";
-
-/** Canonical AdminRole. MVP has a single aggregated role per spec §04/§16. */
-export type AdminRole = "ADMIN";
-
-type BadgeTone = "neutral" | "info" | "warning" | "success" | "danger" | "muted";
 
 const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   INGRESADO: "Ingresado",
@@ -34,52 +71,37 @@ const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   CANCELADA: "Cancelada",
 };
 
-const ORDER_STATUS_TONE: Record<OrderStatus, BadgeTone> = {
-  INGRESADO: "neutral",
-  DIAGNOSTICO: "info",
-  ESPERANDO_REPARACION: "warning",
-  EN_REPARACION: "info",
-  CONTROL: "warning",
-  LISTO: "success",
-  ENTREGADO: "muted",
-  CANCELADA: "danger",
+const ORDER_STATUS_VARIANT: Record<OrderStatus, "secondary" | "cyan" | "yellow" | "green" | "destructive" | "outline"> = {
+  INGRESADO: "secondary",
+  DIAGNOSTICO: "cyan",
+  ESPERANDO_REPARACION: "yellow",
+  EN_REPARACION: "cyan",
+  CONTROL: "yellow",
+  LISTO: "green",
+  ENTREGADO: "secondary",
+  CANCELADA: "destructive",
 };
 
-const ADMIN_ROLE_LABEL: Record<AdminRole, string> = {
-  ADMIN: "Administrador",
-};
-
-// Tokens from .agents/skills/ui-system/SKILL.md — dark, high-contrast,
-// workshop-tablet palette. Reused verbatim rather than reinvented.
-const TONE_CLASSES: Record<BadgeTone, string> = {
-  neutral: "bg-[#1f2937] text-[#f9fafb] border-[#374151]",
-  info: "bg-[#1d3a5f] text-[#bfdbfe] border-[#2563eb]",
-  warning: "bg-[#4a3510] text-[#fde68a] border-[#f59e0b]",
-  success: "bg-[#0f3d2e] text-[#86efac] border-[#10b981]",
-  danger: "bg-[#4a1414] text-[#fca5a5] border-[#ef4444]",
-  muted: "bg-[#111827] text-[#9ca3af] border-[#374151]",
-};
-
-interface BaseBadgeProps {
-  className?: string | undefined;
-  children?: ReactNode | undefined;
-}
-
-function BaseBadge({
-  tone,
+function Badge({
   className,
-  children,
-}: BaseBadgeProps & { tone: BadgeTone }): React.JSX.Element {
+  variant,
+  tone,
+  asChild = false,
+  ...props
+}: React.ComponentProps<"span"> &
+  VariantProps<typeof badgeVariants> & {
+    asChild?: boolean;
+    tone?: BadgeTone;
+  }) {
+  const Comp = asChild ? Slot : "span";
+  const resolvedVariant = variant ?? (tone ? TONE_TO_VARIANT[tone] : undefined) ?? "default";
+
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-sm font-medium leading-none",
-        TONE_CLASSES[tone],
-        className,
-      )}
-    >
-      {children}
-    </span>
+    <Comp
+      data-slot="badge"
+      className={cn(badgeVariants({ variant: resolvedVariant }), className)}
+      {...props}
+    />
   );
 }
 
@@ -88,12 +110,12 @@ export function OrderStatusBadge({
   className,
 }: {
   status: OrderStatus;
-  className?: string | undefined;
+  className?: string;
 }): React.JSX.Element {
   return (
-    <BaseBadge tone={ORDER_STATUS_TONE[status]} className={className}>
-      {ORDER_STATUS_LABEL[status]}
-    </BaseBadge>
+    <Badge variant={ORDER_STATUS_VARIANT[status] ?? "secondary"} className={className}>
+      {ORDER_STATUS_LABEL[status] ?? status}
+    </Badge>
   );
 }
 
@@ -101,25 +123,14 @@ export function AdminRoleBadge({
   role,
   className,
 }: {
-  role: AdminRole;
-  className?: string | undefined;
+  role: string;
+  className?: string;
 }): React.JSX.Element {
   return (
-    <BaseBadge tone="neutral" className={className}>
-      {ADMIN_ROLE_LABEL[role]}
-    </BaseBadge>
+    <Badge variant="secondary" className={className}>
+      {role === "ADMIN" ? "Administrador" : role}
+    </Badge>
   );
 }
 
-/** Generic escape hatch for badges that aren't OrderStatus/AdminRole. */
-export function Badge({
-  tone = "neutral",
-  className,
-  children,
-}: BaseBadgeProps & { tone?: BadgeTone | undefined }): React.JSX.Element {
-  return (
-    <BaseBadge tone={tone} className={className}>
-      {children}
-    </BaseBadge>
-  );
-}
+export { Badge, badgeVariants };
