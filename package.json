@@ -23,6 +23,22 @@
     "admin:create": "tsx --env-file=.env scripts/create-admin.ts",
     "worker:outbox": "tsx scripts/run-outbox-worker.ts"
   },
+  "allowScripts": {
+    "@prisma/client": true,
+    "@prisma/engines": true,
+    "esbuild": true,
+    "prisma": true,
+    "unrs-resolver": true
+  },
+  "lavamoat": {
+    "allowScripts": {
+      "@prisma/client": true,
+      "@prisma/engines": true,
+      "esbuild": true,
+      "prisma": true,
+      "unrs-resolver": true
+    }
+  },
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "@radix-ui/react-accordion": "^1.2.11",
@@ -66,7 +82,6 @@
     "pg": "^8.13.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "recharts": "^2.15.4",
     "sonner": "^2.0.6",
     "tailwind-merge": "^3.3.1",
     "vaul": "^1.1.2",
